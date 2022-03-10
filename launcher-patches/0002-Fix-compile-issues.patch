@@ -1,0 +1,920 @@
+From c6ca1269f878afc7767488d6b2b577e0f6c35212 Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot3132@gmail.com>
+Date: Thu, 10 Mar 2022 01:01:49 -0600
+Subject: [PATCH 2/2] Fix compile issues
+
+---
+ pom.xml                                       |  37 ++++-
+ .../authlib/properties/PropertyMap.java       |   6 +-
+ .../YggdrasilAuthenticationService.java       |   2 +-
+ .../game/process/GameProcessBuilder.java      |   3 +-
+ .../process/direct/DirectGameProcess.java     |   3 +-
+ .../LowerCaseEnumTypeAdapterFactory.java      |   9 +-
+ .../com/mojang/util/QueueLogAppender.java     |  10 +-
+ .../net/minecraft/hopper/HopperService.java   |   2 +-
+ .../java/net/minecraft/launcher/Launcher.java |  11 +-
+ .../minecraft/launcher/LauncherConstants.java |   3 +-
+ .../launcher/game/GameLaunchDispatcher.java   |   7 +-
+ .../launcher/game/MinecraftGameRunner.java    |   4 +-
+ .../minecraft/launcher/profile/Profile.java   |   3 +-
+ .../launcher/ui/popups/login/LogInForm.java   |   5 +-
+ .../updater/CompleteMinecraftVersion.java     |  53 +++----
+ .../minecraft/launcher/updater/Library.java   |  16 ++-
+ .../launcher/updater/LibraryDownloadInfo.java |   9 +-
+ src/main/resources/Log4j-config.xsd           | 133 ------------------
+ src/main/resources/Log4j-events.dtd           |  64 ---------
+ src/main/resources/Log4j-events.xsd           |  74 ----------
+ src/main/resources/META-INF/MANIFEST.MF       |   4 -
+ 21 files changed, 116 insertions(+), 342 deletions(-)
+ delete mode 100644 src/main/resources/Log4j-config.xsd
+ delete mode 100644 src/main/resources/Log4j-events.dtd
+ delete mode 100644 src/main/resources/Log4j-events.xsd
+ delete mode 100644 src/main/resources/META-INF/MANIFEST.MF
+
+diff --git a/pom.xml b/pom.xml
+index 34c1110..c34c484 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -6,7 +6,7 @@
+ 
+     <groupId>dev.figboot</groupId>
+     <artifactId>olauncher</artifactId>
+-    <version>0.1.0</version>
++    <version>1.6.93</version>
+ 
+     <properties>
+         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+@@ -23,6 +23,23 @@
+                     <target>1.8</target>
+                 </configuration>
+             </plugin>
++            <plugin>
++                <groupId>org.apache.maven.plugins</groupId>
++                <artifactId>maven-jar-plugin</artifactId>
++                <version>3.2.0</version>
++                <configuration>
++                    <archive>
++                        <addMavenDescriptor>false</addMavenDescriptor>
++                        <manifest>
++                            <addClasspath>false</addClasspath>
++                        </manifest>
++                        <manifestEntries>
++                            <Main-Class>net.minecraft.launcher.Main</Main-Class>
++                            <Implementation-Version>${project.version}</Implementation-Version>
++                        </manifestEntries>
++                    </archive>
++                </configuration>
++            </plugin>
+             <plugin>
+                 <groupId>org.apache.maven.plugins</groupId>
+                 <artifactId>maven-shade-plugin</artifactId>
+@@ -37,7 +54,19 @@
+                 </executions>
+                 <configuration>
+                     <createDependencyReducedPom>false</createDependencyReducedPom>
++                    <transformers>
++                        <transformer
++                                implementation="io.github.edwgiz.log4j.maven.plugins.shade.transformer.Log4j2PluginCacheFileTransformer">
++                        </transformer>
++                    </transformers>
+                 </configuration>
++                <dependencies>
++                    <dependency>
++                        <groupId>io.github.edwgiz</groupId>
++                        <artifactId>log4j-maven-shade-plugin-extensions</artifactId>
++                        <version>2.17.1</version>
++                    </dependency>
++                </dependencies>
+             </plugin>
+         </plugins>
+     </build>
+@@ -72,7 +101,7 @@
+             <groupId>org.apache.commons</groupId>
+             <artifactId>commons-lang3</artifactId>
+             <version>3.12.0</version>
+-            <scope>provided</scope>
++            <scope>compile</scope>
+         </dependency>
+         <dependency>
+             <groupId>com.google.code.gson</groupId>
+@@ -92,7 +121,7 @@
+             <version>5.0.4</version>
+             <scope>compile</scope>
+         </dependency>
+-        <dependency>
++        <!--<dependency>
+             <groupId>org.openjfx</groupId>
+             <artifactId>javafx-controls</artifactId>
+             <version>17</version>
+@@ -109,6 +138,6 @@
+             <artifactId>javafx-web</artifactId>
+             <version>17</version>
+             <scope>compile</scope>
+-        </dependency>
++        </dependency>-->
+     </dependencies>
+ </project>
+diff --git a/src/main/java/com/mojang/authlib/properties/PropertyMap.java b/src/main/java/com/mojang/authlib/properties/PropertyMap.java
+index 38af7c8..134d8e6 100644
+--- a/src/main/java/com/mojang/authlib/properties/PropertyMap.java
++++ b/src/main/java/com/mojang/authlib/properties/PropertyMap.java
+@@ -33,16 +33,16 @@ public class PropertyMap extends ForwardingMultimap<String, Property> {
+             PropertyMap var4 = new PropertyMap();
+             if (var1 instanceof JsonObject) {
+                 JsonObject var5 = (JsonObject)var1;
+-                Iterator var6 = var5.entrySet().iterator();
++                Iterator<Map.Entry<String, JsonElement>> var6 = var5.entrySet().iterator(); // olauncher - fix generic
+ 
+                 while(true) {
+-                    Map.Entry var7;
++                    Map.Entry<String, JsonElement> var7; // olauncher - fix generic
+                     do {
+                         if (!var6.hasNext()) {
+                             return var4;
+                         }
+ 
+-                        var7 = (Map.Entry)var6.next();
++                        var7 = var6.next(); // olauncher - fix generic
+                     } while(!(var7.getValue() instanceof JsonArray));
+ 
+                     Iterator var8 = ((JsonArray)var7.getValue()).iterator();
+diff --git a/src/main/java/com/mojang/authlib/yggdrasil/YggdrasilAuthenticationService.java b/src/main/java/com/mojang/authlib/yggdrasil/YggdrasilAuthenticationService.java
+index c3d4ba5..70d2959 100644
+--- a/src/main/java/com/mojang/authlib/yggdrasil/YggdrasilAuthenticationService.java
++++ b/src/main/java/com/mojang/authlib/yggdrasil/YggdrasilAuthenticationService.java
+@@ -60,7 +60,7 @@ public class YggdrasilAuthenticationService extends HttpAuthenticationService {
+     protected <T extends Response> T makeRequest(URL var1, Object var2, Class<T> var3) throws AuthenticationException {
+         try {
+             String var4 = var2 == null ? this.performGetRequest(var1) : this.performPostRequest(var1, this.gson.toJson(var2), "application/json");
+-            Response var5 = (Response)this.gson.fromJson(var4, var3);
++            T var5 = this.gson.fromJson(var4, var3); // olauncher - cast to generic
+             if (var5 == null) {
+                 return null;
+             } else if (StringUtils.isNotBlank(var5.getError())) {
+diff --git a/src/main/java/com/mojang/launcher/game/process/GameProcessBuilder.java b/src/main/java/com/mojang/launcher/game/process/GameProcessBuilder.java
+index 6681b03..75a6af4 100644
+--- a/src/main/java/com/mojang/launcher/game/process/GameProcessBuilder.java
++++ b/src/main/java/com/mojang/launcher/game/process/GameProcessBuilder.java
+@@ -1,5 +1,6 @@
+ package com.mojang.launcher.game.process;
+ 
++import com.google.common.base.MoreObjects;
+ import com.google.common.base.Objects;
+ import com.google.common.base.Predicate;
+ import com.google.common.base.Predicates;
+@@ -76,6 +77,6 @@ public class GameProcessBuilder {
+     }
+ 
+     public String toString() {
+-        return Objects.toStringHelper(this).add("processPath", this.processPath).add("arguments", this.arguments).add("sysOutFilter", this.sysOutFilter).add("directory", this.directory).add("logProcessor", this.logProcessor).toString();
++        return MoreObjects.toStringHelper(this).add("processPath", this.processPath).add("arguments", this.arguments).add("sysOutFilter", this.sysOutFilter).add("directory", this.directory).add("logProcessor", this.logProcessor).toString(); // olauncher - modernize
+     }
+ }
+diff --git a/src/main/java/com/mojang/launcher/game/process/direct/DirectGameProcess.java b/src/main/java/com/mojang/launcher/game/process/direct/DirectGameProcess.java
+index 66a7107..d7712b0 100644
+--- a/src/main/java/com/mojang/launcher/game/process/direct/DirectGameProcess.java
++++ b/src/main/java/com/mojang/launcher/game/process/direct/DirectGameProcess.java
+@@ -1,5 +1,6 @@
+ package com.mojang.launcher.game.process.direct;
+ 
++import com.google.common.base.MoreObjects;
+ import com.google.common.base.Objects;
+ import com.google.common.base.Predicate;
+ import com.google.common.collect.EvictingQueue;
+@@ -48,7 +49,7 @@ public class DirectGameProcess extends AbstractGameProcess {
+     }
+ 
+     public String toString() {
+-        return Objects.toStringHelper(this).add("process", this.process).add("monitor", this.monitor).toString();
++        return MoreObjects.toStringHelper(this).add("process", this.process).add("monitor", this.monitor).toString(); // olauncher - modernize
+     }
+ 
+     public void stop() {
+diff --git a/src/main/java/com/mojang/launcher/updater/LowerCaseEnumTypeAdapterFactory.java b/src/main/java/com/mojang/launcher/updater/LowerCaseEnumTypeAdapterFactory.java
+index d53c3af..59a5790 100644
+--- a/src/main/java/com/mojang/launcher/updater/LowerCaseEnumTypeAdapterFactory.java
++++ b/src/main/java/com/mojang/launcher/updater/LowerCaseEnumTypeAdapterFactory.java
+@@ -16,16 +16,17 @@ public class LowerCaseEnumTypeAdapterFactory implements TypeAdapterFactory {
+     }
+ 
+     public <T> TypeAdapter<T> create(Gson var1, TypeToken<T> var2) {
+-        Class var3 = var2.getRawType();
++        // olauncher - restore generics (maybe)
++        Class<? super T> var3 = var2.getRawType();
+         if (!var3.isEnum()) {
+             return null;
+         } else {
+-            final HashMap var4 = new HashMap();
+-            Object[] var5 = var3.getEnumConstants();
++            final HashMap<String, T> var4 = new HashMap<>();
++            T[] var5 = (T[])var3.getEnumConstants();
+             int var6 = var5.length;
+ 
+             for(int var7 = 0; var7 < var6; ++var7) {
+-                Object var8 = var5[var7];
++                T var8 = var5[var7];
+                 var4.put(this.toLowercase(var8), var8);
+             }
+ 
+diff --git a/src/main/java/com/mojang/util/QueueLogAppender.java b/src/main/java/com/mojang/util/QueueLogAppender.java
+index cfa709b..ecfe107 100644
+--- a/src/main/java/com/mojang/util/QueueLogAppender.java
++++ b/src/main/java/com/mojang/util/QueueLogAppender.java
+@@ -56,18 +56,20 @@ public class QueueLogAppender extends AbstractAppender {
+             }
+ 
+             QUEUE_LOCK.writeLock().lock();
+-            Object var6 = (BlockingQueue)QUEUES.get(var4);
++            BlockingQueue<String> var6 = QUEUES.get(var4); // olauncher - set type
+             if (var6 == null) {
+-                var6 = new LinkedBlockingQueue();
++                var6 = new LinkedBlockingQueue<>(); // olauncher - fix generic
+                 QUEUES.put(var4, var6);
+             }
+ 
+             QUEUE_LOCK.writeLock().unlock();
+             if (var2 == null) {
+-                var2 = PatternLayout.createLayout((String)null, (Configuration)null, (RegexReplacement)null, (String)null, (String)null);
++                // olauncher - fix compile error
++                //var2 = PatternLayout.createLayout((String)null, (Configuration)null, (RegexReplacement)null, (String)null, (String)null);
++                var2 = PatternLayout.createDefaultLayout();
+             }
+ 
+-            return new QueueLogAppender(var0, var3, (Layout)var2, var5, (BlockingQueue)var6);
++            return new QueueLogAppender(var0, var3, var2, var5, var6); // olauncher - remove casts
+         }
+     }
+ 
+diff --git a/src/main/java/net/minecraft/hopper/HopperService.java b/src/main/java/net/minecraft/hopper/HopperService.java
+index 90d2aca..2b9bf05 100644
+--- a/src/main/java/net/minecraft/hopper/HopperService.java
++++ b/src/main/java/net/minecraft/hopper/HopperService.java
+@@ -49,7 +49,7 @@ public final class HopperService {
+ 
+     private static <T extends Response> T makeRequest(Proxy var0, URL var1, Object var2, Class<T> var3) throws IOException {
+         String var4 = Util.performPost(var1, GSON.toJson(var2), var0, "application/json", true);
+-        Response var5 = (Response)GSON.fromJson(var4, var3);
++        T var5 = GSON.fromJson(var4, var3); // olauncher - restore generic
+         if (var5 == null) {
+             return null;
+         } else if (var5.getError() != null) {
+diff --git a/src/main/java/net/minecraft/launcher/Launcher.java b/src/main/java/net/minecraft/launcher/Launcher.java
+index c299467..a10c49f 100644
+--- a/src/main/java/net/minecraft/launcher/Launcher.java
++++ b/src/main/java/net/minecraft/launcher/Launcher.java
+@@ -15,6 +15,7 @@ import com.mojang.launcher.versions.CompleteVersion;
+ import com.mojang.launcher.versions.Version;
+ import com.mojang.util.UUIDTypeAdapter;
+ import java.io.File;
++import java.io.FileFilter;
+ import java.io.IOException;
+ import java.net.PasswordAuthentication;
+ import java.net.Proxy;
+@@ -296,14 +297,14 @@ public class Launcher {
+                 File var9;
+                 do {
+                     if (!var5.hasNext()) {
+-                        File[] var15 = var3.listFiles(DirectoryFileFilter.DIRECTORY);
++                        File[] var15 = var3.listFiles((FileFilter)DirectoryFileFilter.DIRECTORY); // olauncher - fix compile error
+                         if (var15 != null) {
+                             File[] var16 = var15;
+                             int var17 = var15.length;
+ 
+                             for(int var18 = 0; var18 < var17; ++var18) {
+                                 var9 = var16[var18];
+-                                File[] var19 = var9.listFiles(FileFileFilter.FILE);
++                                File[] var19 = var9.listFiles((FileFilter)FileFileFilter.FILE); // olauncher - fix generic
+                                 if (var19 != null) {
+                                     File[] var20 = var19;
+                                     int var21 = var19.length;
+@@ -421,7 +422,7 @@ public class Launcher {
+         var4.add(5, -5);
+         Date var5 = var4.getTime();
+         if (var2.isDirectory()) {
+-            File[] var6 = var2.listFiles(DirectoryFileFilter.DIRECTORY);
++            File[] var6 = var2.listFiles((FileFilter)DirectoryFileFilter.DIRECTORY); // olauncher - fix compile error
+             if (var6 != null) {
+                 File[] var7 = var6;
+                 int var8 = var6.length;
+@@ -451,14 +452,14 @@ public class Launcher {
+         LOGGER.info("Looking for old natives & assets to clean up...");
+         AgeFileFilter var2 = new AgeFileFilter(System.currentTimeMillis() - 3600000L);
+         if (var1.isDirectory()) {
+-            File[] var3 = var1.listFiles(DirectoryFileFilter.DIRECTORY);
++            File[] var3 = var1.listFiles((FileFilter)DirectoryFileFilter.DIRECTORY); // olauncher - fix compile error
+             if (var3 != null) {
+                 File[] var4 = var3;
+                 int var5 = var3.length;
+ 
+                 for(int var6 = 0; var6 < var5; ++var6) {
+                     File var7 = var4[var6];
+-                    File[] var8 = var7.listFiles(FileFilterUtils.and(new IOFileFilter[]{new PrefixFileFilter(var7.getName() + "-natives-"), var2}));
++                    File[] var8 = var7.listFiles((FileFilter)FileFilterUtils.and(new PrefixFileFilter(var7.getName() + "-natives-"), var2)); // olauncher - fix compile error
+                     if (var8 != null) {
+                         File[] var9 = var8;
+                         int var10 = var8.length;
+diff --git a/src/main/java/net/minecraft/launcher/LauncherConstants.java b/src/main/java/net/minecraft/launcher/LauncherConstants.java
+index 3390351..1d0b33e 100644
+--- a/src/main/java/net/minecraft/launcher/LauncherConstants.java
++++ b/src/main/java/net/minecraft/launcher/LauncherConstants.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.launcher;
+ 
++import com.google.common.base.MoreObjects;
+ import com.google.common.base.Objects;
+ import com.google.gson.Gson;
+ import com.google.gson.GsonBuilder;
+@@ -61,7 +62,7 @@ public class LauncherConstants {
+     }
+ 
+     public static String getVersionName() {
+-        return (String)Objects.firstNonNull(LauncherConstants.class.getPackage().getImplementationVersion(), "unknown");
++        return (String)MoreObjects.firstNonNull(LauncherConstants.class.getPackage().getImplementationVersion(), "unknown"); // olauncher - modernize
+     }
+ 
+     private static LauncherProperties getProperties() {
+diff --git a/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
+index 8a94871..614b11f 100644
+--- a/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
++++ b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.launcher.game;
+ 
++import com.google.common.base.MoreObjects;
+ import com.google.common.base.Objects;
+ import com.google.common.collect.BiMap;
+ import com.google.common.collect.HashBiMap;
+@@ -107,7 +108,7 @@ public class GameLaunchDispatcher implements GameRunnerListener {
+ 
+         this.launcher.getLauncher().getVersionManager().getExecutorService().execute(new Runnable() {
+             public void run() {
+-                var5.setVisibility((LauncherVisibilityRule)Objects.firstNonNull(var2.getLauncherVisibilityOnGameClose(), Profile.DEFAULT_LAUNCHER_VISIBILITY));
++                var5.setVisibility((LauncherVisibilityRule)MoreObjects.firstNonNull(var2.getLauncherVisibilityOnGameClose(), Profile.DEFAULT_LAUNCHER_VISIBILITY)); // olauncher - modernize
+                 VersionSyncInfo var1 = null;
+                 if (var4 != null) {
+                     var1 = GameLaunchDispatcher.this.launcher.getLauncher().getVersionManager().getVersionSyncInfo(var4);
+@@ -157,14 +158,14 @@ public class GameLaunchDispatcher implements GameRunnerListener {
+         this.lock.lock();
+ 
+         try {
+-            File var1 = (File)Objects.firstNonNull(this.launcher.getProfileManager().getSelectedProfile().getGameDir(), this.launcher.getLauncher().getWorkingDirectory());
++            File var1 = (File)MoreObjects.firstNonNull(this.launcher.getProfileManager().getSelectedProfile().getGameDir(), this.launcher.getLauncher().getWorkingDirectory()); // olauncher - modernize
+             Iterator var2 = this.instances.values().iterator();
+ 
+             while(var2.hasNext()) {
+                 MinecraftGameRunner var3 = (MinecraftGameRunner)var2.next();
+                 Profile var4 = var3.getSelectedProfile();
+                 if (var4 != null) {
+-                    File var5 = (File)Objects.firstNonNull(var4.getGameDir(), this.launcher.getLauncher().getWorkingDirectory());
++                    File var5 = (File)MoreObjects.firstNonNull(var4.getGameDir(), this.launcher.getLauncher().getWorkingDirectory()); // olauncher - modernize
+                     if (var1.equals(var5)) {
+                         boolean var6 = true;
+                         return var6;
+diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
+index 4781d2e..de44451 100644
+--- a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
++++ b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.launcher.game;
+ 
++import com.google.common.base.MoreObjects;
+ import com.google.common.base.Objects;
+ import com.google.common.base.Predicate;
+ import com.google.gson.Gson;
+@@ -154,7 +155,8 @@ public class MinecraftGameRunner extends AbstractGameRunner implements GameProce
+                 var3.mkdirs();
+             }
+ 
+-            GameProcessBuilder var4 = new GameProcessBuilder((String)Objects.firstNonNull(this.selectedProfile.getJavaPath(), OperatingSystem.getCurrentPlatform().getJavaDir()));
++            // olauncher - modernize
++            GameProcessBuilder var4 = new GameProcessBuilder((String)MoreObjects.firstNonNull(this.selectedProfile.getJavaPath(), OperatingSystem.getCurrentPlatform().getJavaDir()));
+             var4.withSysOutFilter(new Predicate<String>() {
+                 public boolean apply(String var1) {
+                     return var1.contains("#@!@#");
+diff --git a/src/main/java/net/minecraft/launcher/profile/Profile.java b/src/main/java/net/minecraft/launcher/profile/Profile.java
+index bd17349..b43fac4 100644
+--- a/src/main/java/net/minecraft/launcher/profile/Profile.java
++++ b/src/main/java/net/minecraft/launcher/profile/Profile.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.launcher.profile;
+ 
++import com.google.common.base.MoreObjects;
+ import com.google.common.base.Objects;
+ import com.google.common.collect.Sets;
+ import com.mojang.launcher.updater.VersionFilter;
+@@ -47,7 +48,7 @@ public class Profile implements Comparable<Profile> {
+     }
+ 
+     public String getName() {
+-        return (String)Objects.firstNonNull(this.name, "");
++        return (String)MoreObjects.firstNonNull(this.name, ""); // olauncher - modernize
+     }
+ 
+     public void setName(String var1) {
+diff --git a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
+index 52ba2db..c3a6ae6 100644
+--- a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
++++ b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
+@@ -116,7 +116,7 @@ public class LogInForm extends JPanel implements ActionListener {
+     public void tryLogIn() {
+         if (this.authentication.isLoggedIn() && this.authentication.getSelectedProfile() == null && ArrayUtils.isNotEmpty(this.authentication.getAvailableProfiles())) {
+             this.popup.setCanLogIn(false);
+-            final GameProfile var6 = null;
++            GameProfile var6 = null; // olauncher - remove final
+             GameProfile[] var2 = this.authentication.getAvailableProfiles();
+             int var3 = var2.length;
+ 
+@@ -132,10 +132,11 @@ public class LogInForm extends JPanel implements ActionListener {
+                 var6 = this.authentication.getAvailableProfiles()[0];
+             }
+ 
++            final GameProfile var6Final = var6; // olauncher - move final here
+             this.popup.getMinecraftLauncher().getLauncher().getVersionManager().getExecutorService().execute(new Runnable() {
+                 public void run() {
+                     try {
+-                        LogInForm.this.authentication.selectGameProfile(var6);
++                        LogInForm.this.authentication.selectGameProfile(var6Final);
+                         LogInForm.this.popup.getMinecraftLauncher().getProfileManager().getAuthDatabase().register(UUIDTypeAdapter.fromUUID(LogInForm.this.authentication.getSelectedProfile().getId()), LogInForm.this.authentication);
+                         LogInForm.this.popup.setLoggedIn(UUIDTypeAdapter.fromUUID(LogInForm.this.authentication.getSelectedProfile().getId()));
+                     } catch (InvalidCredentialsException var2) {
+diff --git a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
+index 6221d55..c94b0d9 100644
+--- a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
++++ b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.launcher.updater;
+ 
++import com.google.common.base.MoreObjects;
+ import com.google.common.base.Objects;
+ import com.google.common.collect.Lists;
+ import com.google.common.collect.Maps;
+@@ -69,33 +70,35 @@ public class CompleteMinecraftVersion implements CompleteVersion {
+         this.assets = var1.assets;
+         this.jar = var1.jar;
+         this.downloads = var1.downloads;
+-        Iterator var2;
++        Iterator<Library> libraryIter; // olauncher - fix generic
+         if (var1.libraries != null) {
+             this.libraries = Lists.newArrayList();
+-            var2 = var1.getLibraries().iterator();
++            libraryIter = var1.getLibraries().iterator();
+ 
+-            while(var2.hasNext()) {
+-                Library var3 = (Library)var2.next();
++            while(libraryIter.hasNext()) {
++                Library var3 = libraryIter.next();
+                 this.libraries.add(new Library(var3));
+             }
+         }
+ 
++        Iterator<Map.Entry<ArgumentType, List<Argument>>> argIter; // olauncher - fix decomp error
+         if (var1.arguments != null) {
+             this.arguments = Maps.newEnumMap(ArgumentType.class);
+-            var2 = var1.arguments.entrySet().iterator();
++            argIter = var1.arguments.entrySet().iterator();
+ 
+-            while(var2.hasNext()) {
+-                Map.Entry var4 = (Map.Entry)var2.next();
+-                this.arguments.put(var4.getKey(), new ArrayList((Collection)var4.getValue()));
++            while(argIter.hasNext()) {
++                Map.Entry<ArgumentType, List<Argument>> var4 = argIter.next(); // olauncher - remove casts
++                this.arguments.put(var4.getKey(), new ArrayList<>(var4.getValue()));
+             }
+         }
+ 
++        Iterator<CompatibilityRule> ruleIter; // olauncher - fix decomp error
+         if (var1.compatibilityRules != null) {
+             this.compatibilityRules = Lists.newArrayList();
+-            var2 = var1.compatibilityRules.iterator();
++            ruleIter = var1.compatibilityRules.iterator();
+ 
+-            while(var2.hasNext()) {
+-                CompatibilityRule var5 = (CompatibilityRule)var2.next();
++            while(ruleIter.hasNext()) {
++                CompatibilityRule var5 = ruleIter.next();
+                 this.compatibilityRules.add(new CompatibilityRule(var5));
+             }
+         }
+@@ -328,29 +331,31 @@ public class CompleteMinecraftVersion implements CompleteVersion {
+                 var5.libraries = var6;
+             }
+ 
+-            Iterator var9;
++            Iterator<Map.Entry<ArgumentType, List<Argument>>> var9; // olauncher - fix generic
+             if (this.arguments != null) {
+                 if (var5.arguments == null) {
+-                    var5.arguments = new EnumMap(ArgumentType.class);
++                    var5.arguments = new EnumMap<>(ArgumentType.class);
+                 }
+ 
+-                Map.Entry var10;
+-                Object var12;
+-                for(var9 = this.arguments.entrySet().iterator(); var9.hasNext(); ((List)var12).addAll((Collection)var10.getValue())) {
+-                    var10 = (Map.Entry)var9.next();
+-                    var12 = (List)var5.arguments.get(var10.getKey());
++                // olauncher - perform surgery
++                Map.Entry<ArgumentType, List<Argument>> var10;
++                List<Argument> var12;
++                for(var9 = this.arguments.entrySet().iterator(); var9.hasNext(); var12.addAll(var10.getValue())) {
++                    var10 = var9.next();
++                    var12 = var5.arguments.get(var10.getKey());
+                     if (var12 == null) {
+-                        var12 = new ArrayList();
++                        var12 = new ArrayList<>();
+                         var5.arguments.put(var10.getKey(), var12);
+                     }
+                 }
+             }
+ 
++            Iterator<CompatibilityRule> rulesIter;
+             if (this.compatibilityRules != null) {
+-                var9 = this.compatibilityRules.iterator();
++                rulesIter = this.compatibilityRules.iterator();
+ 
+-                while(var9.hasNext()) {
+-                    CompatibilityRule var11 = (CompatibilityRule)var9.next();
++                while(rulesIter.hasNext()) {
++                    CompatibilityRule var11 = rulesIter.next();
+                     var5.compatibilityRules.add(new CompatibilityRule(var11));
+                 }
+             }
+@@ -360,7 +365,7 @@ public class CompleteMinecraftVersion implements CompleteVersion {
+     }
+ 
+     public CompleteMinecraftVersion getSavableVersion() {
+-        return (CompleteMinecraftVersion)Objects.firstNonNull(this.savableVersion, this);
++        return (CompleteMinecraftVersion)MoreObjects.firstNonNull(this.savableVersion, this); // olauncher - modernize
+     }
+ 
+     public AbstractDownloadInfo getDownloadURL(DownloadType var1) {
+@@ -369,7 +374,7 @@ public class CompleteMinecraftVersion implements CompleteVersion {
+ 
+     public AssetIndexInfo getAssetIndex() {
+         if (this.assetIndex == null) {
+-            this.assetIndex = new AssetIndexInfo((String)Objects.firstNonNull(this.assets, "legacy"));
++            this.assetIndex = new AssetIndexInfo((String)MoreObjects.firstNonNull(this.assets, "legacy")); // olauncher -
+         }
+ 
+         return this.assetIndex;
+diff --git a/src/main/java/net/minecraft/launcher/updater/Library.java b/src/main/java/net/minecraft/launcher/updater/Library.java
+index 6f4a185..02020f5 100644
+--- a/src/main/java/net/minecraft/launcher/updater/Library.java
++++ b/src/main/java/net/minecraft/launcher/updater/Library.java
+@@ -50,23 +50,25 @@ public class Library {
+             this.extract = new ExtractRules(var1.extract);
+         }
+ 
+-        Iterator var2;
++        // olauncher - perform surgery
++        Iterator<CompatibilityRule> var2;
+         if (var1.rules != null) {
+-            this.rules = new ArrayList();
++            this.rules = new ArrayList<>();
+             var2 = var1.rules.iterator();
+ 
+             while(var2.hasNext()) {
+-                CompatibilityRule var3 = (CompatibilityRule)var2.next();
++                CompatibilityRule var3 = var2.next();
+                 this.rules.add(new CompatibilityRule(var3));
+             }
+         }
+ 
++        Iterator<Map.Entry<OperatingSystem, String>> nativesIter;
+         if (var1.natives != null) {
+-            this.natives = new LinkedHashMap();
+-            var2 = var1.getNatives().entrySet().iterator();
++            this.natives = new LinkedHashMap<>();
++            nativesIter = var1.getNatives().entrySet().iterator();
+ 
+-            while(var2.hasNext()) {
+-                Map.Entry var4 = (Map.Entry)var2.next();
++            while(nativesIter.hasNext()) {
++                Map.Entry<OperatingSystem, String> var4 = nativesIter.next();
+                 this.natives.put(var4.getKey(), var4.getValue());
+             }
+         }
+diff --git a/src/main/java/net/minecraft/launcher/updater/LibraryDownloadInfo.java b/src/main/java/net/minecraft/launcher/updater/LibraryDownloadInfo.java
+index 6d05516..025687b 100644
+--- a/src/main/java/net/minecraft/launcher/updater/LibraryDownloadInfo.java
++++ b/src/main/java/net/minecraft/launcher/updater/LibraryDownloadInfo.java
+@@ -13,13 +13,14 @@ public class LibraryDownloadInfo {
+ 
+     public LibraryDownloadInfo(LibraryDownloadInfo var1) {
+         this.artifact = var1.artifact;
++        // olauncher - fix generics
+         if (var1.classifiers != null) {
+-            this.classifiers = new LinkedHashMap();
+-            Iterator var2 = var1.classifiers.entrySet().iterator();
++            this.classifiers = new LinkedHashMap<>();
++            Iterator<Map.Entry<String, DownloadInfo>> var2 = var1.classifiers.entrySet().iterator();
+ 
+             while(var2.hasNext()) {
+-                Map.Entry var3 = (Map.Entry)var2.next();
+-                this.classifiers.put(var3.getKey(), new DownloadInfo((DownloadInfo)var3.getValue()));
++                Map.Entry<String, DownloadInfo> var3 = var2.next();
++                this.classifiers.put(var3.getKey(), new DownloadInfo(var3.getValue()));
+             }
+         }
+ 
+diff --git a/src/main/resources/Log4j-config.xsd b/src/main/resources/Log4j-config.xsd
+deleted file mode 100644
+index a19e125..0000000
+--- a/src/main/resources/Log4j-config.xsd
++++ /dev/null
+@@ -1,133 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<!--
+- Licensed to the Apache Software Foundation (ASF) under one or more
+- contributor license agreements.  See the NOTICE file distributed with
+- this work for additional information regarding copyright ownership.
+- The ASF licenses this file to You under the Apache License, Version 2.0
+- (the "License"); you may not use this file except in compliance with
+- the License.  You may obtain a copy of the License at
+-
+-      http://www.apache.org/licenses/LICENSE-2.0
+-
+- Unless required by applicable law or agreed to in writing, software
+- distributed under the License is distributed on an "AS IS" BASIS,
+- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- See the License for the specific language governing permissions and
+- limitations under the License.
+-
+--->
+-<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+-    <xs:element name="Configuration" type="ConfigurationType"/>
+-    <xs:complexType name="ConfigurationType">
+-        <xs:sequence>
+-            <xs:element name="Properties" type="PropertiesType"/>
+-            <xs:choice minOccurs="0" maxOccurs="1">
+-                <xs:element name="Filters" type="FiltersType"/>
+-                <xs:element name="Filter" type="FilterType"/>
+-            </xs:choice>
+-            <xs:element name="ThresholdFilter" type="ThresholdFilterType"/>
+-            <xs:element name="Appenders" type="AppendersType"/>
+-            <xs:element name="Loggers" type="LoggersType"/>
+-        </xs:sequence>
+-        <xs:attribute name="packages" type="xs:string"/>
+-        <xs:attribute name="status" type="xs:string"/>
+-        <xs:attribute name="strict" type="xs:string"/>
+-        <xs:attribute name="name" type="xs:string"/>
+-        <xs:attribute name="advertiser" type="xs:string"/>
+-    </xs:complexType>
+-    <xs:complexType name="PropertiesType">
+-        <xs:sequence>
+-            <xs:element name="Property" type="PropertyType"/>
+-        </xs:sequence>
+-    </xs:complexType>
+-    <xs:complexType name="AppenderType">
+-        <xs:sequence>
+-            <xs:element name="Layout" type="LayoutType" minOccurs="0"/>
+-            <xs:choice minOccurs="0" maxOccurs="1">
+-                <xs:element name="Filters" type="FiltersType"/>
+-                <xs:element name="Filter" type="FilterType"/>
+-            </xs:choice>
+-        </xs:sequence>
+-        <xs:attribute name="type" type="xs:string" use="required"/>
+-        <xs:attribute name="name" type="xs:string" use="required"/>
+-        <xs:attribute name="fileName" type="xs:string" use="optional"/>
+-    </xs:complexType>
+-    <xs:complexType name="RootType">
+-        <xs:sequence>
+-            <xs:element name="AppenderRef" type="AppenderRefType" minOccurs="1" maxOccurs="unbounded"/>
+-        </xs:sequence>
+-        <xs:attribute name="level" type="xs:string"/>
+-    </xs:complexType>
+-    <xs:complexType name="PropertyType">
+-        <xs:simpleContent>
+-            <xs:extension base="xs:string">
+-                <xs:attribute name="name" type="xs:string"/>
+-            </xs:extension>
+-        </xs:simpleContent>
+-    </xs:complexType>
+-    <xs:complexType name="KeyValuePairType">
+-        <xs:simpleContent>
+-            <xs:extension base="xs:string">
+-                <xs:attribute name="key" type="xs:string"/>
+-                <xs:attribute name="value" type="xs:string"/>
+-            </xs:extension>
+-        </xs:simpleContent>
+-    </xs:complexType>
+-    <xs:complexType name="AppendersType">
+-        <xs:sequence>
+-            <xs:element name="Appender" type="AppenderType" minOccurs="1" maxOccurs="unbounded"/>
+-        </xs:sequence>
+-    </xs:complexType>
+-    <xs:complexType name="AppenderRefType">
+-        <xs:simpleContent>
+-            <xs:extension base="xs:string">
+-                <xs:attribute name="ref" type="xs:string" use="required"/>
+-            </xs:extension>
+-        </xs:simpleContent>
+-    </xs:complexType>
+-    <xs:complexType name="LoggerType">
+-        <xs:sequence>
+-            <xs:choice minOccurs="0" maxOccurs="1">
+-                <xs:element name="Filters" type="FiltersType"/>
+-                <xs:element name="Filter" type="FilterType"/>
+-            </xs:choice>
+-            <xs:element name="AppenderRef" type="AppenderRefType"/>
+-        </xs:sequence>
+-        <xs:attribute name="name" type="xs:string" use="required"/>
+-        <xs:attribute name="level" type="xs:string" use="optional"/>
+-        <xs:attribute name="additivity" type="xs:string" use="optional"/>
+-    </xs:complexType>
+-    <xs:complexType name="FilterType" mixed="true">
+-        <xs:sequence>
+-            <xs:element name="KeyValuePair" type="KeyValuePairType" minOccurs="0"/>
+-        </xs:sequence>
+-        <xs:attribute name="type" type="xs:string" use="required"/>
+-        <xs:attribute name="level" type="xs:string" use="optional"/>
+-        <xs:attribute name="marker" type="xs:string" use="optional"/>
+-        <xs:attribute name="onMatch" type="xs:string" use="optional"/>
+-        <xs:attribute name="onMismatch" type="xs:string" use="optional"/>
+-    </xs:complexType>
+-    <xs:complexType name="FiltersType">
+-        <xs:sequence>
+-            <xs:element name="Filter" type="FilterType" minOccurs="0" maxOccurs="unbounded"/>
+-        </xs:sequence>
+-    </xs:complexType>
+-    <xs:complexType name="LoggersType" mixed="true">
+-        <xs:sequence>
+-            <xs:element name="Logger" type="LoggerType" minOccurs="0" maxOccurs="unbounded"/>
+-            <xs:element name="Root" type="RootType" minOccurs="1" maxOccurs="1"/>
+-        </xs:sequence>
+-    </xs:complexType>
+-    <xs:complexType name="LayoutType" mixed="true">
+-        <xs:sequence>
+-            <xs:element name="Pattern" type="xs:string" minOccurs="0"/>
+-        </xs:sequence>
+-        <xs:attribute name="Type" type="xs:string" use="required"/>
+-        <xs:attribute name="Pattern" type="xs:string" use="optional"/>
+-    </xs:complexType>
+-    <xs:complexType name="ThresholdFilterType">
+-        <xs:attribute name="level" type="xs:string" use="optional"/>
+-        <xs:attribute name="onMatch" type="xs:string" use="optional"/>
+-        <xs:attribute name="onMismatch" type="xs:string" use="optional"/>
+-    </xs:complexType>
+-</xs:schema>
+diff --git a/src/main/resources/Log4j-events.dtd b/src/main/resources/Log4j-events.dtd
+deleted file mode 100644
+index 91af8c7..0000000
+--- a/src/main/resources/Log4j-events.dtd
++++ /dev/null
+@@ -1,64 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<!--
+- Licensed to the Apache Software Foundation (ASF) under one or more
+- contributor license agreements.  See the NOTICE file distributed with
+- this work for additional information regarding copyright ownership.
+- The ASF licenses this file to You under the Apache License, Version 2.0
+- (the "License"); you may not use this file except in compliance with
+- the License.  You may obtain a copy of the License at
+-
+-      http://www.apache.org/licenses/LICENSE-2.0
+-
+- Unless required by applicable law or agreed to in writing, software
+- distributed under the License is distributed on an "AS IS" BASIS,
+- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- See the License for the specific language governing permissions and
+- limitations under the License.
+--->
+-<!--DTD generated by XMLSpy v2011 rel. 3 sp1 (x64) (http://www.altova.com)-->
+-<!--the entity declarations may be overridden in the internal subset-->
+-<!--namespace prefixes-->
+-<!ENTITY % log4j_prefix "log4j">
+-<!--namespace prefix to namespace uri mappings-->
+-<!ENTITY % log4j_prefix.. "%log4j_prefix;:">
+-<!--namespaces attributes for root element-->
+-<!ENTITY % documentElementAttributes " xmlns:%log4j_prefix; CDATA 'http://logging.apache.org/log4j/2.0/events'">
+-<!--the declarations below should not be modified-->
+-<!--element name mappings-->
+-<!ENTITY % log4j..Events "%log4j_prefix..;Events">
+-<!ENTITY % log4j..Event "%log4j_prefix..;Event">
+-<!ENTITY % log4j..Message "%log4j_prefix..;Message">
+-<!ENTITY % log4j..NDC "%log4j_prefix..;NDC">
+-<!ENTITY % log4j..Throwable "%log4j_prefix..;Throwable">
+-<!ENTITY % log4j..LocationInfo "%log4j_prefix..;LocationInfo">
+-<!ENTITY % log4j..Properties "%log4j_prefix..;Properties">
+-<!ENTITY % log4j..Data "%log4j_prefix..;Data">
+-<!--element and attribute declarations-->
+-<!--Log4J 2.0 XML Schema-->
+-<!ELEMENT %log4j..Events; ((%log4j..Event;)*)>
+-<!ATTLIST %log4j..Events;
+-	%documentElementAttributes;
+->
+-<!ELEMENT %log4j..Event; (%log4j..Message;, (%log4j..NDC;)?, (%log4j..Throwable;)?, (%log4j..LocationInfo;)?, (%log4j..Properties;)?)>
+-<!ATTLIST %log4j..Event;
+-	logger CDATA #REQUIRED
+-	timestamp NMTOKEN #REQUIRED
+-	level (OFF | FATAL | ERROR | WARN | INFO | DEBUG | TRACE | ALL) #REQUIRED
+-	thread CDATA #REQUIRED
+->
+-<!ELEMENT %log4j..Message; ANY>
+-<!ELEMENT %log4j..NDC; ANY>
+-<!ELEMENT %log4j..Throwable; ANY>
+-<!ELEMENT %log4j..LocationInfo; EMPTY>
+-<!ATTLIST %log4j..LocationInfo;
+-	class CDATA #REQUIRED
+-	method CDATA #REQUIRED
+-	file CDATA #REQUIRED
+-	line NMTOKEN #REQUIRED
+->
+-<!ELEMENT %log4j..Properties; ((%log4j..Data;)+)>
+-<!ELEMENT %log4j..Data; EMPTY>
+-<!ATTLIST %log4j..Data;
+-	name CDATA #REQUIRED
+-	value CDATA #REQUIRED
+->
+diff --git a/src/main/resources/Log4j-events.xsd b/src/main/resources/Log4j-events.xsd
+deleted file mode 100644
+index 2310227..0000000
+--- a/src/main/resources/Log4j-events.xsd
++++ /dev/null
+@@ -1,74 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<!-- edited with XMLSpy v2011 rel. 3 sp1 (x64) (http://www.altova.com) by Gary Gregory (Rocket Software) -->
+-<!--
+- Licensed to the Apache Software Foundation (ASF) under one or more
+- contributor license agreements.  See the NOTICE file distributed with
+- this work for additional information regarding copyright ownership.
+- The ASF licenses this file to You under the Apache License, Version 2.0
+- (the "License"); you may not use this file except in compliance with
+- the License.  You may obtain a copy of the License at
+-
+-      http://www.apache.org/licenses/LICENSE-2.0
+-
+- Unless required by applicable law or agreed to in writing, software
+- distributed under the License is distributed on an "AS IS" BASIS,
+- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- See the License for the specific language governing permissions and
+- limitations under the License.
+--->
+-<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:log4j="http://logging.apache.org/log4j/2.0/events" targetNamespace="http://logging.apache.org/log4j/2.0/events" elementFormDefault="qualified" attributeFormDefault="unqualified">
+-    <xs:element name="Events">
+-        <xs:annotation>
+-            <xs:documentation>Log4J 2.0 XML Schema for XML log event files.</xs:documentation>
+-        </xs:annotation>
+-        <xs:complexType>
+-            <xs:sequence>
+-                <xs:element name="Event" minOccurs="0" maxOccurs="unbounded">
+-                    <xs:complexType>
+-                        <xs:sequence>
+-                            <xs:element name="Message"/>
+-                            <xs:element name="NDC" minOccurs="0"/>
+-                            <xs:element name="Throwable" minOccurs="0"/>
+-                            <xs:element name="LocationInfo" minOccurs="0">
+-                                <xs:complexType>
+-                                    <xs:attribute name="class" type="xs:string" use="required"/>
+-                                    <xs:attribute name="method" type="xs:string" use="required"/>
+-                                    <xs:attribute name="file" type="xs:string" use="required"/>
+-                                    <xs:attribute name="line" type="xs:int" use="required"/>
+-                                </xs:complexType>
+-                            </xs:element>
+-                            <xs:element name="Properties" minOccurs="0">
+-                                <xs:complexType>
+-                                    <xs:sequence>
+-                                        <xs:element name="Data" maxOccurs="unbounded">
+-                                            <xs:complexType>
+-                                                <xs:attribute name="name" type="xs:string" use="required"/>
+-                                                <xs:attribute name="value" use="required"/>
+-                                            </xs:complexType>
+-                                        </xs:element>
+-                                    </xs:sequence>
+-                                </xs:complexType>
+-                            </xs:element>
+-                        </xs:sequence>
+-                        <xs:attribute name="logger" type="xs:string" use="required"/>
+-                        <xs:attribute name="timestamp" type="xs:long" use="required"/>
+-                        <xs:attribute name="level" type="log4j:LevelEnum" use="required"/>
+-                        <xs:attribute name="thread" type="xs:string" use="required"/>
+-                    </xs:complexType>
+-                </xs:element>
+-            </xs:sequence>
+-        </xs:complexType>
+-    </xs:element>
+-    <xs:simpleType name="LevelEnum">
+-        <xs:restriction base="xs:string">
+-            <xs:enumeration value="OFF"/>
+-            <xs:enumeration value="FATAL"/>
+-            <xs:enumeration value="ERROR"/>
+-            <xs:enumeration value="WARN"/>
+-            <xs:enumeration value="INFO"/>
+-            <xs:enumeration value="DEBUG"/>
+-            <xs:enumeration value="TRACE"/>
+-            <xs:enumeration value="ALL"/>
+-        </xs:restriction>
+-    </xs:simpleType>
+-</xs:schema>
+diff --git a/src/main/resources/META-INF/MANIFEST.MF b/src/main/resources/META-INF/MANIFEST.MF
+deleted file mode 100644
+index aef7cf0..0000000
+--- a/src/main/resources/META-INF/MANIFEST.MF
++++ /dev/null
+@@ -1,4 +0,0 @@
+-Manifest-Version: 1.0
+-Implementation-Version: 1.6.93
+-Main-Class: net.minecraft.launcher.Main
+-
+-- 
+2.34.1
+

@@ -1,0 +1,1164 @@
+From c1ffec0b9937911fdcaf60ccfbe928d6bb8c0710 Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot3132@gmail.com>
+Date: Wed, 9 Mar 2022 23:59:47 -0600
+Subject: [PATCH 1/2] Create maven project
+
+---
+ .gitignore                                    |   3 +
+ pom.xml                                       | 114 ++++++++++++++++++
+ .../main/java/com}/mojang/authlib/Agent.java  |   0
+ .../mojang/authlib/AuthenticationService.java |   0
+ .../authlib/BaseAuthenticationService.java    |   0
+ .../authlib/BaseUserAuthentication.java       |   0
+ .../java/com}/mojang/authlib/GameProfile.java |   0
+ .../mojang/authlib/GameProfileRepository.java |   0
+ .../authlib/HttpAuthenticationService.java    |   0
+ .../authlib/HttpUserAuthentication.java       |   0
+ .../mojang/authlib/ProfileLookupCallback.java |   0
+ .../mojang/authlib/UserAuthentication.java    |   0
+ .../java/com}/mojang/authlib/UserType.java    |   0
+ .../exceptions/AuthenticationException.java   |   0
+ .../AuthenticationUnavailableException.java   |   0
+ .../InvalidCredentialsException.java          |   0
+ .../exceptions/UserMigratedException.java     |   0
+ .../legacy/LegacyAuthenticationService.java   |   0
+ .../legacy/LegacyMinecraftSessionService.java |   0
+ .../legacy/LegacyUserAuthentication.java      |   0
+ .../BaseMinecraftSessionService.java          |   0
+ .../HttpMinecraftSessionService.java          |   0
+ .../minecraft/InsecureTextureException.java   |   0
+ .../minecraft/MinecraftProfileTexture.java    |   0
+ .../minecraft/MinecraftSessionService.java    |   0
+ .../mojang/authlib/properties/Property.java   |   0
+ .../authlib/properties/PropertyMap.java       |   0
+ .../yggdrasil/ProfileIncompleteException.java |   0
+ .../yggdrasil/ProfileNotFoundException.java   |   0
+ .../YggdrasilAuthenticationService.java       |   0
+ .../YggdrasilGameProfileRepository.java       |   0
+ .../YggdrasilMinecraftSessionService.java     |   0
+ .../YggdrasilUserAuthentication.java          |   0
+ .../request/AuthenticationRequest.java        |   0
+ .../yggdrasil/request/InvalidateRequest.java  |   0
+ .../request/JoinMinecraftServerRequest.java   |   0
+ .../yggdrasil/request/RefreshRequest.java     |   0
+ .../yggdrasil/request/ValidateRequest.java    |   0
+ .../response/AuthenticationResponse.java      |   0
+ .../HasJoinedMinecraftServerResponse.java     |   0
+ .../MinecraftProfilePropertiesResponse.java   |   0
+ .../response/MinecraftTexturesPayload.java    |   0
+ .../ProfileSearchResultsResponse.java         |   0
+ .../yggdrasil/response/RefreshResponse.java   |   0
+ .../authlib/yggdrasil/response/Response.java  |   0
+ .../authlib/yggdrasil/response/User.java      |   0
+ .../main/java/com}/mojang/launcher/Http.java  |   0
+ .../java/com}/mojang/launcher/Launcher.java   |   0
+ .../launcher/LegacyPropertyMapSerializer.java |   0
+ .../com}/mojang/launcher/OperatingSystem.java |   0
+ .../launcher/SharedLauncherConstants.java     |   0
+ .../com}/mojang/launcher/UserInterface.java   |   0
+ .../events/GameOutputLogProcessor.java        |   0
+ .../events/RefreshedVersionsListener.java     |   0
+ .../launcher/game/GameInstanceStatus.java     |   0
+ .../game/process/AbstractGameProcess.java     |   0
+ .../launcher/game/process/GameProcess.java    |   0
+ .../game/process/GameProcessBuilder.java      |   0
+ .../game/process/GameProcessFactory.java      |   0
+ .../game/process/GameProcessRunnable.java     |   0
+ .../process/direct/DirectGameProcess.java     |   0
+ .../direct/DirectGameProcessFactory.java      |   0
+ .../direct/DirectProcessInputMonitor.java     |   0
+ .../game/runner/AbstractGameRunner.java       |   0
+ .../launcher/game/runner/GameRunner.java      |   0
+ .../game/runner/GameRunnerListener.java       |   0
+ .../launcher/updater/DateTypeAdapter.java     |   0
+ .../launcher/updater/DownloadProgress.java    |   0
+ .../ExceptionalThreadPoolExecutor.java        |   0
+ .../launcher/updater/FileTypeAdapter.java     |   0
+ .../LowerCaseEnumTypeAdapterFactory.java      |   0
+ .../launcher/updater/VersionFilter.java       |   0
+ .../launcher/updater/VersionManager.java      |   0
+ .../launcher/updater/VersionSyncInfo.java     |   0
+ .../download/ChecksummedDownloadable.java     |   0
+ .../updater/download/DownloadJob.java         |   0
+ .../updater/download/DownloadListener.java    |   0
+ .../updater/download/Downloadable.java        |   0
+ .../updater/download/EtagDownloadable.java    |   0
+ .../download/MonitoringInputStream.java       |   0
+ .../updater/download/ProgressContainer.java   |   0
+ .../download/assets/AssetDownloadable.java    |   0
+ .../updater/download/assets/AssetIndex.java   |   0
+ .../launcher/versions/CompatibilityRule.java  |   0
+ .../launcher/versions/CompleteVersion.java    |   0
+ .../launcher/versions/ExtractRules.java       |   0
+ .../mojang/launcher/versions/ReleaseType.java |   0
+ .../versions/ReleaseTypeAdapterFactory.java   |   0
+ .../launcher/versions/ReleaseTypeFactory.java |   0
+ .../mojang/launcher/versions/Version.java     |   0
+ .../com}/mojang/util/QueueLogAppender.java    |   0
+ .../com}/mojang/util/UUIDTypeAdapter.java     |   0
+ .../java/net}/minecraft/hopper/Crash.java     |   0
+ .../net}/minecraft/hopper/HopperService.java  |   0
+ .../java/net}/minecraft/hopper/Problem.java   |   0
+ .../net}/minecraft/hopper/PublishRequest.java |   0
+ .../minecraft/hopper/PublishResponse.java     |   0
+ .../java/net}/minecraft/hopper/Report.java    |   0
+ .../java/net}/minecraft/hopper/Response.java  |   0
+ .../net}/minecraft/hopper/SubmitRequest.java  |   0
+ .../net}/minecraft/hopper/SubmitResponse.java |   0
+ .../main/java/net}/minecraft/hopper/Util.java |   0
+ .../minecraft/launcher/CompatibilityRule.java |   0
+ .../launcher/CurrentLaunchFeatureMatcher.java |   0
+ .../net}/minecraft/launcher/Launcher.java     |   0
+ .../minecraft/launcher/LauncherConstants.java |   0
+ .../java/net}/minecraft/launcher/Main.java    |   0
+ .../launcher/MinecraftUserInterface.java      |   0
+ .../launcher/SwingUserInterface.java          |   0
+ .../launcher/game/GameLaunchDispatcher.java   |   0
+ .../launcher/game/MinecraftGameRunner.java    |   0
+ .../launcher/game/MinecraftReleaseType.java   |   0
+ .../game/MinecraftReleaseTypeFactory.java     |   0
+ .../profile/AuthenticationDatabase.java       |   0
+ .../profile/LauncherVisibilityRule.java       |   0
+ .../minecraft/launcher/profile/Profile.java   |   0
+ .../launcher/profile/ProfileManager.java      |   0
+ .../profile/RefreshedProfilesListener.java    |   0
+ .../launcher/profile/UserChangedListener.java |   0
+ .../minecraft/launcher/ui/BottomBarPanel.java |   0
+ .../minecraft/launcher/ui/LauncherPanel.java  |   0
+ .../minecraft/launcher/ui/TexturedPanel.java  |   0
+ .../ui/bottombar/PlayButtonPanel.java         |   0
+ .../ui/bottombar/PlayerInfoPanel.java         |   0
+ .../ui/bottombar/ProfileSelectionPanel.java   |   0
+ .../ui/bottombar/SidebarGridForm.java         |   0
+ .../ui/bottombar/StatusPanelForm.java         |   0
+ .../ui/popups/login/AuthErrorForm.java        |   0
+ .../ui/popups/login/ExistingUserListForm.java |   0
+ .../launcher/ui/popups/login/LogInForm.java   |   0
+ .../launcher/ui/popups/login/LogInPopup.java  |   0
+ .../ui/popups/profile/ProfileEditorPopup.java |   0
+ .../ui/popups/profile/ProfileInfoPanel.java   |   0
+ .../ui/popups/profile/ProfileJavaPanel.java   |   0
+ .../popups/profile/ProfileVersionPanel.java   |   0
+ .../launcher/ui/tabs/ConsoleTab.java          |   0
+ .../launcher/ui/tabs/CrashReportTab.java      |   0
+ .../launcher/ui/tabs/GameOutputTab.java       |   0
+ .../launcher/ui/tabs/LauncherTabPanel.java    |   0
+ .../launcher/ui/tabs/ProfileListTab.java      |   0
+ .../launcher/ui/tabs/WebsiteTab.java          |   0
+ .../launcher/ui/tabs/website/Browser.java     |   0
+ .../launcher/ui/tabs/website/JFXBrowser.java  |   0
+ .../ui/tabs/website/LegacySwingBrowser.java   |   0
+ .../updater/AbstractDownloadInfo.java         |   0
+ .../minecraft/launcher/updater/Argument.java  |   0
+ .../launcher/updater/ArgumentType.java        |   0
+ .../launcher/updater/AssetIndexInfo.java      |   0
+ .../updater/CompleteMinecraftVersion.java     |   0
+ .../launcher/updater/DownloadInfo.java        |   0
+ .../launcher/updater/DownloadType.java        |   0
+ .../updater/FileBasedVersionList.java         |   0
+ .../minecraft/launcher/updater/Library.java   |   0
+ .../launcher/updater/LibraryDownloadInfo.java |   0
+ .../launcher/updater/LocalDownloadInfo.java   |   0
+ .../launcher/updater/LocalVersionList.java    |   0
+ .../updater/MinecraftVersionManager.java      |   0
+ .../launcher/updater/PartialVersion.java      |   0
+ .../updater/PreHashedDownloadable.java        |   0
+ .../launcher/updater/RemoteVersionList.java   |   0
+ .../launcher/updater/VersionList.java         |   0
+ .../main/resources/Log4j-config.xsd           |   0
+ .../main/resources/Log4j-events.dtd           |   0
+ .../main/resources/Log4j-events.xsd           |   0
+ .../main/resources/META-INF}/MANIFEST.MF      |   0
+ .../META-INF}/log4j-provider.properties       |   0
+ dirt.png => src/main/resources/dirt.png       | Bin
+ favicon.png => src/main/resources/favicon.png | Bin
+ .../main/resources/launcher_properties.json   |   0
+ log4j2.xml => src/main/resources/log4j2.xml   |   0
+ .../main/resources/minecraft_logo.png         | Bin
+ .../resources/yggdrasil_session_pubkey.der    | Bin
+ 172 files changed, 117 insertions(+)
+ create mode 100644 .gitignore
+ create mode 100644 pom.xml
+ rename {com => src/main/java/com}/mojang/authlib/Agent.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/AuthenticationService.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/BaseAuthenticationService.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/BaseUserAuthentication.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/GameProfile.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/GameProfileRepository.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/HttpAuthenticationService.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/HttpUserAuthentication.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/ProfileLookupCallback.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/UserAuthentication.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/UserType.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/exceptions/AuthenticationException.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/exceptions/AuthenticationUnavailableException.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/exceptions/InvalidCredentialsException.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/exceptions/UserMigratedException.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/legacy/LegacyAuthenticationService.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/legacy/LegacyMinecraftSessionService.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/legacy/LegacyUserAuthentication.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/minecraft/BaseMinecraftSessionService.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/minecraft/HttpMinecraftSessionService.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/minecraft/InsecureTextureException.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/minecraft/MinecraftProfileTexture.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/minecraft/MinecraftSessionService.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/properties/Property.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/properties/PropertyMap.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/yggdrasil/ProfileIncompleteException.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/yggdrasil/ProfileNotFoundException.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/yggdrasil/YggdrasilAuthenticationService.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/yggdrasil/YggdrasilGameProfileRepository.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/yggdrasil/YggdrasilMinecraftSessionService.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/yggdrasil/YggdrasilUserAuthentication.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/yggdrasil/request/AuthenticationRequest.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/yggdrasil/request/InvalidateRequest.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/yggdrasil/request/JoinMinecraftServerRequest.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/yggdrasil/request/RefreshRequest.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/yggdrasil/request/ValidateRequest.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/yggdrasil/response/AuthenticationResponse.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/yggdrasil/response/HasJoinedMinecraftServerResponse.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/yggdrasil/response/MinecraftProfilePropertiesResponse.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/yggdrasil/response/MinecraftTexturesPayload.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/yggdrasil/response/ProfileSearchResultsResponse.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/yggdrasil/response/RefreshResponse.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/yggdrasil/response/Response.java (100%)
+ rename {com => src/main/java/com}/mojang/authlib/yggdrasil/response/User.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/Http.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/Launcher.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/LegacyPropertyMapSerializer.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/OperatingSystem.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/SharedLauncherConstants.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/UserInterface.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/events/GameOutputLogProcessor.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/events/RefreshedVersionsListener.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/game/GameInstanceStatus.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/game/process/AbstractGameProcess.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/game/process/GameProcess.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/game/process/GameProcessBuilder.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/game/process/GameProcessFactory.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/game/process/GameProcessRunnable.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/game/process/direct/DirectGameProcess.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/game/process/direct/DirectGameProcessFactory.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/game/process/direct/DirectProcessInputMonitor.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/game/runner/AbstractGameRunner.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/game/runner/GameRunner.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/game/runner/GameRunnerListener.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/updater/DateTypeAdapter.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/updater/DownloadProgress.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/updater/ExceptionalThreadPoolExecutor.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/updater/FileTypeAdapter.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/updater/LowerCaseEnumTypeAdapterFactory.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/updater/VersionFilter.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/updater/VersionManager.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/updater/VersionSyncInfo.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/updater/download/ChecksummedDownloadable.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/updater/download/DownloadJob.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/updater/download/DownloadListener.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/updater/download/Downloadable.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/updater/download/EtagDownloadable.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/updater/download/MonitoringInputStream.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/updater/download/ProgressContainer.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/updater/download/assets/AssetDownloadable.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/updater/download/assets/AssetIndex.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/versions/CompatibilityRule.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/versions/CompleteVersion.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/versions/ExtractRules.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/versions/ReleaseType.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/versions/ReleaseTypeAdapterFactory.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/versions/ReleaseTypeFactory.java (100%)
+ rename {com => src/main/java/com}/mojang/launcher/versions/Version.java (100%)
+ rename {com => src/main/java/com}/mojang/util/QueueLogAppender.java (100%)
+ rename {com => src/main/java/com}/mojang/util/UUIDTypeAdapter.java (100%)
+ rename {net => src/main/java/net}/minecraft/hopper/Crash.java (100%)
+ rename {net => src/main/java/net}/minecraft/hopper/HopperService.java (100%)
+ rename {net => src/main/java/net}/minecraft/hopper/Problem.java (100%)
+ rename {net => src/main/java/net}/minecraft/hopper/PublishRequest.java (100%)
+ rename {net => src/main/java/net}/minecraft/hopper/PublishResponse.java (100%)
+ rename {net => src/main/java/net}/minecraft/hopper/Report.java (100%)
+ rename {net => src/main/java/net}/minecraft/hopper/Response.java (100%)
+ rename {net => src/main/java/net}/minecraft/hopper/SubmitRequest.java (100%)
+ rename {net => src/main/java/net}/minecraft/hopper/SubmitResponse.java (100%)
+ rename {net => src/main/java/net}/minecraft/hopper/Util.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/CompatibilityRule.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/CurrentLaunchFeatureMatcher.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/Launcher.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/LauncherConstants.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/Main.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/MinecraftUserInterface.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/SwingUserInterface.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/game/GameLaunchDispatcher.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/game/MinecraftGameRunner.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/game/MinecraftReleaseType.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/game/MinecraftReleaseTypeFactory.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/profile/AuthenticationDatabase.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/profile/LauncherVisibilityRule.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/profile/Profile.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/profile/ProfileManager.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/profile/RefreshedProfilesListener.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/profile/UserChangedListener.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/ui/BottomBarPanel.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/ui/LauncherPanel.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/ui/TexturedPanel.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/ui/bottombar/PlayButtonPanel.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/ui/bottombar/PlayerInfoPanel.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/ui/bottombar/ProfileSelectionPanel.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/ui/bottombar/SidebarGridForm.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/ui/bottombar/StatusPanelForm.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/ui/popups/login/AuthErrorForm.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/ui/popups/login/ExistingUserListForm.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/ui/popups/login/LogInForm.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/ui/popups/login/LogInPopup.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/ui/popups/profile/ProfileEditorPopup.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/ui/popups/profile/ProfileInfoPanel.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/ui/popups/profile/ProfileJavaPanel.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/ui/popups/profile/ProfileVersionPanel.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/ui/tabs/ConsoleTab.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/ui/tabs/CrashReportTab.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/ui/tabs/GameOutputTab.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/ui/tabs/LauncherTabPanel.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/ui/tabs/ProfileListTab.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/ui/tabs/WebsiteTab.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/ui/tabs/website/Browser.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/ui/tabs/website/JFXBrowser.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/ui/tabs/website/LegacySwingBrowser.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/updater/AbstractDownloadInfo.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/updater/Argument.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/updater/ArgumentType.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/updater/AssetIndexInfo.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/updater/CompleteMinecraftVersion.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/updater/DownloadInfo.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/updater/DownloadType.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/updater/FileBasedVersionList.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/updater/Library.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/updater/LibraryDownloadInfo.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/updater/LocalDownloadInfo.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/updater/LocalVersionList.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/updater/MinecraftVersionManager.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/updater/PartialVersion.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/updater/PreHashedDownloadable.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/updater/RemoteVersionList.java (100%)
+ rename {net => src/main/java/net}/minecraft/launcher/updater/VersionList.java (100%)
+ rename Log4j-config.xsd => src/main/resources/Log4j-config.xsd (100%)
+ rename Log4j-events.dtd => src/main/resources/Log4j-events.dtd (100%)
+ rename Log4j-events.xsd => src/main/resources/Log4j-events.xsd (100%)
+ rename {META-INF => src/main/resources/META-INF}/MANIFEST.MF (100%)
+ rename {META-INF => src/main/resources/META-INF}/log4j-provider.properties (100%)
+ rename dirt.png => src/main/resources/dirt.png (100%)
+ rename favicon.png => src/main/resources/favicon.png (100%)
+ rename launcher_properties.json => src/main/resources/launcher_properties.json (100%)
+ rename log4j2.xml => src/main/resources/log4j2.xml (100%)
+ rename minecraft_logo.png => src/main/resources/minecraft_logo.png (100%)
+ rename yggdrasil_session_pubkey.der => src/main/resources/yggdrasil_session_pubkey.der (100%)
+
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 0000000..5231862
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1,3 @@
++.idea
++*.iml
++target
+diff --git a/pom.xml b/pom.xml
+new file mode 100644
+index 0000000..34c1110
+--- /dev/null
++++ b/pom.xml
+@@ -0,0 +1,114 @@
++<?xml version="1.0" encoding="UTF-8"?>
++
++<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
++         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
++    <modelVersion>4.0.0</modelVersion>
++
++    <groupId>dev.figboot</groupId>
++    <artifactId>olauncher</artifactId>
++    <version>0.1.0</version>
++
++    <properties>
++        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
++    </properties>
++
++    <build>
++        <plugins>
++            <plugin>
++                <groupId>org.apache.maven.plugins</groupId>
++                <artifactId>maven-compiler-plugin</artifactId>
++                <version>3.8.0</version>
++                <configuration>
++                    <source>1.8</source>
++                    <target>1.8</target>
++                </configuration>
++            </plugin>
++            <plugin>
++                <groupId>org.apache.maven.plugins</groupId>
++                <artifactId>maven-shade-plugin</artifactId>
++                <version>3.2.4</version>
++                <executions>
++                    <execution>
++                        <phase>package</phase>
++                        <goals>
++                            <goal>shade</goal>
++                        </goals>
++                    </execution>
++                </executions>
++                <configuration>
++                    <createDependencyReducedPom>false</createDependencyReducedPom>
++                </configuration>
++            </plugin>
++        </plugins>
++    </build>
++
++    <repositories>
++        <repository>
++            <id>central</id>
++            <url>https://repo1.maven.org/maven2/</url>
++        </repository>
++    </repositories>
++
++    <dependencies>
++        <dependency>
++            <groupId>org.apache.logging.log4j</groupId>
++            <artifactId>log4j-core</artifactId>
++            <version>2.17.2</version>
++            <scope>compile</scope>
++        </dependency>
++        <dependency>
++            <groupId>commons-io</groupId>
++            <artifactId>commons-io</artifactId>
++            <version>2.11.0</version>
++            <scope>compile</scope>
++        </dependency>
++        <dependency>
++            <groupId>commons-codec</groupId>
++            <artifactId>commons-codec</artifactId>
++            <version>1.15</version>
++            <scope>compile</scope>
++        </dependency>
++        <dependency>
++            <groupId>org.apache.commons</groupId>
++            <artifactId>commons-lang3</artifactId>
++            <version>3.12.0</version>
++            <scope>provided</scope>
++        </dependency>
++        <dependency>
++            <groupId>com.google.code.gson</groupId>
++            <artifactId>gson</artifactId>
++            <version>2.9.0</version>
++            <scope>compile</scope>
++        </dependency>
++        <dependency>
++            <groupId>com.google.guava</groupId>
++            <artifactId>guava</artifactId>
++            <version>31.1-jre</version>
++            <scope>compile</scope>
++        </dependency>
++        <dependency>
++            <groupId>net.sf.jopt-simple</groupId>
++            <artifactId>jopt-simple</artifactId>
++            <version>5.0.4</version>
++            <scope>compile</scope>
++        </dependency>
++        <dependency>
++            <groupId>org.openjfx</groupId>
++            <artifactId>javafx-controls</artifactId>
++            <version>17</version>
++            <scope>compile</scope>
++        </dependency>
++        <dependency>
++            <groupId>org.openjfx</groupId>
++            <artifactId>javafx-swing</artifactId>
++            <version>17</version>
++            <scope>compile</scope>
++        </dependency>
++        <dependency>
++            <groupId>org.openjfx</groupId>
++            <artifactId>javafx-web</artifactId>
++            <version>17</version>
++            <scope>compile</scope>
++        </dependency>
++    </dependencies>
++</project>
+diff --git a/com/mojang/authlib/Agent.java b/src/main/java/com/mojang/authlib/Agent.java
+similarity index 100%
+rename from com/mojang/authlib/Agent.java
+rename to src/main/java/com/mojang/authlib/Agent.java
+diff --git a/com/mojang/authlib/AuthenticationService.java b/src/main/java/com/mojang/authlib/AuthenticationService.java
+similarity index 100%
+rename from com/mojang/authlib/AuthenticationService.java
+rename to src/main/java/com/mojang/authlib/AuthenticationService.java
+diff --git a/com/mojang/authlib/BaseAuthenticationService.java b/src/main/java/com/mojang/authlib/BaseAuthenticationService.java
+similarity index 100%
+rename from com/mojang/authlib/BaseAuthenticationService.java
+rename to src/main/java/com/mojang/authlib/BaseAuthenticationService.java
+diff --git a/com/mojang/authlib/BaseUserAuthentication.java b/src/main/java/com/mojang/authlib/BaseUserAuthentication.java
+similarity index 100%
+rename from com/mojang/authlib/BaseUserAuthentication.java
+rename to src/main/java/com/mojang/authlib/BaseUserAuthentication.java
+diff --git a/com/mojang/authlib/GameProfile.java b/src/main/java/com/mojang/authlib/GameProfile.java
+similarity index 100%
+rename from com/mojang/authlib/GameProfile.java
+rename to src/main/java/com/mojang/authlib/GameProfile.java
+diff --git a/com/mojang/authlib/GameProfileRepository.java b/src/main/java/com/mojang/authlib/GameProfileRepository.java
+similarity index 100%
+rename from com/mojang/authlib/GameProfileRepository.java
+rename to src/main/java/com/mojang/authlib/GameProfileRepository.java
+diff --git a/com/mojang/authlib/HttpAuthenticationService.java b/src/main/java/com/mojang/authlib/HttpAuthenticationService.java
+similarity index 100%
+rename from com/mojang/authlib/HttpAuthenticationService.java
+rename to src/main/java/com/mojang/authlib/HttpAuthenticationService.java
+diff --git a/com/mojang/authlib/HttpUserAuthentication.java b/src/main/java/com/mojang/authlib/HttpUserAuthentication.java
+similarity index 100%
+rename from com/mojang/authlib/HttpUserAuthentication.java
+rename to src/main/java/com/mojang/authlib/HttpUserAuthentication.java
+diff --git a/com/mojang/authlib/ProfileLookupCallback.java b/src/main/java/com/mojang/authlib/ProfileLookupCallback.java
+similarity index 100%
+rename from com/mojang/authlib/ProfileLookupCallback.java
+rename to src/main/java/com/mojang/authlib/ProfileLookupCallback.java
+diff --git a/com/mojang/authlib/UserAuthentication.java b/src/main/java/com/mojang/authlib/UserAuthentication.java
+similarity index 100%
+rename from com/mojang/authlib/UserAuthentication.java
+rename to src/main/java/com/mojang/authlib/UserAuthentication.java
+diff --git a/com/mojang/authlib/UserType.java b/src/main/java/com/mojang/authlib/UserType.java
+similarity index 100%
+rename from com/mojang/authlib/UserType.java
+rename to src/main/java/com/mojang/authlib/UserType.java
+diff --git a/com/mojang/authlib/exceptions/AuthenticationException.java b/src/main/java/com/mojang/authlib/exceptions/AuthenticationException.java
+similarity index 100%
+rename from com/mojang/authlib/exceptions/AuthenticationException.java
+rename to src/main/java/com/mojang/authlib/exceptions/AuthenticationException.java
+diff --git a/com/mojang/authlib/exceptions/AuthenticationUnavailableException.java b/src/main/java/com/mojang/authlib/exceptions/AuthenticationUnavailableException.java
+similarity index 100%
+rename from com/mojang/authlib/exceptions/AuthenticationUnavailableException.java
+rename to src/main/java/com/mojang/authlib/exceptions/AuthenticationUnavailableException.java
+diff --git a/com/mojang/authlib/exceptions/InvalidCredentialsException.java b/src/main/java/com/mojang/authlib/exceptions/InvalidCredentialsException.java
+similarity index 100%
+rename from com/mojang/authlib/exceptions/InvalidCredentialsException.java
+rename to src/main/java/com/mojang/authlib/exceptions/InvalidCredentialsException.java
+diff --git a/com/mojang/authlib/exceptions/UserMigratedException.java b/src/main/java/com/mojang/authlib/exceptions/UserMigratedException.java
+similarity index 100%
+rename from com/mojang/authlib/exceptions/UserMigratedException.java
+rename to src/main/java/com/mojang/authlib/exceptions/UserMigratedException.java
+diff --git a/com/mojang/authlib/legacy/LegacyAuthenticationService.java b/src/main/java/com/mojang/authlib/legacy/LegacyAuthenticationService.java
+similarity index 100%
+rename from com/mojang/authlib/legacy/LegacyAuthenticationService.java
+rename to src/main/java/com/mojang/authlib/legacy/LegacyAuthenticationService.java
+diff --git a/com/mojang/authlib/legacy/LegacyMinecraftSessionService.java b/src/main/java/com/mojang/authlib/legacy/LegacyMinecraftSessionService.java
+similarity index 100%
+rename from com/mojang/authlib/legacy/LegacyMinecraftSessionService.java
+rename to src/main/java/com/mojang/authlib/legacy/LegacyMinecraftSessionService.java
+diff --git a/com/mojang/authlib/legacy/LegacyUserAuthentication.java b/src/main/java/com/mojang/authlib/legacy/LegacyUserAuthentication.java
+similarity index 100%
+rename from com/mojang/authlib/legacy/LegacyUserAuthentication.java
+rename to src/main/java/com/mojang/authlib/legacy/LegacyUserAuthentication.java
+diff --git a/com/mojang/authlib/minecraft/BaseMinecraftSessionService.java b/src/main/java/com/mojang/authlib/minecraft/BaseMinecraftSessionService.java
+similarity index 100%
+rename from com/mojang/authlib/minecraft/BaseMinecraftSessionService.java
+rename to src/main/java/com/mojang/authlib/minecraft/BaseMinecraftSessionService.java
+diff --git a/com/mojang/authlib/minecraft/HttpMinecraftSessionService.java b/src/main/java/com/mojang/authlib/minecraft/HttpMinecraftSessionService.java
+similarity index 100%
+rename from com/mojang/authlib/minecraft/HttpMinecraftSessionService.java
+rename to src/main/java/com/mojang/authlib/minecraft/HttpMinecraftSessionService.java
+diff --git a/com/mojang/authlib/minecraft/InsecureTextureException.java b/src/main/java/com/mojang/authlib/minecraft/InsecureTextureException.java
+similarity index 100%
+rename from com/mojang/authlib/minecraft/InsecureTextureException.java
+rename to src/main/java/com/mojang/authlib/minecraft/InsecureTextureException.java
+diff --git a/com/mojang/authlib/minecraft/MinecraftProfileTexture.java b/src/main/java/com/mojang/authlib/minecraft/MinecraftProfileTexture.java
+similarity index 100%
+rename from com/mojang/authlib/minecraft/MinecraftProfileTexture.java
+rename to src/main/java/com/mojang/authlib/minecraft/MinecraftProfileTexture.java
+diff --git a/com/mojang/authlib/minecraft/MinecraftSessionService.java b/src/main/java/com/mojang/authlib/minecraft/MinecraftSessionService.java
+similarity index 100%
+rename from com/mojang/authlib/minecraft/MinecraftSessionService.java
+rename to src/main/java/com/mojang/authlib/minecraft/MinecraftSessionService.java
+diff --git a/com/mojang/authlib/properties/Property.java b/src/main/java/com/mojang/authlib/properties/Property.java
+similarity index 100%
+rename from com/mojang/authlib/properties/Property.java
+rename to src/main/java/com/mojang/authlib/properties/Property.java
+diff --git a/com/mojang/authlib/properties/PropertyMap.java b/src/main/java/com/mojang/authlib/properties/PropertyMap.java
+similarity index 100%
+rename from com/mojang/authlib/properties/PropertyMap.java
+rename to src/main/java/com/mojang/authlib/properties/PropertyMap.java
+diff --git a/com/mojang/authlib/yggdrasil/ProfileIncompleteException.java b/src/main/java/com/mojang/authlib/yggdrasil/ProfileIncompleteException.java
+similarity index 100%
+rename from com/mojang/authlib/yggdrasil/ProfileIncompleteException.java
+rename to src/main/java/com/mojang/authlib/yggdrasil/ProfileIncompleteException.java
+diff --git a/com/mojang/authlib/yggdrasil/ProfileNotFoundException.java b/src/main/java/com/mojang/authlib/yggdrasil/ProfileNotFoundException.java
+similarity index 100%
+rename from com/mojang/authlib/yggdrasil/ProfileNotFoundException.java
+rename to src/main/java/com/mojang/authlib/yggdrasil/ProfileNotFoundException.java
+diff --git a/com/mojang/authlib/yggdrasil/YggdrasilAuthenticationService.java b/src/main/java/com/mojang/authlib/yggdrasil/YggdrasilAuthenticationService.java
+similarity index 100%
+rename from com/mojang/authlib/yggdrasil/YggdrasilAuthenticationService.java
+rename to src/main/java/com/mojang/authlib/yggdrasil/YggdrasilAuthenticationService.java
+diff --git a/com/mojang/authlib/yggdrasil/YggdrasilGameProfileRepository.java b/src/main/java/com/mojang/authlib/yggdrasil/YggdrasilGameProfileRepository.java
+similarity index 100%
+rename from com/mojang/authlib/yggdrasil/YggdrasilGameProfileRepository.java
+rename to src/main/java/com/mojang/authlib/yggdrasil/YggdrasilGameProfileRepository.java
+diff --git a/com/mojang/authlib/yggdrasil/YggdrasilMinecraftSessionService.java b/src/main/java/com/mojang/authlib/yggdrasil/YggdrasilMinecraftSessionService.java
+similarity index 100%
+rename from com/mojang/authlib/yggdrasil/YggdrasilMinecraftSessionService.java
+rename to src/main/java/com/mojang/authlib/yggdrasil/YggdrasilMinecraftSessionService.java
+diff --git a/com/mojang/authlib/yggdrasil/YggdrasilUserAuthentication.java b/src/main/java/com/mojang/authlib/yggdrasil/YggdrasilUserAuthentication.java
+similarity index 100%
+rename from com/mojang/authlib/yggdrasil/YggdrasilUserAuthentication.java
+rename to src/main/java/com/mojang/authlib/yggdrasil/YggdrasilUserAuthentication.java
+diff --git a/com/mojang/authlib/yggdrasil/request/AuthenticationRequest.java b/src/main/java/com/mojang/authlib/yggdrasil/request/AuthenticationRequest.java
+similarity index 100%
+rename from com/mojang/authlib/yggdrasil/request/AuthenticationRequest.java
+rename to src/main/java/com/mojang/authlib/yggdrasil/request/AuthenticationRequest.java
+diff --git a/com/mojang/authlib/yggdrasil/request/InvalidateRequest.java b/src/main/java/com/mojang/authlib/yggdrasil/request/InvalidateRequest.java
+similarity index 100%
+rename from com/mojang/authlib/yggdrasil/request/InvalidateRequest.java
+rename to src/main/java/com/mojang/authlib/yggdrasil/request/InvalidateRequest.java
+diff --git a/com/mojang/authlib/yggdrasil/request/JoinMinecraftServerRequest.java b/src/main/java/com/mojang/authlib/yggdrasil/request/JoinMinecraftServerRequest.java
+similarity index 100%
+rename from com/mojang/authlib/yggdrasil/request/JoinMinecraftServerRequest.java
+rename to src/main/java/com/mojang/authlib/yggdrasil/request/JoinMinecraftServerRequest.java
+diff --git a/com/mojang/authlib/yggdrasil/request/RefreshRequest.java b/src/main/java/com/mojang/authlib/yggdrasil/request/RefreshRequest.java
+similarity index 100%
+rename from com/mojang/authlib/yggdrasil/request/RefreshRequest.java
+rename to src/main/java/com/mojang/authlib/yggdrasil/request/RefreshRequest.java
+diff --git a/com/mojang/authlib/yggdrasil/request/ValidateRequest.java b/src/main/java/com/mojang/authlib/yggdrasil/request/ValidateRequest.java
+similarity index 100%
+rename from com/mojang/authlib/yggdrasil/request/ValidateRequest.java
+rename to src/main/java/com/mojang/authlib/yggdrasil/request/ValidateRequest.java
+diff --git a/com/mojang/authlib/yggdrasil/response/AuthenticationResponse.java b/src/main/java/com/mojang/authlib/yggdrasil/response/AuthenticationResponse.java
+similarity index 100%
+rename from com/mojang/authlib/yggdrasil/response/AuthenticationResponse.java
+rename to src/main/java/com/mojang/authlib/yggdrasil/response/AuthenticationResponse.java
+diff --git a/com/mojang/authlib/yggdrasil/response/HasJoinedMinecraftServerResponse.java b/src/main/java/com/mojang/authlib/yggdrasil/response/HasJoinedMinecraftServerResponse.java
+similarity index 100%
+rename from com/mojang/authlib/yggdrasil/response/HasJoinedMinecraftServerResponse.java
+rename to src/main/java/com/mojang/authlib/yggdrasil/response/HasJoinedMinecraftServerResponse.java
+diff --git a/com/mojang/authlib/yggdrasil/response/MinecraftProfilePropertiesResponse.java b/src/main/java/com/mojang/authlib/yggdrasil/response/MinecraftProfilePropertiesResponse.java
+similarity index 100%
+rename from com/mojang/authlib/yggdrasil/response/MinecraftProfilePropertiesResponse.java
+rename to src/main/java/com/mojang/authlib/yggdrasil/response/MinecraftProfilePropertiesResponse.java
+diff --git a/com/mojang/authlib/yggdrasil/response/MinecraftTexturesPayload.java b/src/main/java/com/mojang/authlib/yggdrasil/response/MinecraftTexturesPayload.java
+similarity index 100%
+rename from com/mojang/authlib/yggdrasil/response/MinecraftTexturesPayload.java
+rename to src/main/java/com/mojang/authlib/yggdrasil/response/MinecraftTexturesPayload.java
+diff --git a/com/mojang/authlib/yggdrasil/response/ProfileSearchResultsResponse.java b/src/main/java/com/mojang/authlib/yggdrasil/response/ProfileSearchResultsResponse.java
+similarity index 100%
+rename from com/mojang/authlib/yggdrasil/response/ProfileSearchResultsResponse.java
+rename to src/main/java/com/mojang/authlib/yggdrasil/response/ProfileSearchResultsResponse.java
+diff --git a/com/mojang/authlib/yggdrasil/response/RefreshResponse.java b/src/main/java/com/mojang/authlib/yggdrasil/response/RefreshResponse.java
+similarity index 100%
+rename from com/mojang/authlib/yggdrasil/response/RefreshResponse.java
+rename to src/main/java/com/mojang/authlib/yggdrasil/response/RefreshResponse.java
+diff --git a/com/mojang/authlib/yggdrasil/response/Response.java b/src/main/java/com/mojang/authlib/yggdrasil/response/Response.java
+similarity index 100%
+rename from com/mojang/authlib/yggdrasil/response/Response.java
+rename to src/main/java/com/mojang/authlib/yggdrasil/response/Response.java
+diff --git a/com/mojang/authlib/yggdrasil/response/User.java b/src/main/java/com/mojang/authlib/yggdrasil/response/User.java
+similarity index 100%
+rename from com/mojang/authlib/yggdrasil/response/User.java
+rename to src/main/java/com/mojang/authlib/yggdrasil/response/User.java
+diff --git a/com/mojang/launcher/Http.java b/src/main/java/com/mojang/launcher/Http.java
+similarity index 100%
+rename from com/mojang/launcher/Http.java
+rename to src/main/java/com/mojang/launcher/Http.java
+diff --git a/com/mojang/launcher/Launcher.java b/src/main/java/com/mojang/launcher/Launcher.java
+similarity index 100%
+rename from com/mojang/launcher/Launcher.java
+rename to src/main/java/com/mojang/launcher/Launcher.java
+diff --git a/com/mojang/launcher/LegacyPropertyMapSerializer.java b/src/main/java/com/mojang/launcher/LegacyPropertyMapSerializer.java
+similarity index 100%
+rename from com/mojang/launcher/LegacyPropertyMapSerializer.java
+rename to src/main/java/com/mojang/launcher/LegacyPropertyMapSerializer.java
+diff --git a/com/mojang/launcher/OperatingSystem.java b/src/main/java/com/mojang/launcher/OperatingSystem.java
+similarity index 100%
+rename from com/mojang/launcher/OperatingSystem.java
+rename to src/main/java/com/mojang/launcher/OperatingSystem.java
+diff --git a/com/mojang/launcher/SharedLauncherConstants.java b/src/main/java/com/mojang/launcher/SharedLauncherConstants.java
+similarity index 100%
+rename from com/mojang/launcher/SharedLauncherConstants.java
+rename to src/main/java/com/mojang/launcher/SharedLauncherConstants.java
+diff --git a/com/mojang/launcher/UserInterface.java b/src/main/java/com/mojang/launcher/UserInterface.java
+similarity index 100%
+rename from com/mojang/launcher/UserInterface.java
+rename to src/main/java/com/mojang/launcher/UserInterface.java
+diff --git a/com/mojang/launcher/events/GameOutputLogProcessor.java b/src/main/java/com/mojang/launcher/events/GameOutputLogProcessor.java
+similarity index 100%
+rename from com/mojang/launcher/events/GameOutputLogProcessor.java
+rename to src/main/java/com/mojang/launcher/events/GameOutputLogProcessor.java
+diff --git a/com/mojang/launcher/events/RefreshedVersionsListener.java b/src/main/java/com/mojang/launcher/events/RefreshedVersionsListener.java
+similarity index 100%
+rename from com/mojang/launcher/events/RefreshedVersionsListener.java
+rename to src/main/java/com/mojang/launcher/events/RefreshedVersionsListener.java
+diff --git a/com/mojang/launcher/game/GameInstanceStatus.java b/src/main/java/com/mojang/launcher/game/GameInstanceStatus.java
+similarity index 100%
+rename from com/mojang/launcher/game/GameInstanceStatus.java
+rename to src/main/java/com/mojang/launcher/game/GameInstanceStatus.java
+diff --git a/com/mojang/launcher/game/process/AbstractGameProcess.java b/src/main/java/com/mojang/launcher/game/process/AbstractGameProcess.java
+similarity index 100%
+rename from com/mojang/launcher/game/process/AbstractGameProcess.java
+rename to src/main/java/com/mojang/launcher/game/process/AbstractGameProcess.java
+diff --git a/com/mojang/launcher/game/process/GameProcess.java b/src/main/java/com/mojang/launcher/game/process/GameProcess.java
+similarity index 100%
+rename from com/mojang/launcher/game/process/GameProcess.java
+rename to src/main/java/com/mojang/launcher/game/process/GameProcess.java
+diff --git a/com/mojang/launcher/game/process/GameProcessBuilder.java b/src/main/java/com/mojang/launcher/game/process/GameProcessBuilder.java
+similarity index 100%
+rename from com/mojang/launcher/game/process/GameProcessBuilder.java
+rename to src/main/java/com/mojang/launcher/game/process/GameProcessBuilder.java
+diff --git a/com/mojang/launcher/game/process/GameProcessFactory.java b/src/main/java/com/mojang/launcher/game/process/GameProcessFactory.java
+similarity index 100%
+rename from com/mojang/launcher/game/process/GameProcessFactory.java
+rename to src/main/java/com/mojang/launcher/game/process/GameProcessFactory.java
+diff --git a/com/mojang/launcher/game/process/GameProcessRunnable.java b/src/main/java/com/mojang/launcher/game/process/GameProcessRunnable.java
+similarity index 100%
+rename from com/mojang/launcher/game/process/GameProcessRunnable.java
+rename to src/main/java/com/mojang/launcher/game/process/GameProcessRunnable.java
+diff --git a/com/mojang/launcher/game/process/direct/DirectGameProcess.java b/src/main/java/com/mojang/launcher/game/process/direct/DirectGameProcess.java
+similarity index 100%
+rename from com/mojang/launcher/game/process/direct/DirectGameProcess.java
+rename to src/main/java/com/mojang/launcher/game/process/direct/DirectGameProcess.java
+diff --git a/com/mojang/launcher/game/process/direct/DirectGameProcessFactory.java b/src/main/java/com/mojang/launcher/game/process/direct/DirectGameProcessFactory.java
+similarity index 100%
+rename from com/mojang/launcher/game/process/direct/DirectGameProcessFactory.java
+rename to src/main/java/com/mojang/launcher/game/process/direct/DirectGameProcessFactory.java
+diff --git a/com/mojang/launcher/game/process/direct/DirectProcessInputMonitor.java b/src/main/java/com/mojang/launcher/game/process/direct/DirectProcessInputMonitor.java
+similarity index 100%
+rename from com/mojang/launcher/game/process/direct/DirectProcessInputMonitor.java
+rename to src/main/java/com/mojang/launcher/game/process/direct/DirectProcessInputMonitor.java
+diff --git a/com/mojang/launcher/game/runner/AbstractGameRunner.java b/src/main/java/com/mojang/launcher/game/runner/AbstractGameRunner.java
+similarity index 100%
+rename from com/mojang/launcher/game/runner/AbstractGameRunner.java
+rename to src/main/java/com/mojang/launcher/game/runner/AbstractGameRunner.java
+diff --git a/com/mojang/launcher/game/runner/GameRunner.java b/src/main/java/com/mojang/launcher/game/runner/GameRunner.java
+similarity index 100%
+rename from com/mojang/launcher/game/runner/GameRunner.java
+rename to src/main/java/com/mojang/launcher/game/runner/GameRunner.java
+diff --git a/com/mojang/launcher/game/runner/GameRunnerListener.java b/src/main/java/com/mojang/launcher/game/runner/GameRunnerListener.java
+similarity index 100%
+rename from com/mojang/launcher/game/runner/GameRunnerListener.java
+rename to src/main/java/com/mojang/launcher/game/runner/GameRunnerListener.java
+diff --git a/com/mojang/launcher/updater/DateTypeAdapter.java b/src/main/java/com/mojang/launcher/updater/DateTypeAdapter.java
+similarity index 100%
+rename from com/mojang/launcher/updater/DateTypeAdapter.java
+rename to src/main/java/com/mojang/launcher/updater/DateTypeAdapter.java
+diff --git a/com/mojang/launcher/updater/DownloadProgress.java b/src/main/java/com/mojang/launcher/updater/DownloadProgress.java
+similarity index 100%
+rename from com/mojang/launcher/updater/DownloadProgress.java
+rename to src/main/java/com/mojang/launcher/updater/DownloadProgress.java
+diff --git a/com/mojang/launcher/updater/ExceptionalThreadPoolExecutor.java b/src/main/java/com/mojang/launcher/updater/ExceptionalThreadPoolExecutor.java
+similarity index 100%
+rename from com/mojang/launcher/updater/ExceptionalThreadPoolExecutor.java
+rename to src/main/java/com/mojang/launcher/updater/ExceptionalThreadPoolExecutor.java
+diff --git a/com/mojang/launcher/updater/FileTypeAdapter.java b/src/main/java/com/mojang/launcher/updater/FileTypeAdapter.java
+similarity index 100%
+rename from com/mojang/launcher/updater/FileTypeAdapter.java
+rename to src/main/java/com/mojang/launcher/updater/FileTypeAdapter.java
+diff --git a/com/mojang/launcher/updater/LowerCaseEnumTypeAdapterFactory.java b/src/main/java/com/mojang/launcher/updater/LowerCaseEnumTypeAdapterFactory.java
+similarity index 100%
+rename from com/mojang/launcher/updater/LowerCaseEnumTypeAdapterFactory.java
+rename to src/main/java/com/mojang/launcher/updater/LowerCaseEnumTypeAdapterFactory.java
+diff --git a/com/mojang/launcher/updater/VersionFilter.java b/src/main/java/com/mojang/launcher/updater/VersionFilter.java
+similarity index 100%
+rename from com/mojang/launcher/updater/VersionFilter.java
+rename to src/main/java/com/mojang/launcher/updater/VersionFilter.java
+diff --git a/com/mojang/launcher/updater/VersionManager.java b/src/main/java/com/mojang/launcher/updater/VersionManager.java
+similarity index 100%
+rename from com/mojang/launcher/updater/VersionManager.java
+rename to src/main/java/com/mojang/launcher/updater/VersionManager.java
+diff --git a/com/mojang/launcher/updater/VersionSyncInfo.java b/src/main/java/com/mojang/launcher/updater/VersionSyncInfo.java
+similarity index 100%
+rename from com/mojang/launcher/updater/VersionSyncInfo.java
+rename to src/main/java/com/mojang/launcher/updater/VersionSyncInfo.java
+diff --git a/com/mojang/launcher/updater/download/ChecksummedDownloadable.java b/src/main/java/com/mojang/launcher/updater/download/ChecksummedDownloadable.java
+similarity index 100%
+rename from com/mojang/launcher/updater/download/ChecksummedDownloadable.java
+rename to src/main/java/com/mojang/launcher/updater/download/ChecksummedDownloadable.java
+diff --git a/com/mojang/launcher/updater/download/DownloadJob.java b/src/main/java/com/mojang/launcher/updater/download/DownloadJob.java
+similarity index 100%
+rename from com/mojang/launcher/updater/download/DownloadJob.java
+rename to src/main/java/com/mojang/launcher/updater/download/DownloadJob.java
+diff --git a/com/mojang/launcher/updater/download/DownloadListener.java b/src/main/java/com/mojang/launcher/updater/download/DownloadListener.java
+similarity index 100%
+rename from com/mojang/launcher/updater/download/DownloadListener.java
+rename to src/main/java/com/mojang/launcher/updater/download/DownloadListener.java
+diff --git a/com/mojang/launcher/updater/download/Downloadable.java b/src/main/java/com/mojang/launcher/updater/download/Downloadable.java
+similarity index 100%
+rename from com/mojang/launcher/updater/download/Downloadable.java
+rename to src/main/java/com/mojang/launcher/updater/download/Downloadable.java
+diff --git a/com/mojang/launcher/updater/download/EtagDownloadable.java b/src/main/java/com/mojang/launcher/updater/download/EtagDownloadable.java
+similarity index 100%
+rename from com/mojang/launcher/updater/download/EtagDownloadable.java
+rename to src/main/java/com/mojang/launcher/updater/download/EtagDownloadable.java
+diff --git a/com/mojang/launcher/updater/download/MonitoringInputStream.java b/src/main/java/com/mojang/launcher/updater/download/MonitoringInputStream.java
+similarity index 100%
+rename from com/mojang/launcher/updater/download/MonitoringInputStream.java
+rename to src/main/java/com/mojang/launcher/updater/download/MonitoringInputStream.java
+diff --git a/com/mojang/launcher/updater/download/ProgressContainer.java b/src/main/java/com/mojang/launcher/updater/download/ProgressContainer.java
+similarity index 100%
+rename from com/mojang/launcher/updater/download/ProgressContainer.java
+rename to src/main/java/com/mojang/launcher/updater/download/ProgressContainer.java
+diff --git a/com/mojang/launcher/updater/download/assets/AssetDownloadable.java b/src/main/java/com/mojang/launcher/updater/download/assets/AssetDownloadable.java
+similarity index 100%
+rename from com/mojang/launcher/updater/download/assets/AssetDownloadable.java
+rename to src/main/java/com/mojang/launcher/updater/download/assets/AssetDownloadable.java
+diff --git a/com/mojang/launcher/updater/download/assets/AssetIndex.java b/src/main/java/com/mojang/launcher/updater/download/assets/AssetIndex.java
+similarity index 100%
+rename from com/mojang/launcher/updater/download/assets/AssetIndex.java
+rename to src/main/java/com/mojang/launcher/updater/download/assets/AssetIndex.java
+diff --git a/com/mojang/launcher/versions/CompatibilityRule.java b/src/main/java/com/mojang/launcher/versions/CompatibilityRule.java
+similarity index 100%
+rename from com/mojang/launcher/versions/CompatibilityRule.java
+rename to src/main/java/com/mojang/launcher/versions/CompatibilityRule.java
+diff --git a/com/mojang/launcher/versions/CompleteVersion.java b/src/main/java/com/mojang/launcher/versions/CompleteVersion.java
+similarity index 100%
+rename from com/mojang/launcher/versions/CompleteVersion.java
+rename to src/main/java/com/mojang/launcher/versions/CompleteVersion.java
+diff --git a/com/mojang/launcher/versions/ExtractRules.java b/src/main/java/com/mojang/launcher/versions/ExtractRules.java
+similarity index 100%
+rename from com/mojang/launcher/versions/ExtractRules.java
+rename to src/main/java/com/mojang/launcher/versions/ExtractRules.java
+diff --git a/com/mojang/launcher/versions/ReleaseType.java b/src/main/java/com/mojang/launcher/versions/ReleaseType.java
+similarity index 100%
+rename from com/mojang/launcher/versions/ReleaseType.java
+rename to src/main/java/com/mojang/launcher/versions/ReleaseType.java
+diff --git a/com/mojang/launcher/versions/ReleaseTypeAdapterFactory.java b/src/main/java/com/mojang/launcher/versions/ReleaseTypeAdapterFactory.java
+similarity index 100%
+rename from com/mojang/launcher/versions/ReleaseTypeAdapterFactory.java
+rename to src/main/java/com/mojang/launcher/versions/ReleaseTypeAdapterFactory.java
+diff --git a/com/mojang/launcher/versions/ReleaseTypeFactory.java b/src/main/java/com/mojang/launcher/versions/ReleaseTypeFactory.java
+similarity index 100%
+rename from com/mojang/launcher/versions/ReleaseTypeFactory.java
+rename to src/main/java/com/mojang/launcher/versions/ReleaseTypeFactory.java
+diff --git a/com/mojang/launcher/versions/Version.java b/src/main/java/com/mojang/launcher/versions/Version.java
+similarity index 100%
+rename from com/mojang/launcher/versions/Version.java
+rename to src/main/java/com/mojang/launcher/versions/Version.java
+diff --git a/com/mojang/util/QueueLogAppender.java b/src/main/java/com/mojang/util/QueueLogAppender.java
+similarity index 100%
+rename from com/mojang/util/QueueLogAppender.java
+rename to src/main/java/com/mojang/util/QueueLogAppender.java
+diff --git a/com/mojang/util/UUIDTypeAdapter.java b/src/main/java/com/mojang/util/UUIDTypeAdapter.java
+similarity index 100%
+rename from com/mojang/util/UUIDTypeAdapter.java
+rename to src/main/java/com/mojang/util/UUIDTypeAdapter.java
+diff --git a/net/minecraft/hopper/Crash.java b/src/main/java/net/minecraft/hopper/Crash.java
+similarity index 100%
+rename from net/minecraft/hopper/Crash.java
+rename to src/main/java/net/minecraft/hopper/Crash.java
+diff --git a/net/minecraft/hopper/HopperService.java b/src/main/java/net/minecraft/hopper/HopperService.java
+similarity index 100%
+rename from net/minecraft/hopper/HopperService.java
+rename to src/main/java/net/minecraft/hopper/HopperService.java
+diff --git a/net/minecraft/hopper/Problem.java b/src/main/java/net/minecraft/hopper/Problem.java
+similarity index 100%
+rename from net/minecraft/hopper/Problem.java
+rename to src/main/java/net/minecraft/hopper/Problem.java
+diff --git a/net/minecraft/hopper/PublishRequest.java b/src/main/java/net/minecraft/hopper/PublishRequest.java
+similarity index 100%
+rename from net/minecraft/hopper/PublishRequest.java
+rename to src/main/java/net/minecraft/hopper/PublishRequest.java
+diff --git a/net/minecraft/hopper/PublishResponse.java b/src/main/java/net/minecraft/hopper/PublishResponse.java
+similarity index 100%
+rename from net/minecraft/hopper/PublishResponse.java
+rename to src/main/java/net/minecraft/hopper/PublishResponse.java
+diff --git a/net/minecraft/hopper/Report.java b/src/main/java/net/minecraft/hopper/Report.java
+similarity index 100%
+rename from net/minecraft/hopper/Report.java
+rename to src/main/java/net/minecraft/hopper/Report.java
+diff --git a/net/minecraft/hopper/Response.java b/src/main/java/net/minecraft/hopper/Response.java
+similarity index 100%
+rename from net/minecraft/hopper/Response.java
+rename to src/main/java/net/minecraft/hopper/Response.java
+diff --git a/net/minecraft/hopper/SubmitRequest.java b/src/main/java/net/minecraft/hopper/SubmitRequest.java
+similarity index 100%
+rename from net/minecraft/hopper/SubmitRequest.java
+rename to src/main/java/net/minecraft/hopper/SubmitRequest.java
+diff --git a/net/minecraft/hopper/SubmitResponse.java b/src/main/java/net/minecraft/hopper/SubmitResponse.java
+similarity index 100%
+rename from net/minecraft/hopper/SubmitResponse.java
+rename to src/main/java/net/minecraft/hopper/SubmitResponse.java
+diff --git a/net/minecraft/hopper/Util.java b/src/main/java/net/minecraft/hopper/Util.java
+similarity index 100%
+rename from net/minecraft/hopper/Util.java
+rename to src/main/java/net/minecraft/hopper/Util.java
+diff --git a/net/minecraft/launcher/CompatibilityRule.java b/src/main/java/net/minecraft/launcher/CompatibilityRule.java
+similarity index 100%
+rename from net/minecraft/launcher/CompatibilityRule.java
+rename to src/main/java/net/minecraft/launcher/CompatibilityRule.java
+diff --git a/net/minecraft/launcher/CurrentLaunchFeatureMatcher.java b/src/main/java/net/minecraft/launcher/CurrentLaunchFeatureMatcher.java
+similarity index 100%
+rename from net/minecraft/launcher/CurrentLaunchFeatureMatcher.java
+rename to src/main/java/net/minecraft/launcher/CurrentLaunchFeatureMatcher.java
+diff --git a/net/minecraft/launcher/Launcher.java b/src/main/java/net/minecraft/launcher/Launcher.java
+similarity index 100%
+rename from net/minecraft/launcher/Launcher.java
+rename to src/main/java/net/minecraft/launcher/Launcher.java
+diff --git a/net/minecraft/launcher/LauncherConstants.java b/src/main/java/net/minecraft/launcher/LauncherConstants.java
+similarity index 100%
+rename from net/minecraft/launcher/LauncherConstants.java
+rename to src/main/java/net/minecraft/launcher/LauncherConstants.java
+diff --git a/net/minecraft/launcher/Main.java b/src/main/java/net/minecraft/launcher/Main.java
+similarity index 100%
+rename from net/minecraft/launcher/Main.java
+rename to src/main/java/net/minecraft/launcher/Main.java
+diff --git a/net/minecraft/launcher/MinecraftUserInterface.java b/src/main/java/net/minecraft/launcher/MinecraftUserInterface.java
+similarity index 100%
+rename from net/minecraft/launcher/MinecraftUserInterface.java
+rename to src/main/java/net/minecraft/launcher/MinecraftUserInterface.java
+diff --git a/net/minecraft/launcher/SwingUserInterface.java b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
+similarity index 100%
+rename from net/minecraft/launcher/SwingUserInterface.java
+rename to src/main/java/net/minecraft/launcher/SwingUserInterface.java
+diff --git a/net/minecraft/launcher/game/GameLaunchDispatcher.java b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
+similarity index 100%
+rename from net/minecraft/launcher/game/GameLaunchDispatcher.java
+rename to src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
+diff --git a/net/minecraft/launcher/game/MinecraftGameRunner.java b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
+similarity index 100%
+rename from net/minecraft/launcher/game/MinecraftGameRunner.java
+rename to src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
+diff --git a/net/minecraft/launcher/game/MinecraftReleaseType.java b/src/main/java/net/minecraft/launcher/game/MinecraftReleaseType.java
+similarity index 100%
+rename from net/minecraft/launcher/game/MinecraftReleaseType.java
+rename to src/main/java/net/minecraft/launcher/game/MinecraftReleaseType.java
+diff --git a/net/minecraft/launcher/game/MinecraftReleaseTypeFactory.java b/src/main/java/net/minecraft/launcher/game/MinecraftReleaseTypeFactory.java
+similarity index 100%
+rename from net/minecraft/launcher/game/MinecraftReleaseTypeFactory.java
+rename to src/main/java/net/minecraft/launcher/game/MinecraftReleaseTypeFactory.java
+diff --git a/net/minecraft/launcher/profile/AuthenticationDatabase.java b/src/main/java/net/minecraft/launcher/profile/AuthenticationDatabase.java
+similarity index 100%
+rename from net/minecraft/launcher/profile/AuthenticationDatabase.java
+rename to src/main/java/net/minecraft/launcher/profile/AuthenticationDatabase.java
+diff --git a/net/minecraft/launcher/profile/LauncherVisibilityRule.java b/src/main/java/net/minecraft/launcher/profile/LauncherVisibilityRule.java
+similarity index 100%
+rename from net/minecraft/launcher/profile/LauncherVisibilityRule.java
+rename to src/main/java/net/minecraft/launcher/profile/LauncherVisibilityRule.java
+diff --git a/net/minecraft/launcher/profile/Profile.java b/src/main/java/net/minecraft/launcher/profile/Profile.java
+similarity index 100%
+rename from net/minecraft/launcher/profile/Profile.java
+rename to src/main/java/net/minecraft/launcher/profile/Profile.java
+diff --git a/net/minecraft/launcher/profile/ProfileManager.java b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
+similarity index 100%
+rename from net/minecraft/launcher/profile/ProfileManager.java
+rename to src/main/java/net/minecraft/launcher/profile/ProfileManager.java
+diff --git a/net/minecraft/launcher/profile/RefreshedProfilesListener.java b/src/main/java/net/minecraft/launcher/profile/RefreshedProfilesListener.java
+similarity index 100%
+rename from net/minecraft/launcher/profile/RefreshedProfilesListener.java
+rename to src/main/java/net/minecraft/launcher/profile/RefreshedProfilesListener.java
+diff --git a/net/minecraft/launcher/profile/UserChangedListener.java b/src/main/java/net/minecraft/launcher/profile/UserChangedListener.java
+similarity index 100%
+rename from net/minecraft/launcher/profile/UserChangedListener.java
+rename to src/main/java/net/minecraft/launcher/profile/UserChangedListener.java
+diff --git a/net/minecraft/launcher/ui/BottomBarPanel.java b/src/main/java/net/minecraft/launcher/ui/BottomBarPanel.java
+similarity index 100%
+rename from net/minecraft/launcher/ui/BottomBarPanel.java
+rename to src/main/java/net/minecraft/launcher/ui/BottomBarPanel.java
+diff --git a/net/minecraft/launcher/ui/LauncherPanel.java b/src/main/java/net/minecraft/launcher/ui/LauncherPanel.java
+similarity index 100%
+rename from net/minecraft/launcher/ui/LauncherPanel.java
+rename to src/main/java/net/minecraft/launcher/ui/LauncherPanel.java
+diff --git a/net/minecraft/launcher/ui/TexturedPanel.java b/src/main/java/net/minecraft/launcher/ui/TexturedPanel.java
+similarity index 100%
+rename from net/minecraft/launcher/ui/TexturedPanel.java
+rename to src/main/java/net/minecraft/launcher/ui/TexturedPanel.java
+diff --git a/net/minecraft/launcher/ui/bottombar/PlayButtonPanel.java b/src/main/java/net/minecraft/launcher/ui/bottombar/PlayButtonPanel.java
+similarity index 100%
+rename from net/minecraft/launcher/ui/bottombar/PlayButtonPanel.java
+rename to src/main/java/net/minecraft/launcher/ui/bottombar/PlayButtonPanel.java
+diff --git a/net/minecraft/launcher/ui/bottombar/PlayerInfoPanel.java b/src/main/java/net/minecraft/launcher/ui/bottombar/PlayerInfoPanel.java
+similarity index 100%
+rename from net/minecraft/launcher/ui/bottombar/PlayerInfoPanel.java
+rename to src/main/java/net/minecraft/launcher/ui/bottombar/PlayerInfoPanel.java
+diff --git a/net/minecraft/launcher/ui/bottombar/ProfileSelectionPanel.java b/src/main/java/net/minecraft/launcher/ui/bottombar/ProfileSelectionPanel.java
+similarity index 100%
+rename from net/minecraft/launcher/ui/bottombar/ProfileSelectionPanel.java
+rename to src/main/java/net/minecraft/launcher/ui/bottombar/ProfileSelectionPanel.java
+diff --git a/net/minecraft/launcher/ui/bottombar/SidebarGridForm.java b/src/main/java/net/minecraft/launcher/ui/bottombar/SidebarGridForm.java
+similarity index 100%
+rename from net/minecraft/launcher/ui/bottombar/SidebarGridForm.java
+rename to src/main/java/net/minecraft/launcher/ui/bottombar/SidebarGridForm.java
+diff --git a/net/minecraft/launcher/ui/bottombar/StatusPanelForm.java b/src/main/java/net/minecraft/launcher/ui/bottombar/StatusPanelForm.java
+similarity index 100%
+rename from net/minecraft/launcher/ui/bottombar/StatusPanelForm.java
+rename to src/main/java/net/minecraft/launcher/ui/bottombar/StatusPanelForm.java
+diff --git a/net/minecraft/launcher/ui/popups/login/AuthErrorForm.java b/src/main/java/net/minecraft/launcher/ui/popups/login/AuthErrorForm.java
+similarity index 100%
+rename from net/minecraft/launcher/ui/popups/login/AuthErrorForm.java
+rename to src/main/java/net/minecraft/launcher/ui/popups/login/AuthErrorForm.java
+diff --git a/net/minecraft/launcher/ui/popups/login/ExistingUserListForm.java b/src/main/java/net/minecraft/launcher/ui/popups/login/ExistingUserListForm.java
+similarity index 100%
+rename from net/minecraft/launcher/ui/popups/login/ExistingUserListForm.java
+rename to src/main/java/net/minecraft/launcher/ui/popups/login/ExistingUserListForm.java
+diff --git a/net/minecraft/launcher/ui/popups/login/LogInForm.java b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
+similarity index 100%
+rename from net/minecraft/launcher/ui/popups/login/LogInForm.java
+rename to src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
+diff --git a/net/minecraft/launcher/ui/popups/login/LogInPopup.java b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInPopup.java
+similarity index 100%
+rename from net/minecraft/launcher/ui/popups/login/LogInPopup.java
+rename to src/main/java/net/minecraft/launcher/ui/popups/login/LogInPopup.java
+diff --git a/net/minecraft/launcher/ui/popups/profile/ProfileEditorPopup.java b/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileEditorPopup.java
+similarity index 100%
+rename from net/minecraft/launcher/ui/popups/profile/ProfileEditorPopup.java
+rename to src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileEditorPopup.java
+diff --git a/net/minecraft/launcher/ui/popups/profile/ProfileInfoPanel.java b/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileInfoPanel.java
+similarity index 100%
+rename from net/minecraft/launcher/ui/popups/profile/ProfileInfoPanel.java
+rename to src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileInfoPanel.java
+diff --git a/net/minecraft/launcher/ui/popups/profile/ProfileJavaPanel.java b/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileJavaPanel.java
+similarity index 100%
+rename from net/minecraft/launcher/ui/popups/profile/ProfileJavaPanel.java
+rename to src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileJavaPanel.java
+diff --git a/net/minecraft/launcher/ui/popups/profile/ProfileVersionPanel.java b/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileVersionPanel.java
+similarity index 100%
+rename from net/minecraft/launcher/ui/popups/profile/ProfileVersionPanel.java
+rename to src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileVersionPanel.java
+diff --git a/net/minecraft/launcher/ui/tabs/ConsoleTab.java b/src/main/java/net/minecraft/launcher/ui/tabs/ConsoleTab.java
+similarity index 100%
+rename from net/minecraft/launcher/ui/tabs/ConsoleTab.java
+rename to src/main/java/net/minecraft/launcher/ui/tabs/ConsoleTab.java
+diff --git a/net/minecraft/launcher/ui/tabs/CrashReportTab.java b/src/main/java/net/minecraft/launcher/ui/tabs/CrashReportTab.java
+similarity index 100%
+rename from net/minecraft/launcher/ui/tabs/CrashReportTab.java
+rename to src/main/java/net/minecraft/launcher/ui/tabs/CrashReportTab.java
+diff --git a/net/minecraft/launcher/ui/tabs/GameOutputTab.java b/src/main/java/net/minecraft/launcher/ui/tabs/GameOutputTab.java
+similarity index 100%
+rename from net/minecraft/launcher/ui/tabs/GameOutputTab.java
+rename to src/main/java/net/minecraft/launcher/ui/tabs/GameOutputTab.java
+diff --git a/net/minecraft/launcher/ui/tabs/LauncherTabPanel.java b/src/main/java/net/minecraft/launcher/ui/tabs/LauncherTabPanel.java
+similarity index 100%
+rename from net/minecraft/launcher/ui/tabs/LauncherTabPanel.java
+rename to src/main/java/net/minecraft/launcher/ui/tabs/LauncherTabPanel.java
+diff --git a/net/minecraft/launcher/ui/tabs/ProfileListTab.java b/src/main/java/net/minecraft/launcher/ui/tabs/ProfileListTab.java
+similarity index 100%
+rename from net/minecraft/launcher/ui/tabs/ProfileListTab.java
+rename to src/main/java/net/minecraft/launcher/ui/tabs/ProfileListTab.java
+diff --git a/net/minecraft/launcher/ui/tabs/WebsiteTab.java b/src/main/java/net/minecraft/launcher/ui/tabs/WebsiteTab.java
+similarity index 100%
+rename from net/minecraft/launcher/ui/tabs/WebsiteTab.java
+rename to src/main/java/net/minecraft/launcher/ui/tabs/WebsiteTab.java
+diff --git a/net/minecraft/launcher/ui/tabs/website/Browser.java b/src/main/java/net/minecraft/launcher/ui/tabs/website/Browser.java
+similarity index 100%
+rename from net/minecraft/launcher/ui/tabs/website/Browser.java
+rename to src/main/java/net/minecraft/launcher/ui/tabs/website/Browser.java
+diff --git a/net/minecraft/launcher/ui/tabs/website/JFXBrowser.java b/src/main/java/net/minecraft/launcher/ui/tabs/website/JFXBrowser.java
+similarity index 100%
+rename from net/minecraft/launcher/ui/tabs/website/JFXBrowser.java
+rename to src/main/java/net/minecraft/launcher/ui/tabs/website/JFXBrowser.java
+diff --git a/net/minecraft/launcher/ui/tabs/website/LegacySwingBrowser.java b/src/main/java/net/minecraft/launcher/ui/tabs/website/LegacySwingBrowser.java
+similarity index 100%
+rename from net/minecraft/launcher/ui/tabs/website/LegacySwingBrowser.java
+rename to src/main/java/net/minecraft/launcher/ui/tabs/website/LegacySwingBrowser.java
+diff --git a/net/minecraft/launcher/updater/AbstractDownloadInfo.java b/src/main/java/net/minecraft/launcher/updater/AbstractDownloadInfo.java
+similarity index 100%
+rename from net/minecraft/launcher/updater/AbstractDownloadInfo.java
+rename to src/main/java/net/minecraft/launcher/updater/AbstractDownloadInfo.java
+diff --git a/net/minecraft/launcher/updater/Argument.java b/src/main/java/net/minecraft/launcher/updater/Argument.java
+similarity index 100%
+rename from net/minecraft/launcher/updater/Argument.java
+rename to src/main/java/net/minecraft/launcher/updater/Argument.java
+diff --git a/net/minecraft/launcher/updater/ArgumentType.java b/src/main/java/net/minecraft/launcher/updater/ArgumentType.java
+similarity index 100%
+rename from net/minecraft/launcher/updater/ArgumentType.java
+rename to src/main/java/net/minecraft/launcher/updater/ArgumentType.java
+diff --git a/net/minecraft/launcher/updater/AssetIndexInfo.java b/src/main/java/net/minecraft/launcher/updater/AssetIndexInfo.java
+similarity index 100%
+rename from net/minecraft/launcher/updater/AssetIndexInfo.java
+rename to src/main/java/net/minecraft/launcher/updater/AssetIndexInfo.java
+diff --git a/net/minecraft/launcher/updater/CompleteMinecraftVersion.java b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
+similarity index 100%
+rename from net/minecraft/launcher/updater/CompleteMinecraftVersion.java
+rename to src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
+diff --git a/net/minecraft/launcher/updater/DownloadInfo.java b/src/main/java/net/minecraft/launcher/updater/DownloadInfo.java
+similarity index 100%
+rename from net/minecraft/launcher/updater/DownloadInfo.java
+rename to src/main/java/net/minecraft/launcher/updater/DownloadInfo.java
+diff --git a/net/minecraft/launcher/updater/DownloadType.java b/src/main/java/net/minecraft/launcher/updater/DownloadType.java
+similarity index 100%
+rename from net/minecraft/launcher/updater/DownloadType.java
+rename to src/main/java/net/minecraft/launcher/updater/DownloadType.java
+diff --git a/net/minecraft/launcher/updater/FileBasedVersionList.java b/src/main/java/net/minecraft/launcher/updater/FileBasedVersionList.java
+similarity index 100%
+rename from net/minecraft/launcher/updater/FileBasedVersionList.java
+rename to src/main/java/net/minecraft/launcher/updater/FileBasedVersionList.java
+diff --git a/net/minecraft/launcher/updater/Library.java b/src/main/java/net/minecraft/launcher/updater/Library.java
+similarity index 100%
+rename from net/minecraft/launcher/updater/Library.java
+rename to src/main/java/net/minecraft/launcher/updater/Library.java
+diff --git a/net/minecraft/launcher/updater/LibraryDownloadInfo.java b/src/main/java/net/minecraft/launcher/updater/LibraryDownloadInfo.java
+similarity index 100%
+rename from net/minecraft/launcher/updater/LibraryDownloadInfo.java
+rename to src/main/java/net/minecraft/launcher/updater/LibraryDownloadInfo.java
+diff --git a/net/minecraft/launcher/updater/LocalDownloadInfo.java b/src/main/java/net/minecraft/launcher/updater/LocalDownloadInfo.java
+similarity index 100%
+rename from net/minecraft/launcher/updater/LocalDownloadInfo.java
+rename to src/main/java/net/minecraft/launcher/updater/LocalDownloadInfo.java
+diff --git a/net/minecraft/launcher/updater/LocalVersionList.java b/src/main/java/net/minecraft/launcher/updater/LocalVersionList.java
+similarity index 100%
+rename from net/minecraft/launcher/updater/LocalVersionList.java
+rename to src/main/java/net/minecraft/launcher/updater/LocalVersionList.java
+diff --git a/net/minecraft/launcher/updater/MinecraftVersionManager.java b/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java
+similarity index 100%
+rename from net/minecraft/launcher/updater/MinecraftVersionManager.java
+rename to src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java
+diff --git a/net/minecraft/launcher/updater/PartialVersion.java b/src/main/java/net/minecraft/launcher/updater/PartialVersion.java
+similarity index 100%
+rename from net/minecraft/launcher/updater/PartialVersion.java
+rename to src/main/java/net/minecraft/launcher/updater/PartialVersion.java
+diff --git a/net/minecraft/launcher/updater/PreHashedDownloadable.java b/src/main/java/net/minecraft/launcher/updater/PreHashedDownloadable.java
+similarity index 100%
+rename from net/minecraft/launcher/updater/PreHashedDownloadable.java
+rename to src/main/java/net/minecraft/launcher/updater/PreHashedDownloadable.java
+diff --git a/net/minecraft/launcher/updater/RemoteVersionList.java b/src/main/java/net/minecraft/launcher/updater/RemoteVersionList.java
+similarity index 100%
+rename from net/minecraft/launcher/updater/RemoteVersionList.java
+rename to src/main/java/net/minecraft/launcher/updater/RemoteVersionList.java
+diff --git a/net/minecraft/launcher/updater/VersionList.java b/src/main/java/net/minecraft/launcher/updater/VersionList.java
+similarity index 100%
+rename from net/minecraft/launcher/updater/VersionList.java
+rename to src/main/java/net/minecraft/launcher/updater/VersionList.java
+diff --git a/Log4j-config.xsd b/src/main/resources/Log4j-config.xsd
+similarity index 100%
+rename from Log4j-config.xsd
+rename to src/main/resources/Log4j-config.xsd
+diff --git a/Log4j-events.dtd b/src/main/resources/Log4j-events.dtd
+similarity index 100%
+rename from Log4j-events.dtd
+rename to src/main/resources/Log4j-events.dtd
+diff --git a/Log4j-events.xsd b/src/main/resources/Log4j-events.xsd
+similarity index 100%
+rename from Log4j-events.xsd
+rename to src/main/resources/Log4j-events.xsd
+diff --git a/META-INF/MANIFEST.MF b/src/main/resources/META-INF/MANIFEST.MF
+similarity index 100%
+rename from META-INF/MANIFEST.MF
+rename to src/main/resources/META-INF/MANIFEST.MF
+diff --git a/META-INF/log4j-provider.properties b/src/main/resources/META-INF/log4j-provider.properties
+similarity index 100%
+rename from META-INF/log4j-provider.properties
+rename to src/main/resources/META-INF/log4j-provider.properties
+diff --git a/dirt.png b/src/main/resources/dirt.png
+similarity index 100%
+rename from dirt.png
+rename to src/main/resources/dirt.png
+diff --git a/favicon.png b/src/main/resources/favicon.png
+similarity index 100%
+rename from favicon.png
+rename to src/main/resources/favicon.png
+diff --git a/launcher_properties.json b/src/main/resources/launcher_properties.json
+similarity index 100%
+rename from launcher_properties.json
+rename to src/main/resources/launcher_properties.json
+diff --git a/log4j2.xml b/src/main/resources/log4j2.xml
+similarity index 100%
+rename from log4j2.xml
+rename to src/main/resources/log4j2.xml
+diff --git a/minecraft_logo.png b/src/main/resources/minecraft_logo.png
+similarity index 100%
+rename from minecraft_logo.png
+rename to src/main/resources/minecraft_logo.png
+diff --git a/yggdrasil_session_pubkey.der b/src/main/resources/yggdrasil_session_pubkey.der
+similarity index 100%
+rename from yggdrasil_session_pubkey.der
+rename to src/main/resources/yggdrasil_session_pubkey.der
+-- 
+2.34.1
+
