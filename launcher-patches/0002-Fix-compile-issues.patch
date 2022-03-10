@@ -1,10 +1,10 @@
-From c6ca1269f878afc7767488d6b2b577e0f6c35212 Mon Sep 17 00:00:00 2001
+From 10bcc4514e2ada74997412589f480b838be9843a Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot3132@gmail.com>
 Date: Thu, 10 Mar 2022 01:01:49 -0600
 Subject: [PATCH 2/2] Fix compile issues
 
 ---
- pom.xml                                       |  37 ++++-
+ pom.xml                                       |  39 ++++-
  .../authlib/properties/PropertyMap.java       |   6 +-
  .../YggdrasilAuthenticationService.java       |   2 +-
  .../game/process/GameProcessBuilder.java      |   3 +-
@@ -25,14 +25,14 @@ Subject: [PATCH 2/2] Fix compile issues
  src/main/resources/Log4j-events.dtd           |  64 ---------
  src/main/resources/Log4j-events.xsd           |  74 ----------
  src/main/resources/META-INF/MANIFEST.MF       |   4 -
- 21 files changed, 116 insertions(+), 342 deletions(-)
+ 21 files changed, 117 insertions(+), 343 deletions(-)
  delete mode 100644 src/main/resources/Log4j-config.xsd
  delete mode 100644 src/main/resources/Log4j-events.dtd
  delete mode 100644 src/main/resources/Log4j-events.xsd
  delete mode 100644 src/main/resources/META-INF/MANIFEST.MF
 
 diff --git a/pom.xml b/pom.xml
-index 34c1110..c34c484 100644
+index 34c1110..03af315 100644
 --- a/pom.xml
 +++ b/pom.xml
 @@ -6,7 +6,7 @@
@@ -97,21 +97,27 @@ index 34c1110..c34c484 100644
          </dependency>
          <dependency>
              <groupId>com.google.code.gson</groupId>
-@@ -92,7 +121,7 @@
-             <version>5.0.4</version>
-             <scope>compile</scope>
-         </dependency>
--        <dependency>
-+        <!--<dependency>
+@@ -96,19 +125,19 @@
              <groupId>org.openjfx</groupId>
              <artifactId>javafx-controls</artifactId>
              <version>17</version>
-@@ -109,6 +138,6 @@
+-            <scope>compile</scope>
++            <scope>provided</scope>
+         </dependency>
+         <dependency>
+             <groupId>org.openjfx</groupId>
+             <artifactId>javafx-swing</artifactId>
+             <version>17</version>
+-            <scope>compile</scope>
++            <scope>provided</scope>
+         </dependency>
+         <dependency>
+             <groupId>org.openjfx</groupId>
              <artifactId>javafx-web</artifactId>
              <version>17</version>
-             <scope>compile</scope>
--        </dependency>
-+        </dependency>-->
+-            <scope>compile</scope>
++            <scope>provided</scope>
+         </dependency>
      </dependencies>
  </project>
 diff --git a/src/main/java/com/mojang/authlib/properties/PropertyMap.java b/src/main/java/com/mojang/authlib/properties/PropertyMap.java
