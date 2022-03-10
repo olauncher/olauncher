@@ -1,11 +1,15 @@
-From 69f0b761eafd7287e641e71f1e1c1a6b3e0cb6c3 Mon Sep 17 00:00:00 2001
-From: bigfoot547 <bigfoot3132@gmail.com>
-Date: Wed, 9 Mar 2022 23:59:47 -0600
-Subject: [PATCH 1/2] Create maven project
+From 3fc90aaa991df4662b29b24cbf6a425ff2ab0335 Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot@figboot.dev>
+Date: Thu, 10 Mar 2022 01:37:59 -0600
+Subject: [PATCH 1/2] Add maven project
 
 ---
  .gitignore                                    |   3 +
- pom.xml                                       | 114 ++++++++++++++++++
+ Log4j-config.xsd                              | 133 ----------------
+ Log4j-events.dtd                              |  64 --------
+ Log4j-events.xsd                              |  74 ---------
+ META-INF/MANIFEST.MF                          |   4 -
+ pom.xml                                       | 143 ++++++++++++++++++
  .../main/java/com}/mojang/authlib/Agent.java  |   0
  .../mojang/authlib/AuthenticationService.java |   0
  .../authlib/BaseAuthenticationService.java    |   0
@@ -165,10 +169,6 @@ Subject: [PATCH 1/2] Create maven project
  .../updater/PreHashedDownloadable.java        |   0
  .../launcher/updater/RemoteVersionList.java   |   0
  .../launcher/updater/VersionList.java         |   0
- .../main/resources/Log4j-config.xsd           |   0
- .../main/resources/Log4j-events.dtd           |   0
- .../main/resources/Log4j-events.xsd           |   0
- .../main/resources/META-INF}/MANIFEST.MF      |   0
  .../META-INF}/log4j-provider.properties       |   0
  dirt.png => src/main/resources/dirt.png       | Bin
  favicon.png => src/main/resources/favicon.png | Bin
@@ -176,8 +176,12 @@ Subject: [PATCH 1/2] Create maven project
  log4j2.xml => src/main/resources/log4j2.xml   |   0
  .../main/resources/minecraft_logo.png         | Bin
  .../resources/yggdrasil_session_pubkey.der    | Bin
- 172 files changed, 117 insertions(+)
+ 172 files changed, 146 insertions(+), 275 deletions(-)
  create mode 100644 .gitignore
+ delete mode 100644 Log4j-config.xsd
+ delete mode 100644 Log4j-events.dtd
+ delete mode 100644 Log4j-events.xsd
+ delete mode 100644 META-INF/MANIFEST.MF
  create mode 100644 pom.xml
  rename {com => src/main/java/com}/mojang/authlib/Agent.java (100%)
  rename {com => src/main/java/com}/mojang/authlib/AuthenticationService.java (100%)
@@ -338,10 +342,6 @@ Subject: [PATCH 1/2] Create maven project
  rename {net => src/main/java/net}/minecraft/launcher/updater/PreHashedDownloadable.java (100%)
  rename {net => src/main/java/net}/minecraft/launcher/updater/RemoteVersionList.java (100%)
  rename {net => src/main/java/net}/minecraft/launcher/updater/VersionList.java (100%)
- rename Log4j-config.xsd => src/main/resources/Log4j-config.xsd (100%)
- rename Log4j-events.dtd => src/main/resources/Log4j-events.dtd (100%)
- rename Log4j-events.xsd => src/main/resources/Log4j-events.xsd (100%)
- rename {META-INF => src/main/resources/META-INF}/MANIFEST.MF (100%)
  rename {META-INF => src/main/resources/META-INF}/log4j-provider.properties (100%)
  rename dirt.png => src/main/resources/dirt.png (100%)
  rename favicon.png => src/main/resources/favicon.png (100%)
@@ -359,12 +359,311 @@ index 0000000..5231862
 +.idea
 +*.iml
 +target
+diff --git a/Log4j-config.xsd b/Log4j-config.xsd
+deleted file mode 100644
+index a19e125..0000000
+--- a/Log4j-config.xsd
++++ /dev/null
+@@ -1,133 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<!--
+- Licensed to the Apache Software Foundation (ASF) under one or more
+- contributor license agreements.  See the NOTICE file distributed with
+- this work for additional information regarding copyright ownership.
+- The ASF licenses this file to You under the Apache License, Version 2.0
+- (the "License"); you may not use this file except in compliance with
+- the License.  You may obtain a copy of the License at
+-
+-      http://www.apache.org/licenses/LICENSE-2.0
+-
+- Unless required by applicable law or agreed to in writing, software
+- distributed under the License is distributed on an "AS IS" BASIS,
+- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- See the License for the specific language governing permissions and
+- limitations under the License.
+-
+--->
+-<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+-    <xs:element name="Configuration" type="ConfigurationType"/>
+-    <xs:complexType name="ConfigurationType">
+-        <xs:sequence>
+-            <xs:element name="Properties" type="PropertiesType"/>
+-            <xs:choice minOccurs="0" maxOccurs="1">
+-                <xs:element name="Filters" type="FiltersType"/>
+-                <xs:element name="Filter" type="FilterType"/>
+-            </xs:choice>
+-            <xs:element name="ThresholdFilter" type="ThresholdFilterType"/>
+-            <xs:element name="Appenders" type="AppendersType"/>
+-            <xs:element name="Loggers" type="LoggersType"/>
+-        </xs:sequence>
+-        <xs:attribute name="packages" type="xs:string"/>
+-        <xs:attribute name="status" type="xs:string"/>
+-        <xs:attribute name="strict" type="xs:string"/>
+-        <xs:attribute name="name" type="xs:string"/>
+-        <xs:attribute name="advertiser" type="xs:string"/>
+-    </xs:complexType>
+-    <xs:complexType name="PropertiesType">
+-        <xs:sequence>
+-            <xs:element name="Property" type="PropertyType"/>
+-        </xs:sequence>
+-    </xs:complexType>
+-    <xs:complexType name="AppenderType">
+-        <xs:sequence>
+-            <xs:element name="Layout" type="LayoutType" minOccurs="0"/>
+-            <xs:choice minOccurs="0" maxOccurs="1">
+-                <xs:element name="Filters" type="FiltersType"/>
+-                <xs:element name="Filter" type="FilterType"/>
+-            </xs:choice>
+-        </xs:sequence>
+-        <xs:attribute name="type" type="xs:string" use="required"/>
+-        <xs:attribute name="name" type="xs:string" use="required"/>
+-        <xs:attribute name="fileName" type="xs:string" use="optional"/>
+-    </xs:complexType>
+-    <xs:complexType name="RootType">
+-        <xs:sequence>
+-            <xs:element name="AppenderRef" type="AppenderRefType" minOccurs="1" maxOccurs="unbounded"/>
+-        </xs:sequence>
+-        <xs:attribute name="level" type="xs:string"/>
+-    </xs:complexType>
+-    <xs:complexType name="PropertyType">
+-        <xs:simpleContent>
+-            <xs:extension base="xs:string">
+-                <xs:attribute name="name" type="xs:string"/>
+-            </xs:extension>
+-        </xs:simpleContent>
+-    </xs:complexType>
+-    <xs:complexType name="KeyValuePairType">
+-        <xs:simpleContent>
+-            <xs:extension base="xs:string">
+-                <xs:attribute name="key" type="xs:string"/>
+-                <xs:attribute name="value" type="xs:string"/>
+-            </xs:extension>
+-        </xs:simpleContent>
+-    </xs:complexType>
+-    <xs:complexType name="AppendersType">
+-        <xs:sequence>
+-            <xs:element name="Appender" type="AppenderType" minOccurs="1" maxOccurs="unbounded"/>
+-        </xs:sequence>
+-    </xs:complexType>
+-    <xs:complexType name="AppenderRefType">
+-        <xs:simpleContent>
+-            <xs:extension base="xs:string">
+-                <xs:attribute name="ref" type="xs:string" use="required"/>
+-            </xs:extension>
+-        </xs:simpleContent>
+-    </xs:complexType>
+-    <xs:complexType name="LoggerType">
+-        <xs:sequence>
+-            <xs:choice minOccurs="0" maxOccurs="1">
+-                <xs:element name="Filters" type="FiltersType"/>
+-                <xs:element name="Filter" type="FilterType"/>
+-            </xs:choice>
+-            <xs:element name="AppenderRef" type="AppenderRefType"/>
+-        </xs:sequence>
+-        <xs:attribute name="name" type="xs:string" use="required"/>
+-        <xs:attribute name="level" type="xs:string" use="optional"/>
+-        <xs:attribute name="additivity" type="xs:string" use="optional"/>
+-    </xs:complexType>
+-    <xs:complexType name="FilterType" mixed="true">
+-        <xs:sequence>
+-            <xs:element name="KeyValuePair" type="KeyValuePairType" minOccurs="0"/>
+-        </xs:sequence>
+-        <xs:attribute name="type" type="xs:string" use="required"/>
+-        <xs:attribute name="level" type="xs:string" use="optional"/>
+-        <xs:attribute name="marker" type="xs:string" use="optional"/>
+-        <xs:attribute name="onMatch" type="xs:string" use="optional"/>
+-        <xs:attribute name="onMismatch" type="xs:string" use="optional"/>
+-    </xs:complexType>
+-    <xs:complexType name="FiltersType">
+-        <xs:sequence>
+-            <xs:element name="Filter" type="FilterType" minOccurs="0" maxOccurs="unbounded"/>
+-        </xs:sequence>
+-    </xs:complexType>
+-    <xs:complexType name="LoggersType" mixed="true">
+-        <xs:sequence>
+-            <xs:element name="Logger" type="LoggerType" minOccurs="0" maxOccurs="unbounded"/>
+-            <xs:element name="Root" type="RootType" minOccurs="1" maxOccurs="1"/>
+-        </xs:sequence>
+-    </xs:complexType>
+-    <xs:complexType name="LayoutType" mixed="true">
+-        <xs:sequence>
+-            <xs:element name="Pattern" type="xs:string" minOccurs="0"/>
+-        </xs:sequence>
+-        <xs:attribute name="Type" type="xs:string" use="required"/>
+-        <xs:attribute name="Pattern" type="xs:string" use="optional"/>
+-    </xs:complexType>
+-    <xs:complexType name="ThresholdFilterType">
+-        <xs:attribute name="level" type="xs:string" use="optional"/>
+-        <xs:attribute name="onMatch" type="xs:string" use="optional"/>
+-        <xs:attribute name="onMismatch" type="xs:string" use="optional"/>
+-    </xs:complexType>
+-</xs:schema>
+diff --git a/Log4j-events.dtd b/Log4j-events.dtd
+deleted file mode 100644
+index 91af8c7..0000000
+--- a/Log4j-events.dtd
++++ /dev/null
+@@ -1,64 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<!--
+- Licensed to the Apache Software Foundation (ASF) under one or more
+- contributor license agreements.  See the NOTICE file distributed with
+- this work for additional information regarding copyright ownership.
+- The ASF licenses this file to You under the Apache License, Version 2.0
+- (the "License"); you may not use this file except in compliance with
+- the License.  You may obtain a copy of the License at
+-
+-      http://www.apache.org/licenses/LICENSE-2.0
+-
+- Unless required by applicable law or agreed to in writing, software
+- distributed under the License is distributed on an "AS IS" BASIS,
+- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- See the License for the specific language governing permissions and
+- limitations under the License.
+--->
+-<!--DTD generated by XMLSpy v2011 rel. 3 sp1 (x64) (http://www.altova.com)-->
+-<!--the entity declarations may be overridden in the internal subset-->
+-<!--namespace prefixes-->
+-<!ENTITY % log4j_prefix "log4j">
+-<!--namespace prefix to namespace uri mappings-->
+-<!ENTITY % log4j_prefix.. "%log4j_prefix;:">
+-<!--namespaces attributes for root element-->
+-<!ENTITY % documentElementAttributes " xmlns:%log4j_prefix; CDATA 'http://logging.apache.org/log4j/2.0/events'">
+-<!--the declarations below should not be modified-->
+-<!--element name mappings-->
+-<!ENTITY % log4j..Events "%log4j_prefix..;Events">
+-<!ENTITY % log4j..Event "%log4j_prefix..;Event">
+-<!ENTITY % log4j..Message "%log4j_prefix..;Message">
+-<!ENTITY % log4j..NDC "%log4j_prefix..;NDC">
+-<!ENTITY % log4j..Throwable "%log4j_prefix..;Throwable">
+-<!ENTITY % log4j..LocationInfo "%log4j_prefix..;LocationInfo">
+-<!ENTITY % log4j..Properties "%log4j_prefix..;Properties">
+-<!ENTITY % log4j..Data "%log4j_prefix..;Data">
+-<!--element and attribute declarations-->
+-<!--Log4J 2.0 XML Schema-->
+-<!ELEMENT %log4j..Events; ((%log4j..Event;)*)>
+-<!ATTLIST %log4j..Events;
+-	%documentElementAttributes;
+->
+-<!ELEMENT %log4j..Event; (%log4j..Message;, (%log4j..NDC;)?, (%log4j..Throwable;)?, (%log4j..LocationInfo;)?, (%log4j..Properties;)?)>
+-<!ATTLIST %log4j..Event;
+-	logger CDATA #REQUIRED
+-	timestamp NMTOKEN #REQUIRED
+-	level (OFF | FATAL | ERROR | WARN | INFO | DEBUG | TRACE | ALL) #REQUIRED
+-	thread CDATA #REQUIRED
+->
+-<!ELEMENT %log4j..Message; ANY>
+-<!ELEMENT %log4j..NDC; ANY>
+-<!ELEMENT %log4j..Throwable; ANY>
+-<!ELEMENT %log4j..LocationInfo; EMPTY>
+-<!ATTLIST %log4j..LocationInfo;
+-	class CDATA #REQUIRED
+-	method CDATA #REQUIRED
+-	file CDATA #REQUIRED
+-	line NMTOKEN #REQUIRED
+->
+-<!ELEMENT %log4j..Properties; ((%log4j..Data;)+)>
+-<!ELEMENT %log4j..Data; EMPTY>
+-<!ATTLIST %log4j..Data;
+-	name CDATA #REQUIRED
+-	value CDATA #REQUIRED
+->
+diff --git a/Log4j-events.xsd b/Log4j-events.xsd
+deleted file mode 100644
+index 2310227..0000000
+--- a/Log4j-events.xsd
++++ /dev/null
+@@ -1,74 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<!-- edited with XMLSpy v2011 rel. 3 sp1 (x64) (http://www.altova.com) by Gary Gregory (Rocket Software) -->
+-<!--
+- Licensed to the Apache Software Foundation (ASF) under one or more
+- contributor license agreements.  See the NOTICE file distributed with
+- this work for additional information regarding copyright ownership.
+- The ASF licenses this file to You under the Apache License, Version 2.0
+- (the "License"); you may not use this file except in compliance with
+- the License.  You may obtain a copy of the License at
+-
+-      http://www.apache.org/licenses/LICENSE-2.0
+-
+- Unless required by applicable law or agreed to in writing, software
+- distributed under the License is distributed on an "AS IS" BASIS,
+- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- See the License for the specific language governing permissions and
+- limitations under the License.
+--->
+-<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:log4j="http://logging.apache.org/log4j/2.0/events" targetNamespace="http://logging.apache.org/log4j/2.0/events" elementFormDefault="qualified" attributeFormDefault="unqualified">
+-    <xs:element name="Events">
+-        <xs:annotation>
+-            <xs:documentation>Log4J 2.0 XML Schema for XML log event files.</xs:documentation>
+-        </xs:annotation>
+-        <xs:complexType>
+-            <xs:sequence>
+-                <xs:element name="Event" minOccurs="0" maxOccurs="unbounded">
+-                    <xs:complexType>
+-                        <xs:sequence>
+-                            <xs:element name="Message"/>
+-                            <xs:element name="NDC" minOccurs="0"/>
+-                            <xs:element name="Throwable" minOccurs="0"/>
+-                            <xs:element name="LocationInfo" minOccurs="0">
+-                                <xs:complexType>
+-                                    <xs:attribute name="class" type="xs:string" use="required"/>
+-                                    <xs:attribute name="method" type="xs:string" use="required"/>
+-                                    <xs:attribute name="file" type="xs:string" use="required"/>
+-                                    <xs:attribute name="line" type="xs:int" use="required"/>
+-                                </xs:complexType>
+-                            </xs:element>
+-                            <xs:element name="Properties" minOccurs="0">
+-                                <xs:complexType>
+-                                    <xs:sequence>
+-                                        <xs:element name="Data" maxOccurs="unbounded">
+-                                            <xs:complexType>
+-                                                <xs:attribute name="name" type="xs:string" use="required"/>
+-                                                <xs:attribute name="value" use="required"/>
+-                                            </xs:complexType>
+-                                        </xs:element>
+-                                    </xs:sequence>
+-                                </xs:complexType>
+-                            </xs:element>
+-                        </xs:sequence>
+-                        <xs:attribute name="logger" type="xs:string" use="required"/>
+-                        <xs:attribute name="timestamp" type="xs:long" use="required"/>
+-                        <xs:attribute name="level" type="log4j:LevelEnum" use="required"/>
+-                        <xs:attribute name="thread" type="xs:string" use="required"/>
+-                    </xs:complexType>
+-                </xs:element>
+-            </xs:sequence>
+-        </xs:complexType>
+-    </xs:element>
+-    <xs:simpleType name="LevelEnum">
+-        <xs:restriction base="xs:string">
+-            <xs:enumeration value="OFF"/>
+-            <xs:enumeration value="FATAL"/>
+-            <xs:enumeration value="ERROR"/>
+-            <xs:enumeration value="WARN"/>
+-            <xs:enumeration value="INFO"/>
+-            <xs:enumeration value="DEBUG"/>
+-            <xs:enumeration value="TRACE"/>
+-            <xs:enumeration value="ALL"/>
+-        </xs:restriction>
+-    </xs:simpleType>
+-</xs:schema>
+diff --git a/META-INF/MANIFEST.MF b/META-INF/MANIFEST.MF
+deleted file mode 100644
+index aef7cf0..0000000
+--- a/META-INF/MANIFEST.MF
++++ /dev/null
+@@ -1,4 +0,0 @@
+-Manifest-Version: 1.0
+-Implementation-Version: 1.6.93
+-Main-Class: net.minecraft.launcher.Main
+-
 diff --git a/pom.xml b/pom.xml
 new file mode 100644
-index 0000000..34c1110
+index 0000000..03af315
 --- /dev/null
 +++ b/pom.xml
-@@ -0,0 +1,114 @@
+@@ -0,0 +1,143 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +
 +<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -373,7 +672,7 @@ index 0000000..34c1110
 +
 +    <groupId>dev.figboot</groupId>
 +    <artifactId>olauncher</artifactId>
-+    <version>0.1.0</version>
++    <version>1.6.93</version>
 +
 +    <properties>
 +        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -392,6 +691,23 @@ index 0000000..34c1110
 +            </plugin>
 +            <plugin>
 +                <groupId>org.apache.maven.plugins</groupId>
++                <artifactId>maven-jar-plugin</artifactId>
++                <version>3.2.0</version>
++                <configuration>
++                    <archive>
++                        <addMavenDescriptor>false</addMavenDescriptor>
++                        <manifest>
++                            <addClasspath>false</addClasspath>
++                        </manifest>
++                        <manifestEntries>
++                            <Main-Class>net.minecraft.launcher.Main</Main-Class>
++                            <Implementation-Version>${project.version}</Implementation-Version>
++                        </manifestEntries>
++                    </archive>
++                </configuration>
++            </plugin>
++            <plugin>
++                <groupId>org.apache.maven.plugins</groupId>
 +                <artifactId>maven-shade-plugin</artifactId>
 +                <version>3.2.4</version>
 +                <executions>
@@ -404,7 +720,19 @@ index 0000000..34c1110
 +                </executions>
 +                <configuration>
 +                    <createDependencyReducedPom>false</createDependencyReducedPom>
++                    <transformers>
++                        <transformer
++                                implementation="io.github.edwgiz.log4j.maven.plugins.shade.transformer.Log4j2PluginCacheFileTransformer">
++                        </transformer>
++                    </transformers>
 +                </configuration>
++                <dependencies>
++                    <dependency>
++                        <groupId>io.github.edwgiz</groupId>
++                        <artifactId>log4j-maven-shade-plugin-extensions</artifactId>
++                        <version>2.17.1</version>
++                    </dependency>
++                </dependencies>
 +            </plugin>
 +        </plugins>
 +    </build>
@@ -439,7 +767,7 @@ index 0000000..34c1110
 +            <groupId>org.apache.commons</groupId>
 +            <artifactId>commons-lang3</artifactId>
 +            <version>3.12.0</version>
-+            <scope>provided</scope>
++            <scope>compile</scope>
 +        </dependency>
 +        <dependency>
 +            <groupId>com.google.code.gson</groupId>
@@ -463,19 +791,19 @@ index 0000000..34c1110
 +            <groupId>org.openjfx</groupId>
 +            <artifactId>javafx-controls</artifactId>
 +            <version>17</version>
-+            <scope>compile</scope>
++            <scope>provided</scope>
 +        </dependency>
 +        <dependency>
 +            <groupId>org.openjfx</groupId>
 +            <artifactId>javafx-swing</artifactId>
 +            <version>17</version>
-+            <scope>compile</scope>
++            <scope>provided</scope>
 +        </dependency>
 +        <dependency>
 +            <groupId>org.openjfx</groupId>
 +            <artifactId>javafx-web</artifactId>
 +            <version>17</version>
-+            <scope>compile</scope>
++            <scope>provided</scope>
 +        </dependency>
 +    </dependencies>
 +</project>
@@ -1115,22 +1443,6 @@ diff --git a/net/minecraft/launcher/updater/VersionList.java b/src/main/java/net
 similarity index 100%
 rename from net/minecraft/launcher/updater/VersionList.java
 rename to src/main/java/net/minecraft/launcher/updater/VersionList.java
-diff --git a/Log4j-config.xsd b/src/main/resources/Log4j-config.xsd
-similarity index 100%
-rename from Log4j-config.xsd
-rename to src/main/resources/Log4j-config.xsd
-diff --git a/Log4j-events.dtd b/src/main/resources/Log4j-events.dtd
-similarity index 100%
-rename from Log4j-events.dtd
-rename to src/main/resources/Log4j-events.dtd
-diff --git a/Log4j-events.xsd b/src/main/resources/Log4j-events.xsd
-similarity index 100%
-rename from Log4j-events.xsd
-rename to src/main/resources/Log4j-events.xsd
-diff --git a/META-INF/MANIFEST.MF b/src/main/resources/META-INF/MANIFEST.MF
-similarity index 100%
-rename from META-INF/MANIFEST.MF
-rename to src/main/resources/META-INF/MANIFEST.MF
 diff --git a/META-INF/log4j-provider.properties b/src/main/resources/META-INF/log4j-provider.properties
 similarity index 100%
 rename from META-INF/log4j-provider.properties
