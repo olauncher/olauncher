@@ -1,4 +1,4 @@
-From 7da6fc6695b02a38004b8010b089e7fbebfd6220 Mon Sep 17 00:00:00 2001
+From 526326a8bcb9ce46d6517220a4ccd35a2eff4869 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 10 Mar 2022 01:37:59 -0600
 Subject: [PATCH 1/2] Add maven project
@@ -9,7 +9,7 @@ Subject: [PATCH 1/2] Add maven project
  Log4j-events.dtd                              |  64 --------
  Log4j-events.xsd                              |  74 ---------
  META-INF/MANIFEST.MF                          |   4 -
- pom.xml                                       | 144 ++++++++++++++++++
+ pom.xml                                       | 150 ++++++++++++++++++
  .../main/java/com}/mojang/authlib/Agent.java  |   0
  .../mojang/authlib/AuthenticationService.java |   0
  .../authlib/BaseAuthenticationService.java    |   0
@@ -176,7 +176,7 @@ Subject: [PATCH 1/2] Add maven project
  log4j2.xml => src/main/resources/log4j2.xml   |   0
  .../main/resources/minecraft_logo.png         | Bin
  .../resources/yggdrasil_session_pubkey.der    | Bin
- 172 files changed, 147 insertions(+), 275 deletions(-)
+ 172 files changed, 153 insertions(+), 275 deletions(-)
  create mode 100644 .gitignore
  delete mode 100644 Log4j-config.xsd
  delete mode 100644 Log4j-events.dtd
@@ -660,17 +660,23 @@ index aef7cf0..0000000
 -
 diff --git a/pom.xml b/pom.xml
 new file mode 100644
-index 0000000..d9b4e4c
+index 0000000..b8220e1
 --- /dev/null
 +++ b/pom.xml
-@@ -0,0 +1,144 @@
+@@ -0,0 +1,150 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +
 +<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 +         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 +    <modelVersion>4.0.0</modelVersion>
 +
-+    <groupId>dev.figboot</groupId>
++    <parent>
++        <groupId>dev.figboot</groupId>
++        <artifactId>olauncher-parent</artifactId>
++        <version>0.1.0</version>
++        <relativePath>../pom.xml</relativePath>
++    </parent>
++
 +    <artifactId>olauncher</artifactId>
 +    <version>1.6.93</version>
 +

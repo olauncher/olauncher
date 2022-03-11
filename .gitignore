@@ -2,3 +2,7 @@ work
 launcher
 .*.swp
 olauncher
+
+.idea
+*.iml
+target
