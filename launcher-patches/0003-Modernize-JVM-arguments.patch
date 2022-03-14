@@ -1,0 +1,41 @@
+From e67edbf1eb80d0ef11a3d1b5bcb2de2e12ef23e4 Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot3132@gmail.com>
+Date: Mon, 14 Mar 2022 10:09:55 -0500
+Subject: [PATCH 3/3] Modernize JVM arguments
+
+---
+ .../java/net/minecraft/launcher/game/MinecraftGameRunner.java | 2 +-
+ src/main/java/net/minecraft/launcher/profile/Profile.java     | 4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
+index d77ad7f..ee60295 100644
+--- a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
++++ b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
+@@ -169,7 +169,7 @@ public class MinecraftGameRunner extends AbstractGameRunner implements GameProce
+                 var4.withArguments(var5.split(" "));
+             } else {
+                 boolean var6 = "32".equals(System.getProperty("sun.arch.data.model"));
+-                String var7 = var6 ? "-Xmx512M -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode -XX:-UseAdaptiveSizePolicy -Xmn128M" : "-Xmx1G -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode -XX:-UseAdaptiveSizePolicy -Xmn128M";
++                String var7 = var6 ? Profile.DEFAULT_JRE_ARGUMENTS_32BIT : Profile.DEFAULT_JRE_ARGUMENTS_64BIT;
+                 var4.withArguments(var7.split(" "));
+             }
+ 
+diff --git a/src/main/java/net/minecraft/launcher/profile/Profile.java b/src/main/java/net/minecraft/launcher/profile/Profile.java
+index 9de6c6f..39c729d 100644
+--- a/src/main/java/net/minecraft/launcher/profile/Profile.java
++++ b/src/main/java/net/minecraft/launcher/profile/Profile.java
+@@ -11,8 +11,8 @@ import net.minecraft.launcher.game.MinecraftReleaseType;
+ import net.minecraft.launcher.game.MinecraftReleaseTypeFactory;
+ 
+ public class Profile implements Comparable<Profile> {
+-    public static final String DEFAULT_JRE_ARGUMENTS_64BIT = "-Xmx1G -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode -XX:-UseAdaptiveSizePolicy -Xmn128M";
+-    public static final String DEFAULT_JRE_ARGUMENTS_32BIT = "-Xmx512M -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode -XX:-UseAdaptiveSizePolicy -Xmn128M";
++    public static final String DEFAULT_JRE_ARGUMENTS_64BIT = "-Xmx2G -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M";
++    public static final String DEFAULT_JRE_ARGUMENTS_32BIT = "-Xmx2G -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M";
+     public static final Profile.Resolution DEFAULT_RESOLUTION = new Profile.Resolution(854, 480);
+     public static final LauncherVisibilityRule DEFAULT_LAUNCHER_VISIBILITY;
+     public static final Set<MinecraftReleaseType> DEFAULT_RELEASE_TYPES;
+-- 
+2.35.1
+
