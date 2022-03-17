@@ -1,4 +1,4 @@
-From afba5f1347fb5da7ddc2c382bde57b4a7d709d12 Mon Sep 17 00:00:00 2001
+From d3289b5a007184cc1f5609397e0a39ffff31d421 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot3132@gmail.com>
 Date: Thu, 17 Mar 2022 04:40:30 -0500
 Subject: [PATCH 4/4] Add Microsoft authentication
@@ -9,9 +9,9 @@ Subject: [PATCH 4/4] Add Microsoft authentication
  .../java/com/mojang/authlib/UserType.java     |   3 +-
  .../figboot/olauncher/OLauncherConstants.java |  13 +
  .../figboot/olauncher/auth/MCProfileInfo.java |  64 +++++
- .../figboot/olauncher/auth/MSLoginServer.java | 158 +++++++++++
+ .../figboot/olauncher/auth/MSLoginServer.java | 213 +++++++++++++++
  .../auth/MicrosoftAuthenticationService.java  | 109 ++++++++
- .../auth/MicrosoftUserAuthentication.java     | 247 ++++++++++++++++++
+ .../auth/MicrosoftUserAuthentication.java     | 255 ++++++++++++++++++
  .../requests/MinecraftXboxLoginRequest.java   |  11 +
  .../auth/requests/XSTSAuthRequest.java        |  26 ++
  .../auth/requests/XboxLiveAuthRequest.java    |  29 ++
@@ -20,16 +20,16 @@ Subject: [PATCH 4/4] Add Microsoft authentication
  .../responses/MinecraftXboxLoginResponse.java |  14 +
  .../auth/responses/XSTSAuthResponse.java      |  24 ++
  .../auth/responses/XboxLiveAuthResponse.java  |  30 +++
- .../olauncher/auth/ui/MSLoginDialog.java      | 112 ++++++++
- .../olauncher/auth/ui/MSLoginDialog2.java     | 134 ++++++++++
+ .../olauncher/auth/ui/MSLoginDialog.java      | 123 +++++++++
+ .../olauncher/auth/ui/MSLoginDialog2.java     | 134 +++++++++
  .../olauncher/util/BetterUUIDTypeAdapter.java |  23 ++
  .../olauncher/util/InstantTypeAdapter.java    |  20 ++
  .../profile/AuthenticationDatabase.java       |   6 +-
  .../launcher/profile/ProfileManager.java      |   4 +-
- .../launcher/ui/popups/login/LogInForm.java   |  27 ++
+ .../launcher/ui/popups/login/LogInForm.java   |  22 ++
  .../launcher/ui/popups/login/LogInPopup.java  |  35 ++-
  src/main/resources/log4j2.xml                 |   2 +-
- 25 files changed, 1125 insertions(+), 12 deletions(-)
+ 25 files changed, 1194 insertions(+), 12 deletions(-)
  create mode 100644 src/main/java/dev/figboot/olauncher/OLauncherConstants.java
  create mode 100644 src/main/java/dev/figboot/olauncher/auth/MCProfileInfo.java
  create mode 100644 src/main/java/dev/figboot/olauncher/auth/MSLoginServer.java
@@ -221,12 +221,15 @@ index 0000000..c4f4b3f
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/auth/MSLoginServer.java b/src/main/java/dev/figboot/olauncher/auth/MSLoginServer.java
 new file mode 100644
-index 0000000..cb70b59
+index 0000000..fa4c3cc
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/auth/MSLoginServer.java
-@@ -0,0 +1,158 @@
+@@ -0,0 +1,213 @@
 +package dev.figboot.olauncher.auth;
 +
++import lombok.AccessLevel;
++import lombok.Getter;
++import lombok.RequiredArgsConstructor;
 +import org.apache.logging.log4j.LogManager;
 +import org.apache.logging.log4j.Logger;
 +
@@ -252,12 +255,12 @@ index 0000000..cb70b59
 +    private final int port;
 +
 +    private final Thread serverThread;
-+    private final Consumer<String> handleComplete;
++    private final Consumer<Response> handleComplete;
 +
 +    private final Object handlerSync = new Object();
 +    private boolean handlerCalled;
 +
-+    public MSLoginServer(InetAddress addr, int port, Consumer<String> handleComplete) throws IOException {
++    public MSLoginServer(InetAddress addr, int port, Consumer<Response> handleComplete) throws IOException {
 +        handlerCalled = false;
 +
 +        running = false;
@@ -284,7 +287,7 @@ index 0000000..cb70b59
 +                ex.printStackTrace();
 +            } finally {
 +                synchronized (handlerSync) {
-+                    if (!handlerCalled) handleComplete.accept(null);
++                    if (!handlerCalled) handleComplete.accept(new Response(null, null, null));
 +                    handlerCalled = true;
 +                }
 +
@@ -324,6 +327,7 @@ index 0000000..cb70b59
 +    }
 +
 +    private static final Pattern GET_RQ_PATTERN = Pattern.compile("^GET /\\?code=([a-zA-Z0-9_.\\-]+) HTTP/[0-9.]+$");
++    private static final Pattern GET_ERROR_PATTERN = Pattern.compile("^GET /\\?error=([a-zA-Z0-9_\\-]+)&error_description=(.+) HTTP/[0-9.]+$");
 +    private static final Pattern AUTH_COMPLETE_PATTERN = Pattern.compile("^GET /authComplete HTTP/[0-9.]+$");
 +    private void handle() throws Exception {
 +        synchronized (stateVarLock) {
@@ -351,7 +355,29 @@ index 0000000..cb70b59
 +                        client.getOutputStream().write("Location: /authComplete\r\n\r\n".getBytes(StandardCharsets.UTF_8));
 +
 +                        synchronized (handlerSync) {
-+                            if (!handlerCalled) handleComplete.accept(code);
++                            if (!handlerCalled) handleComplete.accept(new Response(code, null, null));
++                            handlerCalled = true;
++                        }
++
++                        break;
++                    } else if ((matcher = GET_ERROR_PATTERN.matcher(line)).matches()) {
++                        LOGGER.info("Authorization error");
++                        String error = matcher.group(1);
++                        String errorDesc = URLDecoder.decode(matcher.group(2), "UTF-8");
++
++                        String content = "The authorization has been cancelled. You may now close this window.";
++                        byte[] contentBytes = content.getBytes(StandardCharsets.UTF_8);
++                        client.getOutputStream().write("HTTP/1.1 200 OK\r\n".getBytes(StandardCharsets.UTF_8));
++                        client.getOutputStream().write("Content-type: text/plain\r\n".getBytes(StandardCharsets.UTF_8));
++                        client.getOutputStream().write(("Content-length: " + contentBytes.length + "\r\n\r\n").getBytes(StandardCharsets.UTF_8));
++                        client.getOutputStream().write(contentBytes);
++
++                        synchronized (stateVarLock) {
++                            stop = true;
++                        }
++
++                        synchronized (handlerSync) {
++                            if (!handlerCalled) handleComplete.accept(new Response(null, error, errorDesc));
 +                            handlerCalled = true;
 +                        }
 +
@@ -370,7 +396,7 @@ index 0000000..cb70b59
 +                        }
 +
 +                        synchronized (handlerSync) {
-+                            if (!handlerCalled) handleComplete.accept(null);
++                            if (!handlerCalled) handleComplete.accept(new Response(null, null, null));
 +                            handlerCalled = true;
 +                        }
 +
@@ -380,6 +406,35 @@ index 0000000..cb70b59
 +                    }
 +                }
 +            }
++        }
++    }
++
++    @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
++    @Getter
++    public static class Response {
++        private final String code;
++        private final String error;
++        private final String errorDesc;
++
++        public boolean isSuccess() {
++            return code != null;
++        }
++
++        public boolean isAuthError() {
++            return code == null && error != null;
++        }
++
++        public boolean isInternalError() {
++            return code == null && error == null;
++        }
++
++        @Override
++        public String toString() {
++            return "Response{" +
++                    "code='" + code + '\'' +
++                    ", error='" + error + '\'' +
++                    ", errorDesc='" + errorDesc + '\'' +
++                    '}';
 +        }
 +    }
 +}
@@ -500,10 +555,10 @@ index 0000000..81a7d8b
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 new file mode 100644
-index 0000000..b3eade1
+index 0000000..f9a3a74
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
-@@ -0,0 +1,247 @@
+@@ -0,0 +1,255 @@
 +package dev.figboot.olauncher.auth;
 +
 +import com.mojang.authlib.*;
@@ -540,7 +595,7 @@ index 0000000..b3eade1
 +    private Instant mojTokenExpire;
 +    private boolean loggedIn;
 +
-+    private String msAuthCode;
++    private MSLoginServer.Response msLoginRes;
 +
 +    private final MinecraftSessionService sessionService;
 +
@@ -553,7 +608,7 @@ index 0000000..b3eade1
 +        mojToken = "";
 +        loggedIn = false;
 +
-+        msAuthCode = null;
++        msLoginRes = null;
 +
 +        sessionService = service.createMinecraftSessionService();
 +    }
@@ -570,9 +625,17 @@ index 0000000..b3eade1
 +
 +    @Override
 +    public void logIn() throws AuthenticationException {
-+        if (msAuthCode == null && msRefreshToken == null) throw new AuthenticationException("Username/email and password login is not supported");
-+        String msAuthCode = this.msAuthCode;
-+        this.msAuthCode = null;
++        if (msLoginRes == null && msRefreshToken == null) throw new AuthenticationException("Username/email and password login is not supported");
++
++        if (msLoginRes != null) {
++            if (msLoginRes.isInternalError())
++                throw new AuthenticationException("An internal error occurred while authorizing your account");
++            if (msLoginRes.isAuthError())
++                throw new AuthenticationException(msLoginRes.getErrorDesc() + " (" + msLoginRes.getError() + ")");
++        }
++
++        String msAuthCode = msLoginRes == null ? null : this.msLoginRes.getCode();
++        this.msLoginRes = null;
 +
 +        Instant now = Instant.now();
 +        if (mojTokenValid(now)) {
@@ -701,8 +764,8 @@ index 0000000..b3eade1
 +        return msRefreshToken != null;
 +    }
 +
-+    public void setLogInCode(String code) {
-+        msAuthCode = code;
++    public void setLoginResponse(MSLoginServer.Response code) {
++        msLoginRes = code;
 +    }
 +
 +    @Override
@@ -961,10 +1024,10 @@ index 0000000..54964bb
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog.java b/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog.java
 new file mode 100644
-index 0000000..54860c3
+index 0000000..96f8b4a
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog.java
-@@ -0,0 +1,112 @@
+@@ -0,0 +1,123 @@
 +package dev.figboot.olauncher.auth.ui;
 +
 +import com.mojang.launcher.OperatingSystem;
@@ -976,6 +1039,7 @@ index 0000000..54860c3
 +
 +import javax.swing.*;
 +import java.awt.*;
++import java.awt.datatransfer.StringSelection;
 +import java.awt.event.ActionEvent;
 +import java.awt.event.WindowAdapter;
 +import java.awt.event.WindowEvent;
@@ -990,19 +1054,23 @@ index 0000000..54860c3
 +
 +    private final JLabel lblInfo;
 +    private final JButton btnCancel;
++    private final JButton btnCopy;
++    private final String link;
 +
 +    private MSLoginServer loginServer;
-+    private Consumer<String> callback;
++    private final Consumer<MSLoginServer.Response> callback;
 +
-+    public MSLoginDialog(Consumer<String> callback) {
++    public MSLoginDialog(Consumer<MSLoginServer.Response> callback) {
 +        this.callback = callback;
 +
 +        lblInfo = new JLabel("Waiting for webpage response...");
 +        btnCancel = new JButton("Cancel");
++        btnCopy = new JButton("Copy Link");
 +
 +        setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
 +
 +        btnCancel.addActionListener(this::btnCancelClick);
++        btnCopy.addActionListener(this::btnCopyLink);
 +
 +        addWindowListener(new WindowAdapter() {
 +            @Override
@@ -1024,7 +1092,7 @@ index 0000000..54860c3
 +        try {
 +            loginServer = new MSLoginServer(InetAddress.getByName("127.0.0.1"), OLauncherConstants.REDIR_URI_PORT, this::handleComplete);
 +            loginServer.listen();
-+            OperatingSystem.openLink(URI.create(String.format("https://login.live.com/oauth20_authorize.srf?client_id=%s&response_type=code&redirect_uri=%s&scope=%s",
++            OperatingSystem.openLink(URI.create(link = String.format("https://login.live.com/oauth20_authorize.srf?client_id=%s&response_type=code&redirect_uri=%s&scope=%s",
 +                    URLEncoder.encode(OLauncherConstants.APP_CLIENT_ID.toString(), "UTF-8"),
 +                    URLEncoder.encode(OLauncherConstants.REDIR_URI, "UTF-8"),
 +                    URLEncoder.encode(OLauncherConstants.APP_SCOPES, "UTF-8")
@@ -1037,6 +1105,7 @@ index 0000000..54860c3
 +            ex.printStackTrace();
 +            dispose();
 +            JOptionPane.showMessageDialog(null, "Error authenticating with Microsoft", "Error", JOptionPane.ERROR_MESSAGE);
++            throw new RuntimeException(ex);
 +        }
 +    }
 +
@@ -1046,10 +1115,11 @@ index 0000000..54860c3
 +        setLayout(new BorderLayout());
 +        add(lblInfo, BorderLayout.CENTER);
 +
-+        JPanel frmCancelBtn = new JPanel();
-+        frmCancelBtn.setLayout(new FlowLayout(FlowLayout.RIGHT));
-+        frmCancelBtn.add(btnCancel);
-+        add(frmCancelBtn, BorderLayout.PAGE_END);
++        JPanel pnlButtons = new JPanel();
++        pnlButtons.setLayout(new FlowLayout(FlowLayout.RIGHT));
++        pnlButtons.add(btnCopy);
++        pnlButtons.add(btnCancel);
++        add(pnlButtons, BorderLayout.PAGE_END);
 +
 +        pack();
 +        setLocationRelativeTo(this);
@@ -1069,11 +1139,15 @@ index 0000000..54860c3
 +        dispose();
 +    }
 +
-+    private void handleComplete(String code) {
-+        LOGGER.debug("Code get! " + code);
++    private void btnCopyLink(ActionEvent evt) {
++        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(link), null);
++    }
++
++    private void handleComplete(MSLoginServer.Response response) {
++        LOGGER.debug("Code get! " + response);
 +        SwingUtilities.invokeLater(() -> {
 +            dispose();
-+            callback.accept(code);
++            callback.accept(response);
 +        });
 +    }
 +}
@@ -1326,34 +1400,21 @@ index d6a2f98..2c12b95 100644
                      var8 = (AuthenticationDatabase)var3.deserialize(var4.get("authenticationDatabase"), AuthenticationDatabase.class);
                  }
 diff --git a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
-index 32b2ced..f7e60fa 100644
+index 32b2ced..d792ab7 100644
 --- a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
 +++ b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
-@@ -16,6 +16,11 @@ import java.awt.event.ActionEvent;
- import java.awt.event.ActionListener;
- import java.awt.event.MouseAdapter;
- import java.awt.event.MouseEvent;
-+import java.io.UnsupportedEncodingException;
-+import java.net.InetAddress;
-+import java.net.URI;
-+import java.net.URLEncoder;
-+import java.net.UnknownHostException;
- import javax.swing.Box;
- import javax.swing.JComboBox;
- import javax.swing.JLabel;
-@@ -23,6 +28,11 @@ import javax.swing.JPanel;
+@@ -23,6 +23,10 @@ import javax.swing.JPanel;
  import javax.swing.JPasswordField;
  import javax.swing.JTextField;
  import javax.swing.SwingUtilities;
 +
-+import dev.figboot.olauncher.OLauncherConstants;
 +import dev.figboot.olauncher.auth.MSLoginServer;
 +import dev.figboot.olauncher.auth.MicrosoftUserAuthentication;
 +import dev.figboot.olauncher.auth.ui.MSLoginDialog;
  import net.minecraft.launcher.LauncherConstants;
  import net.minecraft.launcher.profile.AuthenticationDatabase;
  import org.apache.commons.lang3.ArrayUtils;
-@@ -211,4 +221,21 @@ public class LogInForm extends JPanel implements ActionListener {
+@@ -211,4 +215,22 @@ public class LogInForm extends JPanel implements ActionListener {
          }
  
      }
@@ -1364,13 +1425,14 @@ index 32b2ced..f7e60fa 100644
 +        });
 +    }
 +
-+    public void handleMSLogin(String code) {
-+        if (code == null) {
++    public void handleMSLogin(MSLoginServer.Response response) {
++        if (response == null) {
 +            this.popup.getErrorForm().displayError(new AuthenticationException("The authentication code is null"), "The authentication request was cancelled.");
++            return;
 +        }
 +
 +        if (authentication instanceof MicrosoftUserAuthentication) {
-+            ((MicrosoftUserAuthentication)authentication).setLogInCode(code);
++            ((MicrosoftUserAuthentication)authentication).setLoginResponse(response);
 +            tryLogIn();
 +        }
 +    }
