@@ -1,52 +1,8 @@
 From cd1b3045fd9a33ed102941a77b33eafb579ffbb4 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot3132@gmail.com>
 Date: Thu, 17 Mar 2022 04:40:30 -0500
-Subject: [PATCH 4/5] Add Microsoft authentication
+Subject: [PATCH] Add Microsoft authentication
 
----
- pom.xml                                       |   6 +-
- .../authlib/HttpAuthenticationService.java    |  14 +
- .../java/com/mojang/authlib/UserType.java     |   3 +-
- .../figboot/olauncher/OLauncherConstants.java |  13 +
- .../figboot/olauncher/auth/MCProfileInfo.java |  64 +++++
- .../figboot/olauncher/auth/MSLoginServer.java | 213 +++++++++++++++
- .../auth/MicrosoftAuthenticationService.java  | 109 ++++++++
- .../auth/MicrosoftUserAuthentication.java     | 255 ++++++++++++++++++
- .../requests/MinecraftXboxLoginRequest.java   |  11 +
- .../auth/requests/XSTSAuthRequest.java        |  26 ++
- .../auth/requests/XboxLiveAuthRequest.java    |  29 ++
- .../olauncher/auth/responses/MSResponse.java  |  12 +
- .../auth/responses/MSTokenAuthResponse.java   |  14 +
- .../responses/MinecraftXboxLoginResponse.java |  14 +
- .../auth/responses/XSTSAuthResponse.java      |  24 ++
- .../auth/responses/XboxLiveAuthResponse.java  |  30 +++
- .../olauncher/auth/ui/MSLoginDialog.java      | 123 +++++++++
- .../olauncher/auth/ui/MSLoginDialog2.java     | 134 +++++++++
- .../olauncher/util/BetterUUIDTypeAdapter.java |  23 ++
- .../olauncher/util/InstantTypeAdapter.java    |  20 ++
- .../profile/AuthenticationDatabase.java       |   6 +-
- .../launcher/profile/ProfileManager.java      |   4 +-
- .../launcher/ui/popups/login/LogInForm.java   |  22 ++
- .../launcher/ui/popups/login/LogInPopup.java  |  35 ++-
- src/main/resources/log4j2.xml                 |   2 +-
- 25 files changed, 1194 insertions(+), 12 deletions(-)
- create mode 100644 src/main/java/dev/figboot/olauncher/OLauncherConstants.java
- create mode 100644 src/main/java/dev/figboot/olauncher/auth/MCProfileInfo.java
- create mode 100644 src/main/java/dev/figboot/olauncher/auth/MSLoginServer.java
- create mode 100644 src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java
- create mode 100644 src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
- create mode 100644 src/main/java/dev/figboot/olauncher/auth/requests/MinecraftXboxLoginRequest.java
- create mode 100644 src/main/java/dev/figboot/olauncher/auth/requests/XSTSAuthRequest.java
- create mode 100644 src/main/java/dev/figboot/olauncher/auth/requests/XboxLiveAuthRequest.java
- create mode 100644 src/main/java/dev/figboot/olauncher/auth/responses/MSResponse.java
- create mode 100644 src/main/java/dev/figboot/olauncher/auth/responses/MSTokenAuthResponse.java
- create mode 100644 src/main/java/dev/figboot/olauncher/auth/responses/MinecraftXboxLoginResponse.java
- create mode 100644 src/main/java/dev/figboot/olauncher/auth/responses/XSTSAuthResponse.java
- create mode 100644 src/main/java/dev/figboot/olauncher/auth/responses/XboxLiveAuthResponse.java
- create mode 100644 src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog.java
- create mode 100644 src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog2.java
- create mode 100644 src/main/java/dev/figboot/olauncher/util/BetterUUIDTypeAdapter.java
- create mode 100644 src/main/java/dev/figboot/olauncher/util/InstantTypeAdapter.java
 
 diff --git a/pom.xml b/pom.xml
 index e813ae1..ed237e0 100644

@@ -8,7 +8,7 @@ rebuildPatches() {
 
     mkdir -p ${from}-patches
     pushd $to
-    git format-patch -o $basedir/${from}-patches origin/HEAD
+    git format-patch --no-stat -N -o $basedir/${from}-patches origin/HEAD
     popd
 }
 

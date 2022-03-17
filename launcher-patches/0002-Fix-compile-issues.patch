@@ -1,26 +1,8 @@
 From acef965eb34d78fa6ba66f7dc7dec662d24c106e Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot3132@gmail.com>
 Date: Thu, 10 Mar 2022 02:35:36 -0600
-Subject: [PATCH 2/5] Fix compile issues
+Subject: [PATCH] Fix compile issues
 
----
- .../authlib/properties/PropertyMap.java       | 10 ++--
- .../YggdrasilAuthenticationService.java       |  2 +-
- .../game/process/GameProcessBuilder.java      |  3 +-
- .../process/direct/DirectGameProcess.java     |  3 +-
- .../LowerCaseEnumTypeAdapterFactory.java      |  9 +--
- .../com/mojang/util/QueueLogAppender.java     |  9 +--
- .../net/minecraft/hopper/HopperService.java   |  2 +-
- .../java/net/minecraft/launcher/Launcher.java | 11 ++--
- .../minecraft/launcher/LauncherConstants.java |  3 +-
- .../launcher/game/GameLaunchDispatcher.java   |  7 ++-
- .../launcher/game/MinecraftGameRunner.java    |  3 +-
- .../minecraft/launcher/profile/Profile.java   |  3 +-
- .../launcher/ui/popups/login/LogInForm.java   |  5 +-
- .../updater/CompleteMinecraftVersion.java     | 55 +++++++++++--------
- .../minecraft/launcher/updater/Library.java   | 20 ++++---
- .../launcher/updater/LibraryDownloadInfo.java | 11 ++--
- 16 files changed, 88 insertions(+), 68 deletions(-)
 
 diff --git a/src/main/java/com/mojang/authlib/properties/PropertyMap.java b/src/main/java/com/mojang/authlib/properties/PropertyMap.java
 index 548a122..6a1e76a 100644
