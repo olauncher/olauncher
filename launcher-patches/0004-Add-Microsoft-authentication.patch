@@ -1,7 +1,7 @@
 From cd1b3045fd9a33ed102941a77b33eafb579ffbb4 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot3132@gmail.com>
 Date: Thu, 17 Mar 2022 04:40:30 -0500
-Subject: [PATCH 4/4] Add Microsoft authentication
+Subject: [PATCH 4/5] Add Microsoft authentication
 
 ---
  pom.xml                                       |   6 +-

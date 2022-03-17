@@ -1,7 +1,7 @@
 From ef66c219dc190d6deeceb2b5083137c14701b5c5 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 10 Mar 2022 01:37:59 -0600
-Subject: [PATCH 1/4] Add maven project
+Subject: [PATCH 1/5] Add maven project
 
 ---
  .gitignore                                    |   3 +

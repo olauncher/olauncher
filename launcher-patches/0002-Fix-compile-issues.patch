@@ -1,7 +1,7 @@
 From acef965eb34d78fa6ba66f7dc7dec662d24c106e Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot3132@gmail.com>
 Date: Thu, 10 Mar 2022 02:35:36 -0600
-Subject: [PATCH 2/4] Fix compile issues
+Subject: [PATCH 2/5] Fix compile issues
 
 ---
  .../authlib/properties/PropertyMap.java       | 10 ++--
