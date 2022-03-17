@@ -1,7 +1,7 @@
-From e67edbf1eb80d0ef11a3d1b5bcb2de2e12ef23e4 Mon Sep 17 00:00:00 2001
+From 62983fe4c3275ee945f2cc93dcd1ea632f39857f Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot3132@gmail.com>
 Date: Mon, 14 Mar 2022 10:09:55 -0500
-Subject: [PATCH 3/3] Modernize JVM arguments
+Subject: [PATCH 3/4] Modernize JVM arguments
 
 ---
  .../java/net/minecraft/launcher/game/MinecraftGameRunner.java | 2 +-
