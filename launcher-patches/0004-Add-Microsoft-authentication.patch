@@ -1,4 +1,4 @@
-From ac8bc0627bb27cf7a116e79d41f77180d3cc520b Mon Sep 17 00:00:00 2001
+From cd1b3045fd9a33ed102941a77b33eafb579ffbb4 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot3132@gmail.com>
 Date: Thu, 17 Mar 2022 04:40:30 -0500
 Subject: [PATCH 4/4] Add Microsoft authentication
@@ -117,7 +117,7 @@ index 247c8df..2634ec0 100644
          InputStream var3 = null;
  
 diff --git a/src/main/java/com/mojang/authlib/UserType.java b/src/main/java/com/mojang/authlib/UserType.java
-index da99d2a..2478271 100644
+index da99d2a..7af33f4 100644
 --- a/src/main/java/com/mojang/authlib/UserType.java
 +++ b/src/main/java/com/mojang/authlib/UserType.java
 @@ -5,7 +5,8 @@ import java.util.Map;
@@ -126,7 +126,7 @@ index da99d2a..2478271 100644
      LEGACY("legacy"),
 -    MOJANG("mojang");
 +    MOJANG("mojang"),
-+    MICROSOFT("microsoft");
++    MICROSOFT("msa");
  
      private static final Map<String, UserType> BY_NAME = new HashMap();
      private final String name;
