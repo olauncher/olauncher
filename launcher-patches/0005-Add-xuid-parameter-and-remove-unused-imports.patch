@@ -1,4 +1,4 @@
-From 3d9f0314ad3ee69ab9ae7de1477d65ee72b69d46 Mon Sep 17 00:00:00 2001
+From 0344c3d844237ab1687228a6cd5bec787d52c12a Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot3132@gmail.com>
 Date: Thu, 17 Mar 2022 16:58:53 -0500
 Subject: [PATCH] Add xuid parameter and remove unused imports
@@ -162,7 +162,7 @@ index 09fa151..74aeaaa 100644
  import com.google.common.collect.HashBiMap;
  import com.mojang.authlib.UserAuthentication;
 diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
-index ee60295..6ba32f2 100644
+index e82aa38..6f7050d 100644
 --- a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
 +++ b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
 @@ -1,7 +1,6 @@
@@ -197,7 +197,7 @@ index ee60295..6ba32f2 100644
      }
  
 diff --git a/src/main/java/net/minecraft/launcher/profile/Profile.java b/src/main/java/net/minecraft/launcher/profile/Profile.java
-index 39c729d..f09ea8e 100644
+index a450ca3..fdd24fc 100644
 --- a/src/main/java/net/minecraft/launcher/profile/Profile.java
 +++ b/src/main/java/net/minecraft/launcher/profile/Profile.java
 @@ -1,7 +1,6 @@

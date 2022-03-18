@@ -1,79 +1,54 @@
-From 3081ed4bac6e037402377f09e5c4c9930d6ad70f Mon Sep 17 00:00:00 2001
-From: bigfoot547 <bigfoot3132@gmail.com>
+From ad0573c2ada9c620e03105f15ac5a9351180148c Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 17 Mar 2022 04:40:30 -0500
 Subject: [PATCH] Add Microsoft authentication
 
 
-diff --git a/pom.xml b/pom.xml
-index e813ae1..ed237e0 100644
---- a/pom.xml
-+++ b/pom.xml
-@@ -131,19 +131,19 @@
-         <dependency>
-             <groupId>org.openjfx</groupId>
-             <artifactId>javafx-controls</artifactId>
--            <version>17</version>
-+            <version>11</version>
-             <scope>provided</scope>
-         </dependency>
-         <dependency>
-             <groupId>org.openjfx</groupId>
-             <artifactId>javafx-swing</artifactId>
--            <version>17</version>
-+            <version>11</version>
-             <scope>provided</scope>
-         </dependency>
-         <dependency>
-             <groupId>org.openjfx</groupId>
-             <artifactId>javafx-web</artifactId>
--            <version>17</version>
-+            <version>11</version>
-             <scope>provided</scope>
-         </dependency>
-         <dependency>
 diff --git a/src/main/java/com/mojang/authlib/HttpAuthenticationService.java b/src/main/java/com/mojang/authlib/HttpAuthenticationService.java
-index 247c8df..2634ec0 100644
+index 247c8df..597a17a 100644
 --- a/src/main/java/com/mojang/authlib/HttpAuthenticationService.java
 +++ b/src/main/java/com/mojang/authlib/HttpAuthenticationService.java
-@@ -42,6 +42,10 @@ public abstract class HttpAuthenticationService extends BaseAuthenticationServic
+@@ -42,6 +42,11 @@ public abstract class HttpAuthenticationService extends BaseAuthenticationServic
      }
  
      public String performPostRequest(URL var1, String var2, String var3) throws IOException {
-+        return performPostRequest(var1, var2, var3, null);
++        return performPostRequest(var1, var2, var3, null); // olauncher - call new function
 +    }
 +
++    // olauncher - allow providing bearer token
 +    public String performPostRequest(URL var1, String var2, String var3, String bearer) throws IOException {
          Validate.notNull(var1);
          Validate.notNull(var2);
          Validate.notNull(var3);
-@@ -49,6 +53,11 @@ public abstract class HttpAuthenticationService extends BaseAuthenticationServic
+@@ -49,6 +54,11 @@ public abstract class HttpAuthenticationService extends BaseAuthenticationServic
          byte[] var5 = var2.getBytes(Charsets.UTF_8);
          var4.setRequestProperty("Content-Type", var3 + "; charset=utf-8");
          var4.setRequestProperty("Content-Length", "" + var5.length);
 +
-+        if (bearer != null) {
++        if (bearer != null) { // olauncher - set bearer token
 +            var4.setRequestProperty("Authorization", "Bearer " + bearer);
 +        }
 +
          var4.setDoOutput(true);
          LOGGER.debug("Writing POST data to " + var1 + ": " + var2);
          OutputStream var6 = null;
-@@ -95,8 +104,13 @@ public abstract class HttpAuthenticationService extends BaseAuthenticationServic
+@@ -95,8 +105,14 @@ public abstract class HttpAuthenticationService extends BaseAuthenticationServic
      }
  
      public String performGetRequest(URL var1) throws IOException {
-+        return performGetRequest(var1, null);
++        return performGetRequest(var1, null); // olauncher - call new function
 +    }
 +
++    // olauncher - allow providing bearer token
 +    public String performGetRequest(URL var1, String bearer) throws IOException {
          Validate.notNull(var1);
          HttpURLConnection var2 = this.createUrlConnection(var1);
-+        if (bearer != null) var2.setRequestProperty("Authorization", "Bearer " + bearer);
++        if (bearer != null) var2.setRequestProperty("Authorization", "Bearer " + bearer); // olauncher - set bearer token
          LOGGER.debug("Reading data from " + var1);
          InputStream var3 = null;
  
 diff --git a/src/main/java/com/mojang/authlib/UserType.java b/src/main/java/com/mojang/authlib/UserType.java
-index da99d2a..7af33f4 100644
+index da99d2a..a7f91d7 100644
 --- a/src/main/java/com/mojang/authlib/UserType.java
 +++ b/src/main/java/com/mojang/authlib/UserType.java
 @@ -5,7 +5,8 @@ import java.util.Map;
@@ -82,7 +57,7 @@ index da99d2a..7af33f4 100644
      LEGACY("legacy"),
 -    MOJANG("mojang");
 +    MOJANG("mojang"),
-+    MICROSOFT("msa");
++    MICROSOFT("msa"); // olauncher - add MSA user type
  
      private static final Map<String, UserType> BY_NAME = new HashMap();
      private final String name;
@@ -1609,7 +1584,7 @@ index 0000000..b73990e
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/launcher/profile/AuthenticationDatabase.java b/src/main/java/net/minecraft/launcher/profile/AuthenticationDatabase.java
-index 50dcae8..11535ce 100644
+index 50dcae8..65a1aeb 100644
 --- a/src/main/java/net/minecraft/launcher/profile/AuthenticationDatabase.java
 +++ b/src/main/java/net/minecraft/launcher/profile/AuthenticationDatabase.java
 @@ -11,7 +11,7 @@ import com.google.gson.JsonSerializer;
@@ -1630,17 +1605,18 @@ index 50dcae8..11535ce 100644
  import net.minecraft.launcher.Launcher;
  
  public class AuthenticationDatabase {
-@@ -112,7 +114,7 @@ public class AuthenticationDatabase {
+@@ -112,7 +114,8 @@ public class AuthenticationDatabase {
          public AuthenticationDatabase deserialize(JsonElement var1, Type var2, JsonDeserializationContext var3) throws JsonParseException {
              HashMap var4 = new HashMap();
              Map var5 = this.deserializeCredentials((JsonObject)var1, var3);
 -            YggdrasilAuthenticationService var6 = new YggdrasilAuthenticationService(this.launcher.getLauncher().getProxy(), this.launcher.getClientToken().toString());
++            // olauncher - use new authentication service
 +            MicrosoftAuthenticationService var6 = new MicrosoftAuthenticationService(this.launcher.getLauncher().getProxy(), this.launcher.getClientToken().toString());
              Iterator var7 = var5.entrySet().iterator();
  
              while(var7.hasNext()) {
 diff --git a/src/main/java/net/minecraft/launcher/profile/ProfileManager.java b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
-index d6a2f98..2c12b95 100644
+index d6a2f98..5e03fc8 100644
 --- a/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
 +++ b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
 @@ -29,6 +29,8 @@ import java.util.Iterator;
@@ -1652,17 +1628,18 @@ index d6a2f98..2c12b95 100644
  import net.minecraft.launcher.Launcher;
  import net.minecraft.launcher.LauncherConstants;
  import org.apache.commons.io.FileUtils;
-@@ -231,7 +233,7 @@ public class ProfileManager {
+@@ -231,7 +233,8 @@ public class ProfileManager {
                      var7 = (UUID)var3.deserialize(var4.get("clientToken"), UUID.class);
                  }
  
 -                AuthenticationDatabase var8 = new AuthenticationDatabase(new YggdrasilAuthenticationService(this.launcher.getLauncher().getProxy(), this.launcher.getClientToken().toString()));
++                // olauncher - use new authentication service
 +                AuthenticationDatabase var8 = new AuthenticationDatabase(new MicrosoftAuthenticationService(this.launcher.getLauncher().getProxy(), this.launcher.getClientToken().toString()));
                  if (var4.has("authenticationDatabase")) {
                      var8 = (AuthenticationDatabase)var3.deserialize(var4.get("authenticationDatabase"), AuthenticationDatabase.class);
                  }
 diff --git a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
-index 32b2ced..d792ab7 100644
+index 32b2ced..31f1846 100644
 --- a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
 +++ b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
 @@ -23,6 +23,10 @@ import javax.swing.JPanel;
@@ -1676,11 +1653,12 @@ index 32b2ced..d792ab7 100644
  import net.minecraft.launcher.LauncherConstants;
  import net.minecraft.launcher.profile.AuthenticationDatabase;
  import org.apache.commons.lang3.ArrayUtils;
-@@ -211,4 +215,22 @@ public class LogInForm extends JPanel implements ActionListener {
+@@ -211,4 +215,23 @@ public class LogInForm extends JPanel implements ActionListener {
          }
  
      }
 +
++    // olauncher - add and handle login button
 +    public void openMSLogin() {
 +        SwingUtilities.invokeLater(() -> {
 +            new MSLoginDialog(this::handleMSLogin);
@@ -1700,7 +1678,7 @@ index 32b2ced..d792ab7 100644
 +    }
  }
 diff --git a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInPopup.java b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInPopup.java
-index 8f0c250..4098471 100644
+index 8f0c250..0c66c11 100644
 --- a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInPopup.java
 +++ b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInPopup.java
 @@ -1,8 +1,8 @@
@@ -1776,7 +1754,7 @@ index 8f0c250..4098471 100644
              this.logInForm.tryLogIn();
          } else if (var1.getSource() == this.registerButton) {
              OperatingSystem.openLink(LauncherConstants.URL_REGISTER);
-+        } else if (var1.getSource() == this.microsoftLoginButton) {
++        } else if (var1.getSource() == this.microsoftLoginButton) { // olauncher - handle MS login button
 +            logInForm.openMSLogin();
          }
  

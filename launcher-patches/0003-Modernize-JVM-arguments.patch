@@ -1,11 +1,11 @@
-From f4e0ee72fcf01ef73bad7cd341e2050e56f80045 Mon Sep 17 00:00:00 2001
-From: bigfoot547 <bigfoot3132@gmail.com>
+From 88df956dd9842aeb820dff1378ba6bd1958958b1 Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot@figboot.dev>
 Date: Mon, 14 Mar 2022 10:09:55 -0500
 Subject: [PATCH] Modernize JVM arguments
 
 
 diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
-index d77ad7f..ee60295 100644
+index d77ad7f..e82aa38 100644
 --- a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
 +++ b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
 @@ -169,7 +169,7 @@ public class MinecraftGameRunner extends AbstractGameRunner implements GameProce
@@ -13,27 +13,28 @@ index d77ad7f..ee60295 100644
              } else {
                  boolean var6 = "32".equals(System.getProperty("sun.arch.data.model"));
 -                String var7 = var6 ? "-Xmx512M -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode -XX:-UseAdaptiveSizePolicy -Xmn128M" : "-Xmx1G -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode -XX:-UseAdaptiveSizePolicy -Xmn128M";
-+                String var7 = var6 ? Profile.DEFAULT_JRE_ARGUMENTS_32BIT : Profile.DEFAULT_JRE_ARGUMENTS_64BIT;
++                String var7 = var6 ? Profile.DEFAULT_JRE_ARGUMENTS_32BIT : Profile.DEFAULT_JRE_ARGUMENTS_64BIT; // olauncher - use default JVM argument variables
                  var4.withArguments(var7.split(" "));
              }
  
 diff --git a/src/main/java/net/minecraft/launcher/profile/Profile.java b/src/main/java/net/minecraft/launcher/profile/Profile.java
-index 9de6c6f..39c729d 100644
+index 9de6c6f..a450ca3 100644
 --- a/src/main/java/net/minecraft/launcher/profile/Profile.java
 +++ b/src/main/java/net/minecraft/launcher/profile/Profile.java
-@@ -11,8 +11,8 @@ import net.minecraft.launcher.game.MinecraftReleaseType;
+@@ -11,8 +11,9 @@ import net.minecraft.launcher.game.MinecraftReleaseType;
  import net.minecraft.launcher.game.MinecraftReleaseTypeFactory;
  
  public class Profile implements Comparable<Profile> {
 -    public static final String DEFAULT_JRE_ARGUMENTS_64BIT = "-Xmx1G -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode -XX:-UseAdaptiveSizePolicy -Xmn128M";
 -    public static final String DEFAULT_JRE_ARGUMENTS_32BIT = "-Xmx512M -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode -XX:-UseAdaptiveSizePolicy -Xmn128M";
++    // olauncher - modernize default JVM arguments
 +    public static final String DEFAULT_JRE_ARGUMENTS_64BIT = "-Xmx2G -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M";
 +    public static final String DEFAULT_JRE_ARGUMENTS_32BIT = "-Xmx2G -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M";
      public static final Profile.Resolution DEFAULT_RESOLUTION = new Profile.Resolution(854, 480);
      public static final LauncherVisibilityRule DEFAULT_LAUNCHER_VISIBILITY;
      public static final Set<MinecraftReleaseType> DEFAULT_RELEASE_TYPES;
 diff --git a/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileJavaPanel.java b/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileJavaPanel.java
-index e61b076..bd0ce8f 100644
+index e61b076..e510a79 100644
 --- a/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileJavaPanel.java
 +++ b/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileJavaPanel.java
 @@ -1,6 +1,8 @@
@@ -50,7 +51,7 @@ index e61b076..bd0ce8f 100644
          } else {
              this.javaArgsCustom.setSelected(false);
 -            this.javaArgsField.setText("-Xmx1G -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode -XX:-UseAdaptiveSizePolicy -Xmn128M");
-+            this.javaArgsField.setText(Profile.DEFAULT_JRE_ARGUMENTS_64BIT);
++            this.javaArgsField.setText(Profile.DEFAULT_JRE_ARGUMENTS_64BIT); // olauncher - use default JVM argument variable
          }
  
          this.updateJavaArgsState();
