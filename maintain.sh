@@ -103,7 +103,7 @@ getNewJavaRuntimeManifest() {
   echo "Cleaning up."
   rm -vfr "$jrework"
 
-  echo "Found java-runtime manifest location at ${jremanifestloc}."
+  echo -e "Found java-runtime manifest location at \e[1m${jremanifestloc}\e[0m ."
 }
 
 command=$1
