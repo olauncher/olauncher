@@ -1,4 +1,4 @@
-From ad0573c2ada9c620e03105f15ac5a9351180148c Mon Sep 17 00:00:00 2001
+From 48453a15487976069496d6b2ad6e771c82318e57 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 17 Mar 2022 04:40:30 -0500
 Subject: [PATCH] Add Microsoft authentication
@@ -1616,7 +1616,7 @@ index 50dcae8..65a1aeb 100644
  
              while(var7.hasNext()) {
 diff --git a/src/main/java/net/minecraft/launcher/profile/ProfileManager.java b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
-index d6a2f98..5e03fc8 100644
+index d6a2f98..a29c749 100644
 --- a/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
 +++ b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
 @@ -29,6 +29,8 @@ import java.util.Iterator;
@@ -1628,6 +1628,15 @@ index d6a2f98..5e03fc8 100644
  import net.minecraft.launcher.Launcher;
  import net.minecraft.launcher.LauncherConstants;
  import org.apache.commons.io.FileUtils;
+@@ -57,7 +59,7 @@ public class ProfileManager {
+         var2.registerTypeAdapter(ProfileManager.RawProfileList.class, new ProfileManager.RawProfileList.Serializer(var1));
+         var2.setPrettyPrinting();
+         this.gson = var2.create();
+-        this.authDatabase = new AuthenticationDatabase(new YggdrasilAuthenticationService(var1.getLauncher().getProxy(), var1.getClientToken().toString()));
++        this.authDatabase = new AuthenticationDatabase(new MicrosoftAuthenticationService(var1.getLauncher().getProxy(), var1.getClientToken().toString()));
+     }
+ 
+     public void saveProfiles() throws IOException {
 @@ -231,7 +233,8 @@ public class ProfileManager {
                      var7 = (UUID)var3.deserialize(var4.get("clientToken"), UUID.class);
                  }
