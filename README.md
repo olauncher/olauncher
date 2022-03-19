@@ -1,5 +1,5 @@
 # olauncher
-The original launcher we all know and love with the quality-of-life features of the new launcher.
+The old launcher we all know and love with the quality-of-life features of the new launcher.
 
 ## TODO
 - Add Microsoft authentication (DONE)
