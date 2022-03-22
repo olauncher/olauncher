@@ -12,7 +12,7 @@ applyPatches() {
     git fetch upstream
     git reset --hard upstream/master
     git am --abort > /dev/null 2>&1
-    git am --3way --ignore-whitespace "$basedir/${from}-patches/"*.patch
+    git am --3way --no-gpg-sign --ignore-whitespace "$basedir/${from}-patches/"*.patch
     patchresult=$?
     popd
 
