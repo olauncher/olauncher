@@ -1,0 +1,35 @@
+From 59b4290b86252f3b9ba33cc6412a26ad3d663b8f Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot@figboot.dev>
+Date: Thu, 24 Mar 2022 00:25:56 -0500
+Subject: [PATCH] Use the new news website
+
+
+diff --git a/src/main/java/net/minecraft/launcher/LauncherConstants.java b/src/main/java/net/minecraft/launcher/LauncherConstants.java
+index db78fda..faf0dc0 100644
+--- a/src/main/java/net/minecraft/launcher/LauncherConstants.java
++++ b/src/main/java/net/minecraft/launcher/LauncherConstants.java
+@@ -19,7 +19,7 @@ public class LauncherConstants {
+     public static final String URL_JAR_FALLBACK = "https://s3.amazonaws.com/Minecraft.Download/";
+     public static final String URL_RESOURCE_BASE = "http://resources.download.minecraft.net/";
+     public static final String URL_LIBRARY_BASE = "https://libraries.minecraft.net/";
+-    public static final String URL_BLOG = "http://mcupdate.tumblr.com";
++    public static final String URL_BLOG = "https://olauncher.github.io/news";
+     public static final String URL_SUPPORT = "http://help.mojang.com/?ref=launcher";
+     public static final String URL_STATUS_CHECKER = "http://status.mojang.com/check";
+     public static final int UNVERSIONED_BOOTSTRAP_VERSION = 0;
+diff --git a/src/main/java/net/minecraft/launcher/ui/LauncherPanel.java b/src/main/java/net/minecraft/launcher/ui/LauncherPanel.java
+index 3553a21..711b417 100644
+--- a/src/main/java/net/minecraft/launcher/ui/LauncherPanel.java
++++ b/src/main/java/net/minecraft/launcher/ui/LauncherPanel.java
+@@ -47,7 +47,7 @@ public class LauncherPanel extends JPanel {
+ 
+     protected JPanel createLauncherInterface() {
+         JPanel var1 = new JPanel(new BorderLayout());
+-        this.tabPanel.getBlog().setPage("http://mcupdate.tumblr.com");
++        this.tabPanel.getBlog().setPage(LauncherConstants.URL_BLOG);
+         boolean var2 = this.getMinecraftLauncher().getBootstrapVersion() < 100;
+         boolean var3 = OperatingSystem.getCurrentPlatform() == OperatingSystem.WINDOWS;
+         if (OperatingSystem.getCurrentPlatform() == OperatingSystem.OSX) {
+-- 
+2.35.1
+
