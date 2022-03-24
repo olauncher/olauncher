@@ -1,5 +1,5 @@
-From 644d71a80432e1d44ecf5a31b82bd582be1d9796 Mon Sep 17 00:00:00 2001
-From: bigfoot547 <bigfoot3132@gmail.com>
+From 6b5e1883838c695b0c0d0baa524cf5c9ff4d415d Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 17 Mar 2022 16:58:53 -0500
 Subject: [PATCH] Add xuid parameter and remove unused imports
 
@@ -59,7 +59,7 @@ index 6b4130e..0728a4d 100644
  import java.util.regex.Matcher;
  import java.util.regex.Pattern;
 diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
-index 37a7a75..8c968d7 100644
+index b2ff543..eb5b1cd 100644
 --- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 +++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 @@ -18,6 +18,9 @@

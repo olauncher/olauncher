@@ -1,4 +1,4 @@
-From 48453a15487976069496d6b2ad6e771c82318e57 Mon Sep 17 00:00:00 2001
+From 7fec25bbf02f5c35ccbefae2227b51628f123aea Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 17 Mar 2022 04:40:30 -0500
 Subject: [PATCH] Add Microsoft authentication
@@ -558,7 +558,7 @@ index 0000000..de4725c
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 new file mode 100644
-index 0000000..37a7a75
+index 0000000..b2ff543
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 @@ -0,0 +1,273 @@
@@ -791,7 +791,7 @@ index 0000000..37a7a75
 +
 +    @Override
 +    public boolean canPlayOnline() {
-+        return isLoggedIn() && getSelectedProfile() != null && StringUtils.isNotBlank(mojToken);
++        return isLoggedIn() && getSelectedProfile() != null && StringUtils.isNotBlank(mojToken) && mojTokenValid(Instant.now());
 +    }
 +
 +    @Override
