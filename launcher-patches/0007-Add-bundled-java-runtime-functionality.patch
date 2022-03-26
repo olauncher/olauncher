@@ -1,0 +1,574 @@
+From 720fd6a1e77c5cabd2b990fa14a04da937144352 Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot@figboot.dev>
+Date: Sat, 26 Mar 2022 15:24:44 -0500
+Subject: [PATCH] Add bundled java runtime functionality
+
+
+diff --git a/src/main/java/dev/figboot/olauncher/OLauncherConstants.java b/src/main/java/dev/figboot/olauncher/OLauncherConstants.java
+index 67728f6..e88d992 100644
+--- a/src/main/java/dev/figboot/olauncher/OLauncherConstants.java
++++ b/src/main/java/dev/figboot/olauncher/OLauncherConstants.java
+@@ -18,8 +18,11 @@
+ 
+ package dev.figboot.olauncher;
+ 
++import java.net.URL;
+ import java.util.UUID;
+ 
++import static net.minecraft.launcher.LauncherConstants.constantURL;
++
+ public final class OLauncherConstants {
+     private OLauncherConstants() { }
+ 
+@@ -28,4 +31,6 @@ public final class OLauncherConstants {
+     public static final String APP_SCOPES = "XboxLive.signin offline_access";
+     public static final int REDIR_URI_PORT = 6183;
+     public static final String REDIR_URI = "http://localhost:" + REDIR_URI_PORT;
++
++    public static final URL JRE_MANIFEST_URL = constantURL("https://launchermeta.mojang.com/v1/products/java-runtime/2ec0cc96c44e5a76b9c8b7c39df7210883d12871/all.json");
+ }
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/JavaVersionInfo.java b/src/main/java/dev/figboot/olauncher/launcher/JavaVersionInfo.java
+new file mode 100644
+index 0000000..61c8411
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/launcher/JavaVersionInfo.java
+@@ -0,0 +1,33 @@
++/*
++ * OLauncher
++ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see https://github.com/olauncher/olauncher .
++ */
++
++package dev.figboot.olauncher.launcher;
++
++import lombok.Getter;
++
++public class JavaVersionInfo {
++    @Getter private String component;
++    @Getter private int majorVersion;
++
++    public JavaVersionInfo() { }
++
++    public JavaVersionInfo(JavaVersionInfo other) {
++        this.component = other.component;
++        this.majorVersion = other.majorVersion;
++    }
++}
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/JavaRuntimeManager.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/JavaRuntimeManager.java
+new file mode 100644
+index 0000000..2285e83
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/JavaRuntimeManager.java
+@@ -0,0 +1,119 @@
++/*
++ * OLauncher
++ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see https://github.com/olauncher/olauncher .
++ */
++
++package dev.figboot.olauncher.launcher.runtime;
++
++import com.google.common.reflect.TypeToken;
++import com.google.gson.Gson;
++import com.google.gson.GsonBuilder;
++import com.mojang.launcher.Http;
++import com.mojang.launcher.OperatingSystem;
++import com.mojang.launcher.updater.ExceptionalThreadPoolExecutor;
++import dev.figboot.olauncher.launcher.runtime.file.RuntimeFile;
++import dev.figboot.olauncher.util.InstantTypeAdapter;
++import dev.figboot.olauncher.util.runtime.RuntimeFileDeserializer;
++import lombok.Getter;
++import net.minecraft.launcher.Launcher;
++import org.apache.logging.log4j.LogManager;
++import org.apache.logging.log4j.Logger;
++
++import java.io.File;
++import java.io.IOException;
++import java.net.Proxy;
++import java.net.URL;
++import java.time.Instant;
++import java.util.ArrayList;
++import java.util.Collections;
++import java.util.List;
++import java.util.Map;
++import java.util.concurrent.ThreadPoolExecutor;
++import java.util.concurrent.TimeUnit;
++
++public class JavaRuntimeManager {
++    private static final Logger LOGGER = LogManager.getLogger();
++
++    private boolean refreshing;
++    private final Object refreshingLock = new Object();
++
++    private final URL manifestUrl;
++    private final Proxy proxy;
++
++    private final File runtimesDirectory;
++    private final Gson gson;
++
++    private final String jrePlatformName;
++    @Getter private final ThreadPoolExecutor executorService;
++    private Map<String, Map<String, List<RuntimeManifest.Runtime>>> manifest;
++
++    public JavaRuntimeManager(URL manifestUrl, Proxy proxy) {
++        refreshing = false;
++        this.manifestUrl = manifestUrl;
++        this.proxy = proxy;
++
++        runtimesDirectory = new File(Launcher.getCurrentInstance().getLauncher().getWorkingDirectory(), "olruntime");
++        gson = new GsonBuilder()
++                .registerTypeAdapter(Instant.class, new InstantTypeAdapter())
++                .registerTypeAdapter(RuntimeFile.class, new RuntimeFileDeserializer())
++                .create();
++
++        jrePlatformName = findPlatformName(System.getProperty("os.arch").contains("64")); // FIXME: make accurate
++        executorService = new ExceptionalThreadPoolExecutor(4, 8, 30L, TimeUnit.SECONDS);
++    }
++
++    public void reloadRuntimes() throws IOException {
++        synchronized (refreshingLock) {
++            refreshing = true;
++        }
++
++        manifest = gson.fromJson(Http.performGet(manifestUrl, proxy), new TypeToken<Map<String, Map<String, List<RuntimeManifest.Runtime>>>>(){}.getType());
++
++        LOGGER.info("Your java runtime platform is '" + jrePlatformName + "'.");
++
++        if (!manifest.containsKey(jrePlatformName)) {
++            LOGGER.error("Your JVM platform (" + jrePlatformName + ") is NOT PRESENT in the runtime manifest! The launcher will now break spectacularly.");
++        }
++
++        LOGGER.info("Finished refreshing java runtime list.");
++        synchronized (refreshingLock) {
++            refreshing = true;
++        }
++    }
++
++    public List<RuntimeManifest.Runtime> getRuntimes(String component) {
++        synchronized (refreshingLock) {
++            if (refreshing) return Collections.emptyList();
++        }
++
++        List<RuntimeManifest.Runtime> runtimes = manifest.get(jrePlatformName).get(component);
++        if (runtimes == null) return Collections.emptyList();
++        return Collections.unmodifiableList(runtimes);
++    }
++
++    private static String findPlatformName(boolean _64bit) {
++        switch (OperatingSystem.getCurrentPlatform()) {
++            case WINDOWS:
++                return _64bit ? "windows-x64" : "windows-x86";
++            case OSX:
++                return "mac-os";
++            case LINUX:
++                return _64bit ? "linux" : "linux-i386"; // not technically correct
++            default:
++                return "gamecore";
++        }
++    }
++}
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/RuntimeManifest.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/RuntimeManifest.java
+new file mode 100644
+index 0000000..8b2624a
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/RuntimeManifest.java
+@@ -0,0 +1,38 @@
++/*
++ * OLauncher
++ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see https://github.com/olauncher/olauncher .
++ */
++
++package dev.figboot.olauncher.launcher.runtime;
++
++import lombok.Getter;
++import net.minecraft.launcher.updater.DownloadInfo;
++
++import java.time.Instant;
++
++public final class RuntimeManifest {
++    private RuntimeManifest() { }
++
++    public static class Runtime {
++        @Getter private DownloadInfo manifest;
++        @Getter private Version version;
++    }
++
++    public static class Version {
++        @Getter private String name;
++        @Getter private Instant released;
++    }
++}
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFile.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFile.java
+new file mode 100644
+index 0000000..e6c2f5b
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFile.java
+@@ -0,0 +1,26 @@
++/*
++ * OLauncher
++ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see https://github.com/olauncher/olauncher .
++ */
++
++package dev.figboot.olauncher.launcher.runtime.file;
++
++import java.io.File;
++import java.io.IOException;
++
++public interface RuntimeFile {
++    void create(File path) throws IOException;
++}
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileDirectory.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileDirectory.java
+new file mode 100644
+index 0000000..f89e2f3
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileDirectory.java
+@@ -0,0 +1,30 @@
++/*
++ * OLauncher
++ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see https://github.com/olauncher/olauncher .
++ */
++
++package dev.figboot.olauncher.launcher.runtime.file;
++
++import java.io.File;
++import java.io.IOException;
++import java.nio.file.Files;
++
++public class RuntimeFileDirectory implements RuntimeFile {
++    @Override
++    public void create(File path) throws IOException {
++        Files.createDirectories(path.toPath());
++    }
++}
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileFile.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileFile.java
+new file mode 100644
+index 0000000..ffbeb19
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileFile.java
+@@ -0,0 +1,35 @@
++/*
++ * OLauncher
++ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see https://github.com/olauncher/olauncher .
++ */
++
++package dev.figboot.olauncher.launcher.runtime.file;
++
++import lombok.Getter;
++import net.minecraft.launcher.updater.DownloadInfo;
++
++import java.io.File;
++import java.io.IOException;
++
++public class RuntimeFileFile implements RuntimeFile {
++    @Getter private boolean executable;
++    @Getter private DownloadInfo raw, lzma;
++
++    @Override
++    public void create(File path) throws IOException {
++        throw new UnsupportedOperationException("The file must be downloaded");
++    }
++}
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileLink.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileLink.java
+new file mode 100644
+index 0000000..b7752e0
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileLink.java
+@@ -0,0 +1,35 @@
++/*
++ * OLauncher
++ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see https://github.com/olauncher/olauncher .
++ */
++
++package dev.figboot.olauncher.launcher.runtime.file;
++
++import lombok.Getter;
++
++import java.io.File;
++import java.io.IOException;
++import java.nio.file.FileSystems;
++import java.nio.file.Files;
++
++public class RuntimeFileLink implements RuntimeFile {
++    @Getter private String target;
++
++    @Override
++    public void create(File path) throws IOException {
++        Files.createSymbolicLink(path.toPath(), FileSystems.getDefault().getPath(target));
++    }
++}
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileList.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileList.java
+new file mode 100644
+index 0000000..791657a
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileList.java
+@@ -0,0 +1,27 @@
++/*
++ * OLauncher
++ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see https://github.com/olauncher/olauncher .
++ */
++
++package dev.figboot.olauncher.launcher.runtime.file;
++
++import lombok.Getter;
++
++import java.util.List;
++
++public class RuntimeFileList {
++    @Getter private List<RuntimeFile> files;
++}
+diff --git a/src/main/java/dev/figboot/olauncher/util/runtime/RuntimeFileDeserializer.java b/src/main/java/dev/figboot/olauncher/util/runtime/RuntimeFileDeserializer.java
+new file mode 100644
+index 0000000..3499f3d
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/util/runtime/RuntimeFileDeserializer.java
+@@ -0,0 +1,46 @@
++/*
++ * OLauncher
++ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see https://github.com/olauncher/olauncher .
++ */
++
++package dev.figboot.olauncher.util.runtime;
++
++import com.google.gson.*;
++import dev.figboot.olauncher.launcher.runtime.file.RuntimeFile;
++import dev.figboot.olauncher.launcher.runtime.file.RuntimeFileDirectory;
++import dev.figboot.olauncher.launcher.runtime.file.RuntimeFileFile;
++import dev.figboot.olauncher.launcher.runtime.file.RuntimeFileLink;
++
++import java.lang.reflect.Type;
++
++public class RuntimeFileDeserializer implements JsonDeserializer<RuntimeFile> {
++    @Override
++    public RuntimeFile deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
++        JsonObject obj = json.getAsJsonObject();
++        String type = obj.get("type").getAsString();
++
++        switch (type) {
++            case "file":
++                return context.deserialize(obj, RuntimeFileFile.class);
++            case "directory":
++                return context.deserialize(obj, RuntimeFileDirectory.class);
++            case "link":
++                return context.deserialize(obj, RuntimeFileLink.class);
++        }
++
++        throw new JsonParseException("Unknown file type '" + type + "'");
++    }
++}
+diff --git a/src/main/java/net/minecraft/launcher/Launcher.java b/src/main/java/net/minecraft/launcher/Launcher.java
+index a9a6ee3..3b7ae21 100644
+--- a/src/main/java/net/minecraft/launcher/Launcher.java
++++ b/src/main/java/net/minecraft/launcher/Launcher.java
+@@ -31,6 +31,9 @@ import java.util.List;
+ import java.util.Locale;
+ import java.util.UUID;
+ import javax.swing.JFrame;
++
++import dev.figboot.olauncher.OLauncherConstants;
++import dev.figboot.olauncher.launcher.runtime.JavaRuntimeManager;
+ import joptsimple.ArgumentAcceptingOptionSpec;
+ import joptsimple.NonOptionArgumentSpec;
+ import joptsimple.OptionException;
+@@ -72,6 +75,8 @@ public class Launcher {
+     private UUID clientToken;
+     private String requestedUser;
+ 
++    private JavaRuntimeManager jreManager; // olauncher - add java runtime manager
++
+     public static Launcher getCurrentInstance() {
+         return INSTANCE;
+     }
+@@ -88,6 +93,7 @@ public class Launcher {
+         this.setupErrorHandling();
+         this.bootstrapVersion = var6;
+         this.userInterface = this.selectUserInterface(var1);
++        this.jreManager = new JavaRuntimeManager(OLauncherConstants.JRE_MANIFEST_URL, var3); // olauncher - add java runtime manager
+         if (var6 < 4) {
+             this.userInterface.showOutdatedNotice();
+             System.exit(0);
+@@ -110,6 +116,7 @@ public class Launcher {
+             this.launcher = new com.mojang.launcher.Launcher(this.userInterface, var2, var3, var4, new MinecraftVersionManager(new LocalVersionList(var2), new RemoteVersionList(LauncherConstants.PROPERTIES.getVersionManifest(), var3)), Agent.MINECRAFT, MinecraftReleaseTypeFactory.instance(), 21);
+             this.profileManager = new ProfileManager(this);
+             ((SwingUserInterface)this.userInterface).initializeFrame();
++            refreshJavaRuntimes(); // olauncher - refresh java runtimes
+             this.refreshVersionsAndProfiles();
+         }
+     }
+@@ -171,6 +178,18 @@ public class Launcher {
+         return (String[])var6.toArray(new String[var6.size()]);
+     }
+ 
++    // olauncher start - refresh java runtime function
++    public void refreshJavaRuntimes() {
++        jreManager.getExecutorService().submit(() -> {
++            try {
++                jreManager.reloadRuntimes();
++            } catch (Throwable t) {
++                Launcher.LOGGER.error("Unexpected exception refreshing java runtime list", t);
++            }
++        });
++    }
++    // olauncher end
++
+     public void refreshVersionsAndProfiles() {
+         this.getLauncher().getVersionManager().getExecutorService().submit(new Runnable() {
+             public void run() {
+diff --git a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
+index 9d786d5..3d0c58e 100644
+--- a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
++++ b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
+@@ -25,6 +25,8 @@ import java.util.List;
+ import java.util.Map;
+ import java.util.Set;
+ import java.util.Map.Entry;
++
++import dev.figboot.olauncher.launcher.JavaVersionInfo;
+ import net.minecraft.launcher.CompatibilityRule;
+ import net.minecraft.launcher.CurrentLaunchFeatureMatcher;
+ import net.minecraft.launcher.Launcher;
+@@ -54,6 +56,8 @@ public class CompleteMinecraftVersion implements CompleteVersion {
+     private AssetIndexInfo assetIndex;
+     private Map<ArgumentType, List<Argument>> arguments;
+ 
++    private JavaVersionInfo javaVersion; // olauncher - add java version
++
+     public CompleteMinecraftVersion() {
+     }
+ 
+@@ -105,6 +109,8 @@ public class CompleteMinecraftVersion implements CompleteVersion {
+             }
+         }
+ 
++        // olauncher - handle java version
++        this.javaVersion = new JavaVersionInfo(var1.javaVersion);
+     }
+ 
+     public String getId() {
+@@ -362,6 +368,9 @@ public class CompleteMinecraftVersion implements CompleteVersion {
+                 }
+             }
+ 
++            // olauncher - handle java version
++            if (this.javaVersion != null) var5.javaVersion = new JavaVersionInfo(this.javaVersion);
++
+             return var5;
+         }
+     }
+-- 
+2.35.1
+
