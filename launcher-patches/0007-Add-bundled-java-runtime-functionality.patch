@@ -1,4 +1,4 @@
-From 720fd6a1e77c5cabd2b990fa14a04da937144352 Mon Sep 17 00:00:00 2001
+From 89b3ad6388be469b186c1987a34735c4e47ac0d2 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Sat, 26 Mar 2022 15:24:44 -0500
 Subject: [PATCH] Add bundled java runtime functionality
@@ -68,7 +68,7 @@ index 0000000..61c8411
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/JavaRuntimeManager.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/JavaRuntimeManager.java
 new file mode 100644
-index 0000000..2285e83
+index 0000000..b444ee8
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/JavaRuntimeManager.java
 @@ -0,0 +1,119 @@
@@ -134,12 +134,12 @@ index 0000000..2285e83
 +    @Getter private final ThreadPoolExecutor executorService;
 +    private Map<String, Map<String, List<RuntimeManifest.Runtime>>> manifest;
 +
-+    public JavaRuntimeManager(URL manifestUrl, Proxy proxy) {
++    public JavaRuntimeManager(URL manifestUrl, Proxy proxy, File workDir) {
 +        refreshing = false;
 +        this.manifestUrl = manifestUrl;
 +        this.proxy = proxy;
 +
-+        runtimesDirectory = new File(Launcher.getCurrentInstance().getLauncher().getWorkingDirectory(), "olruntime");
++        runtimesDirectory = new File(workDir, "olruntime");
 +        gson = new GsonBuilder()
 +                .registerTypeAdapter(Instant.class, new InstantTypeAdapter())
 +                .registerTypeAdapter(RuntimeFile.class, new RuntimeFileDeserializer())
@@ -471,7 +471,7 @@ index 0000000..3499f3d
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/launcher/Launcher.java b/src/main/java/net/minecraft/launcher/Launcher.java
-index a9a6ee3..3b7ae21 100644
+index a9a6ee3..431e9cf 100644
 --- a/src/main/java/net/minecraft/launcher/Launcher.java
 +++ b/src/main/java/net/minecraft/launcher/Launcher.java
 @@ -31,6 +31,9 @@ import java.util.List;
@@ -497,7 +497,7 @@ index a9a6ee3..3b7ae21 100644
          this.setupErrorHandling();
          this.bootstrapVersion = var6;
          this.userInterface = this.selectUserInterface(var1);
-+        this.jreManager = new JavaRuntimeManager(OLauncherConstants.JRE_MANIFEST_URL, var3); // olauncher - add java runtime manager
++        this.jreManager = new JavaRuntimeManager(OLauncherConstants.JRE_MANIFEST_URL, var3, var2); // olauncher - add java runtime manager
          if (var6 < 4) {
              this.userInterface.showOutdatedNotice();
              System.exit(0);
