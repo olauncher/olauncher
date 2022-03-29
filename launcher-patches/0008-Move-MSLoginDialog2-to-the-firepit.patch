@@ -1,0 +1,30 @@
+From fd594e47ad027f8189222818611fb7bb360c94b4 Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot@figboot.dev>
+Date: Tue, 29 Mar 2022 02:04:21 -0500
+Subject: [PATCH] Move MSLoginDialog2 to the firepit
+
+
+diff --git a/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog2.java b/fire-pit/MSLoginDialog2.java
+similarity index 91%
+rename from src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog2.java
+rename to fire-pit/MSLoginDialog2.java
+index 97e9988..cb564f0 100644
+--- a/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog2.java
++++ b/fire-pit/MSLoginDialog2.java
+@@ -38,6 +38,13 @@ import java.net.*;
+ import java.nio.charset.StandardCharsets;;
+ import java.util.UUID;
+ 
++/**
++ * WARNING: This class has been sent to the firepit because a java runtime bug prevents it from working.
++ * Specifically, the 'integrity' attribute in script tags in HTML documents are not checked properly, causing
++ * no script tags to be considered. Unfortunately, the whole Microsoft login page is built using script tags, and
++ * workarounds didn't seem to work (especially not cross-runtime/platform). The cumbersome web option is the preferred
++ * option until someone finds a better way.
++ */
+ public class MSLoginDialog2 extends JDialog {
+     private final UserAuthentication auth;
+ 
+-- 
+2.35.1
+

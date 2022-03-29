@@ -1,0 +1,22 @@
+From dd08ad26101a1c83c0f830137181d7cdd10a1f88 Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot@figboot.dev>
+Date: Tue, 29 Mar 2022 02:13:39 -0500
+Subject: [PATCH] Workaround for JDK-8066806 on OpenJDK
+
+
+diff --git a/src/main/java/dev/figboot/olauncher/util/InstantTypeAdapter.java b/src/main/java/dev/figboot/olauncher/util/InstantTypeAdapter.java
+index b73990e..6077386 100644
+--- a/src/main/java/dev/figboot/olauncher/util/InstantTypeAdapter.java
++++ b/src/main/java/dev/figboot/olauncher/util/InstantTypeAdapter.java
+@@ -33,6 +33,7 @@ public class InstantTypeAdapter extends TypeAdapter<Instant> {
+ 
+     @Override
+     public Instant read(JsonReader jsonReader) throws IOException {
+-        return Instant.parse(jsonReader.nextString());
++        // Ugly preprocessing required due to JDK-8066806
++        return Instant.parse(jsonReader.nextString().replaceAll("\\+[0-9:]{4,5}", "Z"));
+     }
+ }
+-- 
+2.35.1
+
