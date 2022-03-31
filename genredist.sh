@@ -80,7 +80,7 @@ EOP
 
 echo "Inserting patch and properties into jar..."
 cp "$autooldir/target/AutoOL-${AUTOOL_VERSION}.jar" "$finalname"
-jar -u -f "$finalname" "launcher.patch" "patch.properties"
+jar -uf "$finalname" "launcher.patch" "patch.properties"
 jarres="$?"
 
 if [ "$jarres" != "0" ]; then
