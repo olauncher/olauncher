@@ -13,3 +13,16 @@ The old launcher we all know and love with the quality-of-life features of the n
 - Paperclip-style redistributable
 - Change launcher name and version
 - Allow to switch out options.txt files (per-profile maybe?)
+
+## How to build from source
+The commands must be run in the following order to build from source:
+- `decompile.sh`
+  - Downloads original jar and decompiles it
+- `init.sh`
+  - Turns decompiled sources into a git repository
+- `applyPatches.sh`
+  - Applies OLauncher patches to the decompiled sources
+- `mvn clean package`
+  - Compiles the patched launcher
+- `genredist.sh` (optional)
+  - Generates the redistributable JAR - Do not distribute the JARs in `olauncher/target`!
