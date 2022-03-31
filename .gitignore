@@ -6,3 +6,5 @@ olauncher
 .idea
 *.iml
 target
+
+*.jar
