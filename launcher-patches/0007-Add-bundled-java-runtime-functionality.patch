@@ -1,4 +1,4 @@
-From aa4bc2207307e606d01c588c9cb618e9c2ced58a Mon Sep 17 00:00:00 2001
+From 3e1323123a0547618b0513224c4012220e8792b4 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Sat, 26 Mar 2022 15:24:44 -0500
 Subject: [PATCH] Add bundled java runtime functionality
@@ -68,10 +68,10 @@ index 0000000..61c8411
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/JavaRuntimeManager.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/JavaRuntimeManager.java
 new file mode 100644
-index 0000000..7bb7fff
+index 0000000..0595342
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/JavaRuntimeManager.java
-@@ -0,0 +1,132 @@
+@@ -0,0 +1,219 @@
 +/*
 + * OLauncher
 + * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
@@ -100,18 +100,32 @@ index 0000000..7bb7fff
 +import com.mojang.launcher.updater.ExceptionalThreadPoolExecutor;
 +import com.mojang.launcher.updater.download.DownloadJob;
 +import dev.figboot.olauncher.launcher.runtime.file.RuntimeFile;
++import dev.figboot.olauncher.launcher.runtime.file.RuntimeFileFile;
++import dev.figboot.olauncher.launcher.runtime.file.RuntimeFileList;
++import dev.figboot.olauncher.util.DeletingFileVisitor;
 +import dev.figboot.olauncher.util.InstantTypeAdapter;
 +import dev.figboot.olauncher.util.runtime.RuntimeFileDeserializer;
 +import lombok.Getter;
 +import org.apache.logging.log4j.LogManager;
 +import org.apache.logging.log4j.Logger;
 +
++import java.io.BufferedReader;
++import java.io.DataInputStream;
++import java.io.DataOutputStream;
 +import java.io.File;
 +import java.io.IOException;
++import java.io.InputStream;
++import java.io.InputStreamReader;
++import java.io.Reader;
++import java.math.BigInteger;
++import java.net.HttpURLConnection;
 +import java.net.Proxy;
 +import java.net.URL;
 +import java.nio.file.Files;
 +import java.nio.file.Path;
++import java.security.DigestInputStream;
++import java.security.MessageDigest;
++import java.security.NoSuchAlgorithmException;
 +import java.time.Instant;
 +import java.util.*;
 +import java.util.concurrent.ThreadPoolExecutor;
@@ -127,11 +141,12 @@ index 0000000..7bb7fff
 +    private final Proxy proxy;
 +
 +    private final Path runtimesDirectory;
++    private final Path platformDirectory;
 +    private final Gson gson;
 +
 +    private final String jrePlatformName;
 +    @Getter private final ThreadPoolExecutor executorService;
-+    private Map<String, Map<String, List<RuntimeManifest.Runtime>>> manifest;
++    private Map<String, Map<String, List<RuntimesManifest.Runtime>>> manifest;
 +
 +    public JavaRuntimeManager(URL manifestUrl, Proxy proxy, File workDir) {
 +        refreshing = false;
@@ -145,6 +160,7 @@ index 0000000..7bb7fff
 +                .create();
 +
 +        jrePlatformName = findPlatformName(System.getProperty("os.arch").contains("64")); // FIXME: make accurate
++        platformDirectory = runtimesDirectory.resolve(jrePlatformName);
 +        executorService = new ExceptionalThreadPoolExecutor(4, 8, 30L, TimeUnit.SECONDS);
 +    }
 +
@@ -153,7 +169,7 @@ index 0000000..7bb7fff
 +            refreshing = true;
 +        }
 +
-+        manifest = gson.fromJson(Http.performGet(manifestUrl, proxy), new TypeToken<Map<String, Map<String, List<RuntimeManifest.Runtime>>>>(){}.getType());
++        manifest = gson.fromJson(Http.performGet(manifestUrl, proxy), new TypeToken<Map<String, Map<String, List<RuntimesManifest.Runtime>>>>(){}.getType());
 +
 +        LOGGER.info("Your java runtime platform is '" + jrePlatformName + "'.");
 +
@@ -167,28 +183,99 @@ index 0000000..7bb7fff
 +        }
 +    }
 +
-+    public List<RuntimeManifest.Runtime> getRuntimes(String component) {
++    public List<RuntimesManifest.Runtime> getRuntimes(String component) {
 +        synchronized (refreshingLock) {
 +            if (refreshing) return Collections.emptyList();
 +        }
 +
-+        List<RuntimeManifest.Runtime> runtimes = manifest.get(jrePlatformName).get(component);
++        List<RuntimesManifest.Runtime> runtimes = manifest.get(jrePlatformName).get(component);
 +        if (runtimes == null) return Collections.emptyList();
 +        return Collections.unmodifiableList(runtimes);
 +    }
 +
-+    public boolean shouldDownloadRuntime(String component, RuntimeManifest.Runtime runtime) throws IOException {
-+        Path platformFolder = runtimesDirectory.resolve(jrePlatformName);
-+        Path componentFolder = platformFolder.resolve(component);
++    public boolean shouldDownloadRuntime(String component, RuntimesManifest.Runtime runtime) throws IOException {
++        Path componentFolder = platformDirectory.resolve(component);
 +
-+        if (Files.isDirectory(componentFolder)) {
++        if (!Files.isDirectory(componentFolder)) {
 +            return true;
 +        }
 +
++        Path descPath = componentFolder.resolve(".version");
++        if (Files.notExists(descPath)) return true;
++
++        Instant updateTime;
++        String version;
++
++        try (DataInputStream dis = new DataInputStream(Files.newInputStream(descPath))) {
++            updateTime = Instant.ofEpochMilli(dis.readLong());
++            version = dis.readUTF();
++        }
++
++        return runtime.getVersion().getReleased().isAfter(updateTime) || runtime.getVersion().getName().equals(version);
 +    }
 +
-+    public DownloadJob downloadRuntime(String component, RuntimeManifest.Runtime runtime) throws IOException {
++    public Path getRuntimeDirectory(String component) {
++        return platformDirectory.resolve(component);
++    }
 +
++    public void deleteRuntime(String component) throws IOException {
++        Path componentDir = platformDirectory.resolve(component);
++
++        Files.walkFileTree(componentDir, DeletingFileVisitor.get());
++    }
++
++    public RuntimeFileList preDownloadRuntime(String component, RuntimesManifest.Runtime runtime) throws IOException {
++        Path componentDir = platformDirectory.resolve(component);
++        HttpURLConnection conn = (HttpURLConnection)runtime.getManifest().getUrl().openConnection();
++        if (conn.getResponseCode() / 100 != 2) throw new RuntimeException("Error downloading component manifest '" + component + "': Received response " + conn.getResponseCode() + " " + conn.getResponseMessage());
++
++        MessageDigest digest;
++        try {
++            digest = MessageDigest.getInstance("SHA-1");
++        } catch (NoSuchAlgorithmException ex) {
++            throw new RuntimeException(ex); // should not happen
++        }
++
++        RuntimeFileList files;
++        try (Reader reader = new BufferedReader(new InputStreamReader(new DigestInputStream(conn.getInputStream(), digest)))) {
++            files = gson.fromJson(reader, RuntimeFileList.class);
++        }
++
++        String hash = String.format("%1$040x", new BigInteger(1, digest.digest()));
++        if (!hash.equalsIgnoreCase(runtime.getManifest().getSha1()))
++            throw new RuntimeException("Error downloading component manifest '" + component + "': The manifest hash does not match! (Expected " + runtime.getManifest().getSha1() + ", got " + hash + ")");
++
++        Path runtimeRootDir = componentDir.resolve("runtime");
++
++        for (Map.Entry<String, RuntimeFile> entry : files.getFiles().entrySet()) {
++            if (entry.getValue() instanceof RuntimeFileFile) continue;
++            entry.getValue().create(runtimeRootDir.resolve(entry.getKey()));
++        }
++
++        return files;
++    }
++
++    public void postDownloadRuntime(String component, RuntimesManifest.Runtime runtime) throws IOException {
++        Path componentFolder = platformDirectory.resolve(component);
++
++        // Write .version
++        Path descPath = componentFolder.resolve(".version");
++        if (Files.notExists(descPath)) {
++            try (DataOutputStream dos = new DataOutputStream(Files.newOutputStream(descPath))) {
++                dos.writeLong(runtime.getVersion().getReleased().toEpochMilli());
++                dos.writeUTF(runtime.getVersion().getName());
++            }
++        }
++    }
++
++    public DownloadJob downloadRuntime(DownloadJob job, String component, RuntimesManifest.Runtime runtime, RuntimeFileList fileList) throws IOException {
++        RuntimeFileFile file;
++        for (Map.Entry<String, RuntimeFile> entry : fileList.getFiles().entrySet()) {
++            if (!(entry.getValue() instanceof RuntimeFileFile)) continue;
++            file = (RuntimeFileFile)entry.getValue();
++            // TODO: add thing
++        }
++        return job;
 +    }
 +
 +    private static String findPlatformName(boolean _64bit) {
@@ -204,11 +291,11 @@ index 0000000..7bb7fff
 +        }
 +    }
 +}
-diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/RuntimeManifest.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/RuntimeManifest.java
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/RuntimesManifest.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/RuntimesManifest.java
 new file mode 100644
-index 0000000..8b2624a
+index 0000000..a0bc907
 --- /dev/null
-+++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/RuntimeManifest.java
++++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/RuntimesManifest.java
 @@ -0,0 +1,38 @@
 +/*
 + * OLauncher
@@ -235,8 +322,8 @@ index 0000000..8b2624a
 +
 +import java.time.Instant;
 +
-+public final class RuntimeManifest {
-+    private RuntimeManifest() { }
++public final class RuntimesManifest {
++    private RuntimesManifest() { }
 +
 +    public static class Runtime {
 +        @Getter private DownloadInfo manifest;
@@ -248,9 +335,38 @@ index 0000000..8b2624a
 +        @Getter private Instant released;
 +    }
 +}
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/download/RuntimeFileDownloadable.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/download/RuntimeFileDownloadable.java
+new file mode 100644
+index 0000000..cf30719
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/download/RuntimeFileDownloadable.java
+@@ -0,0 +1,23 @@
++package dev.figboot.olauncher.launcher.runtime.download;
++
++import com.mojang.launcher.updater.download.Downloadable;
++import dev.figboot.olauncher.launcher.runtime.file.RuntimeFileFile;
++
++import java.io.IOException;
++import java.net.Proxy;
++import java.nio.file.Path;
++
++public class RuntimeFileDownloadable extends Downloadable {
++    private final RuntimeFileFile file;
++
++    public RuntimeFileDownloadable(Proxy proxy, Path finalLoc, RuntimeFileFile file) {
++        super(proxy, file.getRaw().getUrl(), finalLoc.toFile(), false);
++        this.file = file;
++    }
++
++    @Override
++    public String download() throws IOException {
++
++        return null;
++    }
++}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFile.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFile.java
 new file mode 100644
-index 0000000..e6c2f5b
+index 0000000..1d4fdae
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFile.java
 @@ -0,0 +1,26 @@
@@ -274,15 +390,15 @@ index 0000000..e6c2f5b
 +
 +package dev.figboot.olauncher.launcher.runtime.file;
 +
-+import java.io.File;
 +import java.io.IOException;
++import java.nio.file.Path;
 +
 +public interface RuntimeFile {
-+    void create(File path) throws IOException;
++    void create(Path path) throws IOException;
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileDirectory.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileDirectory.java
 new file mode 100644
-index 0000000..f89e2f3
+index 0000000..756a5c7
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileDirectory.java
 @@ -0,0 +1,30 @@
@@ -306,19 +422,19 @@ index 0000000..f89e2f3
 +
 +package dev.figboot.olauncher.launcher.runtime.file;
 +
-+import java.io.File;
 +import java.io.IOException;
 +import java.nio.file.Files;
++import java.nio.file.Path;
 +
 +public class RuntimeFileDirectory implements RuntimeFile {
 +    @Override
-+    public void create(File path) throws IOException {
-+        Files.createDirectories(path.toPath());
++    public void create(Path path) throws IOException {
++        Files.createDirectories(path);
 +    }
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileFile.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileFile.java
 new file mode 100644
-index 0000000..ffbeb19
+index 0000000..627034c
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileFile.java
 @@ -0,0 +1,35 @@
@@ -345,21 +461,21 @@ index 0000000..ffbeb19
 +import lombok.Getter;
 +import net.minecraft.launcher.updater.DownloadInfo;
 +
-+import java.io.File;
 +import java.io.IOException;
++import java.nio.file.Path;
 +
 +public class RuntimeFileFile implements RuntimeFile {
 +    @Getter private boolean executable;
 +    @Getter private DownloadInfo raw, lzma;
 +
 +    @Override
-+    public void create(File path) throws IOException {
++    public void create(Path path) throws IOException {
 +        throw new UnsupportedOperationException("The file must be downloaded");
 +    }
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileLink.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileLink.java
 new file mode 100644
-index 0000000..b7752e0
+index 0000000..880ad87
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileLink.java
 @@ -0,0 +1,35 @@
@@ -385,22 +501,22 @@ index 0000000..b7752e0
 +
 +import lombok.Getter;
 +
-+import java.io.File;
 +import java.io.IOException;
-+import java.nio.file.FileSystems;
 +import java.nio.file.Files;
++import java.nio.file.Path;
++import java.nio.file.Paths;
 +
 +public class RuntimeFileLink implements RuntimeFile {
 +    @Getter private String target;
 +
 +    @Override
-+    public void create(File path) throws IOException {
-+        Files.createSymbolicLink(path.toPath(), FileSystems.getDefault().getPath(target));
++    public void create(Path path) throws IOException {
++        Files.createSymbolicLink(path, Paths.get(target));
 +    }
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileList.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileList.java
 new file mode 100644
-index 0000000..791657a
+index 0000000..3d8f688
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileList.java
 @@ -0,0 +1,27 @@
@@ -426,10 +542,75 @@ index 0000000..791657a
 +
 +import lombok.Getter;
 +
-+import java.util.List;
++import java.util.Map;
 +
 +public class RuntimeFileList {
-+    @Getter private List<RuntimeFile> files;
++    @Getter private Map<String, RuntimeFile> files;
++}
+diff --git a/src/main/java/dev/figboot/olauncher/util/DeletingFileVisitor.java b/src/main/java/dev/figboot/olauncher/util/DeletingFileVisitor.java
+new file mode 100644
+index 0000000..c35c40d
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/util/DeletingFileVisitor.java
+@@ -0,0 +1,59 @@
++/*
++ * OLauncher
++ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see https://github.com/olauncher/olauncher .
++ */
++
++package dev.figboot.olauncher.util;
++
++import java.io.IOException;
++import java.nio.file.FileVisitResult;
++import java.nio.file.FileVisitor;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.nio.file.attribute.BasicFileAttributes;
++
++public class DeletingFileVisitor implements FileVisitor<Path> {
++    private static final DeletingFileVisitor INSTANCE = new DeletingFileVisitor();
++
++    public static DeletingFileVisitor get() {
++        return INSTANCE;
++    }
++
++    private DeletingFileVisitor() { }
++
++    @Override
++    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
++        return FileVisitResult.CONTINUE;
++    }
++
++    @Override
++    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
++        Files.delete(file);
++        return FileVisitResult.CONTINUE;
++    }
++
++    @Override
++    public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
++        throw exc;
++    }
++
++    @Override
++    public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
++        if (exc != null) throw exc;
++        Files.delete(dir);
++        return FileVisitResult.CONTINUE;
++    }
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/util/runtime/RuntimeFileDeserializer.java b/src/main/java/dev/figboot/olauncher/util/runtime/RuntimeFileDeserializer.java
 new file mode 100644
@@ -484,10 +665,10 @@ index 0000000..3499f3d
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/launcher/Launcher.java b/src/main/java/net/minecraft/launcher/Launcher.java
-index a9a6ee3..431e9cf 100644
+index a9a6ee3..dafac6e 100644
 --- a/src/main/java/net/minecraft/launcher/Launcher.java
 +++ b/src/main/java/net/minecraft/launcher/Launcher.java
-@@ -31,6 +31,9 @@ import java.util.List;
+@@ -31,11 +31,15 @@ import java.util.List;
  import java.util.Locale;
  import java.util.UUID;
  import javax.swing.JFrame;
@@ -497,16 +678,22 @@ index a9a6ee3..431e9cf 100644
  import joptsimple.ArgumentAcceptingOptionSpec;
  import joptsimple.NonOptionArgumentSpec;
  import joptsimple.OptionException;
-@@ -72,6 +75,8 @@ public class Launcher {
+ import joptsimple.OptionParser;
+ import joptsimple.OptionSet;
++import lombok.Getter;
+ import net.minecraft.launcher.game.GameLaunchDispatcher;
+ import net.minecraft.launcher.game.MinecraftReleaseType;
+ import net.minecraft.launcher.game.MinecraftReleaseTypeFactory;
+@@ -72,6 +76,8 @@ public class Launcher {
      private UUID clientToken;
      private String requestedUser;
  
-+    private JavaRuntimeManager jreManager; // olauncher - add java runtime manager
++    @Getter private final JavaRuntimeManager jreManager; // olauncher - add java runtime manager
 +
      public static Launcher getCurrentInstance() {
          return INSTANCE;
      }
-@@ -88,6 +93,7 @@ public class Launcher {
+@@ -88,6 +94,7 @@ public class Launcher {
          this.setupErrorHandling();
          this.bootstrapVersion = var6;
          this.userInterface = this.selectUserInterface(var1);
@@ -514,7 +701,7 @@ index a9a6ee3..431e9cf 100644
          if (var6 < 4) {
              this.userInterface.showOutdatedNotice();
              System.exit(0);
-@@ -110,6 +116,7 @@ public class Launcher {
+@@ -110,6 +117,7 @@ public class Launcher {
              this.launcher = new com.mojang.launcher.Launcher(this.userInterface, var2, var3, var4, new MinecraftVersionManager(new LocalVersionList(var2), new RemoteVersionList(LauncherConstants.PROPERTIES.getVersionManifest(), var3)), Agent.MINECRAFT, MinecraftReleaseTypeFactory.instance(), 21);
              this.profileManager = new ProfileManager(this);
              ((SwingUserInterface)this.userInterface).initializeFrame();
@@ -522,7 +709,7 @@ index a9a6ee3..431e9cf 100644
              this.refreshVersionsAndProfiles();
          }
      }
-@@ -171,6 +178,18 @@ public class Launcher {
+@@ -171,6 +179,18 @@ public class Launcher {
          return (String[])var6.toArray(new String[var6.size()]);
      }
  
@@ -541,29 +728,62 @@ index a9a6ee3..431e9cf 100644
      public void refreshVersionsAndProfiles() {
          this.getLauncher().getVersionManager().getExecutorService().submit(new Runnable() {
              public void run() {
+diff --git a/src/main/java/net/minecraft/launcher/SwingUserInterface.java b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
+index 06e506a..3a33136 100644
+--- a/src/main/java/net/minecraft/launcher/SwingUserInterface.java
++++ b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
+@@ -103,6 +103,7 @@ public class SwingUserInterface implements MinecraftUserInterface {
+                 SwingUserInterface.this.frame.dispose();
+                 SwingUserInterface.LOGGER.info("Halting executors");
+                 SwingUserInterface.this.minecraftLauncher.getLauncher().getVersionManager().getExecutorService().shutdown();
++                SwingUserInterface.this.minecraftLauncher.getJreManager().getExecutorService().shutdown(); // olauncher - shut down jreManager executor
+                 SwingUserInterface.LOGGER.info("Awaiting termination.");
+ 
+                 try {
+diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
+index 6f7050d..37f787d 100644
+--- a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
++++ b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
+@@ -34,6 +34,7 @@ import java.io.InputStreamReader;
+ import java.net.InetSocketAddress;
+ import java.net.PasswordAuthentication;
+ import java.net.Proxy;
++import java.nio.file.Files;
+ import java.util.Collection;
+ import java.util.Date;
+ import java.util.Enumeration;
+@@ -47,6 +48,7 @@ import java.util.zip.ZipEntry;
+ import java.util.zip.ZipFile;
+ 
+ import dev.figboot.olauncher.auth.MicrosoftUserAuthentication;
++import dev.figboot.olauncher.launcher.runtime.RuntimesManifest;
+ import net.minecraft.launcher.CompatibilityRule;
+ import net.minecraft.launcher.CurrentLaunchFeatureMatcher;
+ import net.minecraft.launcher.Launcher;
 diff --git a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
-index 9d786d5..3d0c58e 100644
+index 9d786d5..3f95163 100644
 --- a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
 +++ b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
-@@ -25,6 +25,8 @@ import java.util.List;
+@@ -25,6 +25,9 @@ import java.util.List;
  import java.util.Map;
  import java.util.Set;
  import java.util.Map.Entry;
 +
 +import dev.figboot.olauncher.launcher.JavaVersionInfo;
++import lombok.Getter;
  import net.minecraft.launcher.CompatibilityRule;
  import net.minecraft.launcher.CurrentLaunchFeatureMatcher;
  import net.minecraft.launcher.Launcher;
-@@ -54,6 +56,8 @@ public class CompleteMinecraftVersion implements CompleteVersion {
+@@ -54,6 +57,8 @@ public class CompleteMinecraftVersion implements CompleteVersion {
      private AssetIndexInfo assetIndex;
      private Map<ArgumentType, List<Argument>> arguments;
  
-+    private JavaVersionInfo javaVersion; // olauncher - add java version
++    @Getter private JavaVersionInfo javaVersion; // olauncher - add java version
 +
      public CompleteMinecraftVersion() {
      }
  
-@@ -105,6 +109,8 @@ public class CompleteMinecraftVersion implements CompleteVersion {
+@@ -105,6 +110,8 @@ public class CompleteMinecraftVersion implements CompleteVersion {
              }
          }
  
@@ -572,7 +792,7 @@ index 9d786d5..3d0c58e 100644
      }
  
      public String getId() {
-@@ -362,6 +368,9 @@ public class CompleteMinecraftVersion implements CompleteVersion {
+@@ -362,6 +369,9 @@ public class CompleteMinecraftVersion implements CompleteVersion {
                  }
              }
  
