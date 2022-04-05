@@ -1,4 +1,4 @@
-From dd08ad26101a1c83c0f830137181d7cdd10a1f88 Mon Sep 17 00:00:00 2001
+From 7f3ed90bcc289c6e165c77b3f6898e4370fa79bf Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Tue, 29 Mar 2022 02:13:39 -0500
 Subject: [PATCH] Workaround for JDK-8066806 on OpenJDK

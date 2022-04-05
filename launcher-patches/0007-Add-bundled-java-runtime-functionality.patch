@@ -1,4 +1,4 @@
-From aa51bc357fac480185d5fbfb3bab548f84923ce3 Mon Sep 17 00:00:00 2001
+From aa4bc2207307e606d01c588c9cb618e9c2ced58a Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Sat, 26 Mar 2022 15:24:44 -0500
 Subject: [PATCH] Add bundled java runtime functionality
@@ -68,10 +68,10 @@ index 0000000..61c8411
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/JavaRuntimeManager.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/JavaRuntimeManager.java
 new file mode 100644
-index 0000000..9042d2b
+index 0000000..7bb7fff
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/JavaRuntimeManager.java
-@@ -0,0 +1,119 @@
+@@ -0,0 +1,132 @@
 +/*
 + * OLauncher
 + * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
@@ -98,11 +98,11 @@ index 0000000..9042d2b
 +import com.mojang.launcher.Http;
 +import com.mojang.launcher.OperatingSystem;
 +import com.mojang.launcher.updater.ExceptionalThreadPoolExecutor;
++import com.mojang.launcher.updater.download.DownloadJob;
 +import dev.figboot.olauncher.launcher.runtime.file.RuntimeFile;
 +import dev.figboot.olauncher.util.InstantTypeAdapter;
 +import dev.figboot.olauncher.util.runtime.RuntimeFileDeserializer;
 +import lombok.Getter;
-+import net.minecraft.launcher.Launcher;
 +import org.apache.logging.log4j.LogManager;
 +import org.apache.logging.log4j.Logger;
 +
@@ -110,11 +110,10 @@ index 0000000..9042d2b
 +import java.io.IOException;
 +import java.net.Proxy;
 +import java.net.URL;
++import java.nio.file.Files;
++import java.nio.file.Path;
 +import java.time.Instant;
-+import java.util.ArrayList;
-+import java.util.Collections;
-+import java.util.List;
-+import java.util.Map;
++import java.util.*;
 +import java.util.concurrent.ThreadPoolExecutor;
 +import java.util.concurrent.TimeUnit;
 +
@@ -127,7 +126,7 @@ index 0000000..9042d2b
 +    private final URL manifestUrl;
 +    private final Proxy proxy;
 +
-+    private final File runtimesDirectory;
++    private final Path runtimesDirectory;
 +    private final Gson gson;
 +
 +    private final String jrePlatformName;
@@ -139,7 +138,7 @@ index 0000000..9042d2b
 +        this.manifestUrl = manifestUrl;
 +        this.proxy = proxy;
 +
-+        runtimesDirectory = new File(workDir, "olruntime");
++        runtimesDirectory = workDir.toPath().resolve("olruntime");
 +        gson = new GsonBuilder()
 +                .registerTypeAdapter(Instant.class, new InstantTypeAdapter())
 +                .registerTypeAdapter(RuntimeFile.class, new RuntimeFileDeserializer())
@@ -176,6 +175,20 @@ index 0000000..9042d2b
 +        List<RuntimeManifest.Runtime> runtimes = manifest.get(jrePlatformName).get(component);
 +        if (runtimes == null) return Collections.emptyList();
 +        return Collections.unmodifiableList(runtimes);
++    }
++
++    public boolean shouldDownloadRuntime(String component, RuntimeManifest.Runtime runtime) throws IOException {
++        Path platformFolder = runtimesDirectory.resolve(jrePlatformName);
++        Path componentFolder = platformFolder.resolve(component);
++
++        if (Files.isDirectory(componentFolder)) {
++            return true;
++        }
++
++    }
++
++    public DownloadJob downloadRuntime(String component, RuntimeManifest.Runtime runtime) throws IOException {
++
 +    }
 +
 +    private static String findPlatformName(boolean _64bit) {
