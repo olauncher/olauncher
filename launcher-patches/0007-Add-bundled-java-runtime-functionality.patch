@@ -1,9 +1,66 @@
-From 3e1323123a0547618b0513224c4012220e8792b4 Mon Sep 17 00:00:00 2001
+From 8c2e1a73a16276e0652508a6b76174bf08f3be07 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Sat, 26 Mar 2022 15:24:44 -0500
 Subject: [PATCH] Add bundled java runtime functionality
 
 
+diff --git a/src/main/java/com/mojang/launcher/Launcher.java b/src/main/java/com/mojang/launcher/Launcher.java
+index f79a4b6..100ab0f 100644
+--- a/src/main/java/com/mojang/launcher/Launcher.java
++++ b/src/main/java/com/mojang/launcher/Launcher.java
+@@ -9,6 +9,10 @@ import java.net.PasswordAuthentication;
+ import java.net.Proxy;
+ import java.util.concurrent.ThreadPoolExecutor;
+ import java.util.concurrent.TimeUnit;
++
++import dev.figboot.olauncher.OLauncherConstants;
++import dev.figboot.olauncher.launcher.runtime.JavaRuntimeManager;
++import lombok.Getter;
+ import org.apache.logging.log4j.LogManager;
+ import org.apache.logging.log4j.Logger;
+ 
+@@ -24,6 +28,8 @@ public class Launcher {
+     private final ReleaseTypeFactory releaseTypeFactory;
+     private final int launcherFormatVersion;
+ 
++    @Getter private final JavaRuntimeManager jreManager; // olauncher - add java runtime manager
++
+     public Launcher(UserInterface var1, File var2, Proxy var3, PasswordAuthentication var4, VersionManager var5, Agent var6, ReleaseTypeFactory var7, int var8) {
+         this.downloaderExecutorService = new ExceptionalThreadPoolExecutor(16, 16, 30L, TimeUnit.SECONDS);
+         this.ui = var1;
+@@ -35,6 +41,8 @@ public class Launcher {
+         this.releaseTypeFactory = var7;
+         this.launcherFormatVersion = var8;
+         this.downloaderExecutorService.allowCoreThreadTimeOut(true);
++
++        this.jreManager = new JavaRuntimeManager(OLauncherConstants.JRE_MANIFEST_URL, var3, var2); // olauncher - add java runtime manager
+     }
+ 
+     public ReleaseTypeFactory getReleaseTypeFactory() {
+diff --git a/src/main/java/com/mojang/launcher/game/runner/AbstractGameRunner.java b/src/main/java/com/mojang/launcher/game/runner/AbstractGameRunner.java
+index f3546fc..c8cc04d 100644
+--- a/src/main/java/com/mojang/launcher/game/runner/AbstractGameRunner.java
++++ b/src/main/java/com/mojang/launcher/game/runner/AbstractGameRunner.java
+@@ -13,6 +13,8 @@ import java.io.IOException;
+ import java.util.ArrayList;
+ import java.util.Iterator;
+ import java.util.List;
++
++import dev.figboot.olauncher.launcher.runtime.RuntimesManifest;
+ import org.apache.logging.log4j.LogManager;
+ import org.apache.logging.log4j.Logger;
+ 
+@@ -115,6 +117,10 @@ public abstract class AbstractGameRunner implements GameRunner, DownloadListener
+         }
+     }
+ 
++    private void downloadRuntime() {
++
++    }
++
+     protected void downloadRequiredFiles(VersionSyncInfo var1) {
+         try {
+             DownloadJob var2 = new DownloadJob("Version & Libraries", false, this);
 diff --git a/src/main/java/dev/figboot/olauncher/OLauncherConstants.java b/src/main/java/dev/figboot/olauncher/OLauncherConstants.java
 index 67728f6..e88d992 100644
 --- a/src/main/java/dev/figboot/olauncher/OLauncherConstants.java
@@ -665,7 +722,7 @@ index 0000000..3499f3d
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/launcher/Launcher.java b/src/main/java/net/minecraft/launcher/Launcher.java
-index a9a6ee3..dafac6e 100644
+index a9a6ee3..1ed2f8f 100644
 --- a/src/main/java/net/minecraft/launcher/Launcher.java
 +++ b/src/main/java/net/minecraft/launcher/Launcher.java
 @@ -31,11 +31,15 @@ import java.util.List;
@@ -684,24 +741,7 @@ index a9a6ee3..dafac6e 100644
  import net.minecraft.launcher.game.GameLaunchDispatcher;
  import net.minecraft.launcher.game.MinecraftReleaseType;
  import net.minecraft.launcher.game.MinecraftReleaseTypeFactory;
-@@ -72,6 +76,8 @@ public class Launcher {
-     private UUID clientToken;
-     private String requestedUser;
- 
-+    @Getter private final JavaRuntimeManager jreManager; // olauncher - add java runtime manager
-+
-     public static Launcher getCurrentInstance() {
-         return INSTANCE;
-     }
-@@ -88,6 +94,7 @@ public class Launcher {
-         this.setupErrorHandling();
-         this.bootstrapVersion = var6;
-         this.userInterface = this.selectUserInterface(var1);
-+        this.jreManager = new JavaRuntimeManager(OLauncherConstants.JRE_MANIFEST_URL, var3, var2); // olauncher - add java runtime manager
-         if (var6 < 4) {
-             this.userInterface.showOutdatedNotice();
-             System.exit(0);
-@@ -110,6 +117,7 @@ public class Launcher {
+@@ -110,6 +114,7 @@ public class Launcher {
              this.launcher = new com.mojang.launcher.Launcher(this.userInterface, var2, var3, var4, new MinecraftVersionManager(new LocalVersionList(var2), new RemoteVersionList(LauncherConstants.PROPERTIES.getVersionManifest(), var3)), Agent.MINECRAFT, MinecraftReleaseTypeFactory.instance(), 21);
              this.profileManager = new ProfileManager(this);
              ((SwingUserInterface)this.userInterface).initializeFrame();
@@ -709,15 +749,15 @@ index a9a6ee3..dafac6e 100644
              this.refreshVersionsAndProfiles();
          }
      }
-@@ -171,6 +179,18 @@ public class Launcher {
+@@ -171,6 +176,18 @@ public class Launcher {
          return (String[])var6.toArray(new String[var6.size()]);
      }
  
 +    // olauncher start - refresh java runtime function
 +    public void refreshJavaRuntimes() {
-+        jreManager.getExecutorService().submit(() -> {
++        getLauncher().getJreManager().getExecutorService().submit(() -> {
 +            try {
-+                jreManager.reloadRuntimes();
++                getLauncher().getJreManager().reloadRuntimes();
 +            } catch (Throwable t) {
 +                Launcher.LOGGER.error("Unexpected exception refreshing java runtime list", t);
 +            }
@@ -729,14 +769,14 @@ index a9a6ee3..dafac6e 100644
          this.getLauncher().getVersionManager().getExecutorService().submit(new Runnable() {
              public void run() {
 diff --git a/src/main/java/net/minecraft/launcher/SwingUserInterface.java b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
-index 06e506a..3a33136 100644
+index 06e506a..a7942e5 100644
 --- a/src/main/java/net/minecraft/launcher/SwingUserInterface.java
 +++ b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
 @@ -103,6 +103,7 @@ public class SwingUserInterface implements MinecraftUserInterface {
                  SwingUserInterface.this.frame.dispose();
                  SwingUserInterface.LOGGER.info("Halting executors");
                  SwingUserInterface.this.minecraftLauncher.getLauncher().getVersionManager().getExecutorService().shutdown();
-+                SwingUserInterface.this.minecraftLauncher.getJreManager().getExecutorService().shutdown(); // olauncher - shut down jreManager executor
++                SwingUserInterface.this.minecraftLauncher.getLauncher().getJreManager().getExecutorService().shutdown(); // olauncher - shut down jreManager executor
                  SwingUserInterface.LOGGER.info("Awaiting termination.");
  
                  try {
