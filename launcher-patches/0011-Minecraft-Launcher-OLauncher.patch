@@ -1,0 +1,44 @@
+From e690015486faddf70610461c9b7d6316cd806065 Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot@figboot.dev>
+Date: Thu, 7 Apr 2022 05:25:03 -0500
+Subject: [PATCH] Minecraft Launcher -> OLauncher
+
+
+diff --git a/src/main/java/net/minecraft/launcher/Main.java b/src/main/java/net/minecraft/launcher/Main.java
+index 3da8cfb..cc91b34 100644
+--- a/src/main/java/net/minecraft/launcher/Main.java
++++ b/src/main/java/net/minecraft/launcher/Main.java
+@@ -54,7 +54,7 @@ public class Main {
+         var10.mkdirs();
+         LOGGER.debug("About to create JFrame.");
+         JFrame var12 = new JFrame();
+-        var12.setTitle("Minecraft Launcher " + LauncherConstants.getVersionName() + LauncherConstants.PROPERTIES.getEnvironment().getTitle());
++        var12.setTitle("OLauncher " + LauncherConstants.getVersionName() + LauncherConstants.PROPERTIES.getEnvironment().getTitle());
+         var12.setPreferredSize(new Dimension(900, 580));
+ 
+         try {
+diff --git a/src/main/java/net/minecraft/launcher/SwingUserInterface.java b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
+index a7942e5..57ae6e7 100644
+--- a/src/main/java/net/minecraft/launcher/SwingUserInterface.java
++++ b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
+@@ -93,7 +93,7 @@ public class SwingUserInterface implements MinecraftUserInterface {
+ 
+     public void initializeFrame() {
+         this.frame.getContentPane().removeAll();
+-        this.frame.setTitle("Minecraft Launcher " + LauncherConstants.getVersionName() + LauncherConstants.PROPERTIES.getEnvironment().getTitle());
++        this.frame.setTitle("OLauncher " + LauncherConstants.getVersionName() + LauncherConstants.PROPERTIES.getEnvironment().getTitle());
+         this.frame.setPreferredSize(new Dimension(900, 580));
+         this.frame.setDefaultCloseOperation(2);
+         this.frame.addWindowListener(new WindowAdapter() {
+@@ -301,7 +301,7 @@ public class SwingUserInterface implements MinecraftUserInterface {
+     }
+ 
+     public String getTitle() {
+-        return "Minecraft Launcher " + LauncherConstants.getVersionName();
++        return "OLauncher " + LauncherConstants.getVersionName();
+     }
+ 
+     public JFrame getFrame() {
+-- 
+2.35.1
+
