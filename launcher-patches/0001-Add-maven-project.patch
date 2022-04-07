@@ -1,4 +1,4 @@
-From 9f085db76dcd32f18d192e35fd5b2f7a9bdb5953 Mon Sep 17 00:00:00 2001
+From f285481d78d6eac7bd656a63f8bcdcab90c774c5 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 10 Mar 2022 01:37:59 -0600
 Subject: [PATCH] Add maven project
@@ -314,10 +314,10 @@ index aef7cf0..0000000
 -
 diff --git a/pom.xml b/pom.xml
 new file mode 100644
-index 0000000..9a9ccd6
+index 0000000..6ee8f63
 --- /dev/null
 +++ b/pom.xml
-@@ -0,0 +1,162 @@
+@@ -0,0 +1,168 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +
 +<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -434,6 +434,12 @@ index 0000000..9a9ccd6
 +            <groupId>org.apache.commons</groupId>
 +            <artifactId>commons-compress</artifactId>
 +            <version>1.21</version>
++            <scope>compile</scope>
++        </dependency>
++        <dependency>
++            <groupId>org.tukaani</groupId>
++            <artifactId>xz</artifactId>
++            <version>1.9</version>
 +            <scope>compile</scope>
 +        </dependency>
 +        <dependency>

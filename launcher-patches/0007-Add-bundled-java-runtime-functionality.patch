@@ -1,4 +1,4 @@
-From 78d7f1a029ac3d407f29676f5583864871d8d1ff Mon Sep 17 00:00:00 2001
+From 54457be69bb724667509978e86cff4554b69903e Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Sat, 26 Mar 2022 15:24:44 -0500
 Subject: [PATCH] Add bundled java runtime functionality
@@ -38,29 +38,166 @@ index f79a4b6..100ab0f 100644
  
      public ReleaseTypeFactory getReleaseTypeFactory() {
 diff --git a/src/main/java/com/mojang/launcher/game/runner/AbstractGameRunner.java b/src/main/java/com/mojang/launcher/game/runner/AbstractGameRunner.java
-index f3546fc..c8cc04d 100644
+index f3546fc..cd37a5b 100644
 --- a/src/main/java/com/mojang/launcher/game/runner/AbstractGameRunner.java
 +++ b/src/main/java/com/mojang/launcher/game/runner/AbstractGameRunner.java
-@@ -13,6 +13,8 @@ import java.io.IOException;
+@@ -10,9 +10,16 @@ import com.mojang.launcher.updater.download.DownloadListener;
+ import com.mojang.launcher.updater.download.Downloadable;
+ import com.mojang.launcher.versions.CompleteVersion;
+ import java.io.IOException;
++import java.nio.file.Path;
  import java.util.ArrayList;
  import java.util.Iterator;
  import java.util.List;
 +
++import dev.figboot.olauncher.launcher.runtime.JavaRuntimeManager;
 +import dev.figboot.olauncher.launcher.runtime.RuntimesManifest;
++import dev.figboot.olauncher.launcher.runtime.file.RuntimeFileList;
++import lombok.AccessLevel;
++import lombok.Getter;
  import org.apache.logging.log4j.LogManager;
  import org.apache.logging.log4j.Logger;
  
-@@ -115,6 +117,10 @@ public abstract class AbstractGameRunner implements GameRunner, DownloadListener
+@@ -24,6 +31,8 @@ public abstract class AbstractGameRunner implements GameRunner, DownloadListener
+     private GameInstanceStatus status;
+     private final List<GameRunnerListener> listeners;
+ 
++    @Getter(AccessLevel.PROTECTED) private Path bundledRuntimeDir; // olauncher - add bundled runtime directory
++
+     public AbstractGameRunner() {
+         this.status = GameInstanceStatus.IDLE;
+         this.listeners = Lists.newArrayList();
+@@ -48,7 +57,7 @@ public abstract class AbstractGameRunner implements GameRunner, DownloadListener
+         return this.status;
+     }
+ 
+-    public void playGame(VersionSyncInfo var1) {
++    public void playGame(VersionSyncInfo var1, boolean bundledRuntime) { // olauncher - add bundledRuntime argument
+         synchronized(this.lock) {
+             if (this.getStatus() != GameInstanceStatus.IDLE) {
+                 LOGGER.warn("Tried to play game but game is already starting!");
+@@ -109,12 +118,88 @@ public abstract class AbstractGameRunner implements GameRunner, DownloadListener
+                     }
+ 
+                     this.setStatus(GameInstanceStatus.DOWNLOADING);
++
++                    // olauncher start - handle java runtime setting
++                    if (bundledRuntime) {
++                        try {
++                            ensureRuntime();
++                        } catch (IOException ex) {
++                            LOGGER.error("I/O error setting up bundled java runtime", ex);
++                            setStatus(GameInstanceStatus.IDLE);
++                            return;
++                        } catch (RuntimeException ex) {
++                            LOGGER.error("Error setting up bundled java runtime", ex);
++                            setStatus(GameInstanceStatus.IDLE);
++                            return;
++                        }
++                    }
++                    // olauncher end
++
+                     this.downloadRequiredFiles(var1);
+                 }
+             }
          }
      }
  
-+    private void downloadRuntime() {
++    // olauncher start - java runtime functions
++    private void ensureRuntime() throws IOException {
++        JavaRuntimeManager jreManager = getLauncher().getJreManager();
++        String component = version.getJavaVersion().getComponent();
++        List<RuntimesManifest.Runtime> runtimes = jreManager.getRuntimes(component);
 +
++        if (runtimes.size() == 0) {
++            throw new RuntimeException("There are no supported java runtimes. You choose one manually.");
++        }
++
++        if (runtimes.size() > 1) {
++            LOGGER.warn("More than one java runtime is available, choosing one at random:");
++            for (RuntimesManifest.Runtime runtime : runtimes) {
++                LOGGER.warn("- " + runtime.getVersion().getName() + " (Released at " + runtime.getVersion().getReleased().toString() + ")");
++            }
++        }
++
++        RuntimesManifest.Runtime runtime = runtimes.get(0);
++        if (!jreManager.shouldDownloadRuntime(component, runtime)) {
++            bundledRuntimeDir = jreManager.getJavaExecutable(component);
++            return; // the runtime is up-to-date! :)
++        }
++
++        LOGGER.info("Need to download java runtime '" + runtime.getVersion().getName() + "' (Released at " + runtime.getVersion().getReleased().toString() + ")");
++
++        jreManager.deleteRuntime(component);
++        RuntimeFileList files = jreManager.downloadFileList(component, runtime);
++        jreManager.preDownloadRuntime(component, runtime, files);
++        bundledRuntimeDir = jreManager.getJavaExecutable(component);
++
++        // Download the runtime
++        DownloadJob job = new DownloadJob("Java Runtime", false, new DownloadListener() {
++            @Override
++            public void onDownloadJobFinished(DownloadJob var1) {
++                afterDownloadRuntime(jreManager, component, runtime);
++                AbstractGameRunner.this.onDownloadJobFinished(var1);
++            }
++
++            @Override
++            public void onDownloadJobProgressChanged(DownloadJob var1) {
++                updateProgressBar();
++            }
++        });
++
++        addJob(job);
++        jreManager.downloadRuntime(job, component, files);
++        job.startDownloading(getLauncher().getDownloaderExecutorService());
 +    }
++
++    private void afterDownloadRuntime(JavaRuntimeManager jreManager, String component, RuntimesManifest.Runtime runtime) {
++        try {
++            jreManager.postDownloadRuntime(component, runtime);
++        } catch (IOException ex) {
++            LOGGER.error("Error writing java runtime version description, the runtime may be redownloaded", ex);
++        }
++    }
++
++    // olauncher end
 +
      protected void downloadRequiredFiles(VersionSyncInfo var1) {
          try {
              DownloadJob var2 = new DownloadJob("Version & Libraries", false, this);
+diff --git a/src/main/java/com/mojang/launcher/game/runner/GameRunner.java b/src/main/java/com/mojang/launcher/game/runner/GameRunner.java
+index 7bd69c9..5d5fa85 100644
+--- a/src/main/java/com/mojang/launcher/game/runner/GameRunner.java
++++ b/src/main/java/com/mojang/launcher/game/runner/GameRunner.java
+@@ -7,7 +7,7 @@ import com.mojang.launcher.updater.download.DownloadJob;
+ public interface GameRunner {
+     GameInstanceStatus getStatus();
+ 
+-    void playGame(VersionSyncInfo var1);
++    void playGame(VersionSyncInfo var1, boolean bundledRuntime); // olauncher - add bundledRuntime argument
+ 
+     boolean hasRemainingJobs();
+ 
+diff --git a/src/main/java/com/mojang/launcher/versions/CompleteVersion.java b/src/main/java/com/mojang/launcher/versions/CompleteVersion.java
+index afa4dd4..c05c7f7 100644
+--- a/src/main/java/com/mojang/launcher/versions/CompleteVersion.java
++++ b/src/main/java/com/mojang/launcher/versions/CompleteVersion.java
+@@ -1,5 +1,7 @@
+ package com.mojang.launcher.versions;
+ 
++import dev.figboot.olauncher.launcher.JavaVersionInfo;
++
+ import java.util.Date;
+ 
+ public interface CompleteVersion extends Version {
+@@ -20,4 +22,7 @@ public interface CompleteVersion extends Version {
+     boolean isSynced();
+ 
+     void setSynced(boolean var1);
++
++    // olauncher - JavaVersion getter
++    JavaVersionInfo getJavaVersion();
+ }
 diff --git a/src/main/java/dev/figboot/olauncher/OLauncherConstants.java b/src/main/java/dev/figboot/olauncher/OLauncherConstants.java
 index 67728f6..e88d992 100644
 --- a/src/main/java/dev/figboot/olauncher/OLauncherConstants.java
@@ -125,10 +262,10 @@ index 0000000..61c8411
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/JavaRuntimeManager.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/JavaRuntimeManager.java
 new file mode 100644
-index 0000000..0595342
+index 0000000..cfb06a0
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/JavaRuntimeManager.java
-@@ -0,0 +1,219 @@
+@@ -0,0 +1,246 @@
 +/*
 + * OLauncher
 + * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
@@ -156,6 +293,8 @@ index 0000000..0595342
 +import com.mojang.launcher.OperatingSystem;
 +import com.mojang.launcher.updater.ExceptionalThreadPoolExecutor;
 +import com.mojang.launcher.updater.download.DownloadJob;
++import com.mojang.launcher.updater.download.Downloadable;
++import dev.figboot.olauncher.launcher.runtime.download.RuntimeFileDownloadable;
 +import dev.figboot.olauncher.launcher.runtime.file.RuntimeFile;
 +import dev.figboot.olauncher.launcher.runtime.file.RuntimeFileFile;
 +import dev.figboot.olauncher.launcher.runtime.file.RuntimeFileList;
@@ -171,7 +310,6 @@ index 0000000..0595342
 +import java.io.DataOutputStream;
 +import java.io.File;
 +import java.io.IOException;
-+import java.io.InputStream;
 +import java.io.InputStreamReader;
 +import java.io.Reader;
 +import java.math.BigInteger;
@@ -268,21 +406,31 @@ index 0000000..0595342
 +            version = dis.readUTF();
 +        }
 +
-+        return runtime.getVersion().getReleased().isAfter(updateTime) || runtime.getVersion().getName().equals(version);
++        return runtime.getVersion().getReleased().isAfter(updateTime) || !runtime.getVersion().getName().equals(version);
 +    }
 +
-+    public Path getRuntimeDirectory(String component) {
-+        return platformDirectory.resolve(component);
++    public Path getJavaExecutable(String component) {
++        Path runtimeDir = platformDirectory.resolve(component).resolve("runtime");
++        OperatingSystem os = OperatingSystem.getCurrentPlatform();
++        if (component.equals("minecraft-java-exe")) {
++            return runtimeDir.resolve("MinecraftJava.exe");
++        } else if (os == OperatingSystem.WINDOWS) {
++            return runtimeDir.resolve("bin").resolve("javaw.exe");
++        } else if (os == OperatingSystem.OSX) {
++            return runtimeDir.resolve("jre.bundle").resolve("Contents").resolve("Home").resolve("bin").resolve("java");
++        } else { // LINUX
++            return runtimeDir.resolve("bin").resolve("java");
++        }
 +    }
 +
 +    public void deleteRuntime(String component) throws IOException {
 +        Path componentDir = platformDirectory.resolve(component);
 +
-+        Files.walkFileTree(componentDir, DeletingFileVisitor.get());
++        if (Files.isDirectory(componentDir))
++            Files.walkFileTree(componentDir, DeletingFileVisitor.get());
 +    }
 +
-+    public RuntimeFileList preDownloadRuntime(String component, RuntimesManifest.Runtime runtime) throws IOException {
-+        Path componentDir = platformDirectory.resolve(component);
++    public RuntimeFileList downloadFileList(String component, RuntimesManifest.Runtime runtime) throws IOException {
 +        HttpURLConnection conn = (HttpURLConnection)runtime.getManifest().getUrl().openConnection();
 +        if (conn.getResponseCode() / 100 != 2) throw new RuntimeException("Error downloading component manifest '" + component + "': Received response " + conn.getResponseCode() + " " + conn.getResponseMessage());
 +
@@ -301,19 +449,22 @@ index 0000000..0595342
 +        String hash = String.format("%1$040x", new BigInteger(1, digest.digest()));
 +        if (!hash.equalsIgnoreCase(runtime.getManifest().getSha1()))
 +            throw new RuntimeException("Error downloading component manifest '" + component + "': The manifest hash does not match! (Expected " + runtime.getManifest().getSha1() + ", got " + hash + ")");
++        return files;
++    }
 +
++    public void preDownloadRuntime(String component, RuntimesManifest.Runtime runtime, RuntimeFileList files) throws IOException {
++        Path componentDir = platformDirectory.resolve(component);
 +        Path runtimeRootDir = componentDir.resolve("runtime");
 +
 +        for (Map.Entry<String, RuntimeFile> entry : files.getFiles().entrySet()) {
 +            if (entry.getValue() instanceof RuntimeFileFile) continue;
 +            entry.getValue().create(runtimeRootDir.resolve(entry.getKey()));
 +        }
-+
-+        return files;
 +    }
 +
 +    public void postDownloadRuntime(String component, RuntimesManifest.Runtime runtime) throws IOException {
 +        Path componentFolder = platformDirectory.resolve(component);
++        Path objectsFolder = componentFolder.resolve("objects");
 +
 +        // Write .version
 +        Path descPath = componentFolder.resolve(".version");
@@ -323,15 +474,28 @@ index 0000000..0595342
 +                dos.writeUTF(runtime.getVersion().getName());
 +            }
 +        }
++
++        // Delete compressed objects
++        if (Files.isDirectory(objectsFolder)) {
++            Files.walkFileTree(objectsFolder, DeletingFileVisitor.get());
++        }
 +    }
 +
-+    public DownloadJob downloadRuntime(DownloadJob job, String component, RuntimesManifest.Runtime runtime, RuntimeFileList fileList) throws IOException {
++    public DownloadJob downloadRuntime(DownloadJob job, String component, RuntimeFileList fileList) {
 +        RuntimeFileFile file;
++        Path componentFolder = platformDirectory.resolve(component);
++        Path runtimeRoot = componentFolder.resolve("runtime"), objectsRoot = componentFolder.resolve("objects"), path;
++        List<Downloadable> downloadables = new LinkedList<>();
 +        for (Map.Entry<String, RuntimeFile> entry : fileList.getFiles().entrySet()) {
 +            if (!(entry.getValue() instanceof RuntimeFileFile)) continue;
 +            file = (RuntimeFileFile)entry.getValue();
-+            // TODO: add thing
++            path = runtimeRoot.resolve(entry.getKey());
++            if (file.getRaw() == null) {
++                LOGGER.warn(entry.getKey() + " AAAAAAAAa");
++            }
++            downloadables.add(new RuntimeFileDownloadable(proxy, entry.getKey(), objectsRoot, path, file));
 +        }
++        job.addDownloadables(downloadables);
 +        return job;
 +    }
 +
@@ -394,31 +558,220 @@ index 0000000..a0bc907
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/download/RuntimeFileDownloadable.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/download/RuntimeFileDownloadable.java
 new file mode 100644
-index 0000000..cf30719
+index 0000000..8e01e94
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/download/RuntimeFileDownloadable.java
-@@ -0,0 +1,23 @@
+@@ -0,0 +1,212 @@
++/*
++ * OLauncher
++ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see https://github.com/olauncher/olauncher .
++ */
++
 +package dev.figboot.olauncher.launcher.runtime.download;
 +
 +import com.mojang.launcher.updater.download.Downloadable;
++import com.mojang.launcher.updater.download.MonitoringInputStream;
 +import dev.figboot.olauncher.launcher.runtime.file.RuntimeFileFile;
++import lombok.RequiredArgsConstructor;
++import org.apache.commons.compress.compressors.lzma.LZMACompressorInputStream;
++import org.apache.logging.log4j.LogManager;
++import org.apache.logging.log4j.Logger;
 +
 +import java.io.IOException;
++import java.io.InputStream;
++import java.io.OutputStream;
++import java.math.BigInteger;
++import java.net.HttpURLConnection;
 +import java.net.Proxy;
++import java.net.URL;
++import java.nio.file.Files;
 +import java.nio.file.Path;
++import java.nio.file.attribute.PosixFilePermission;
++import java.security.DigestInputStream;
++import java.security.MessageDigest;
++import java.security.NoSuchAlgorithmException;
++import java.util.HashSet;
++import java.util.Set;
 +
++// Adapted from AssetDownloadable
 +public class RuntimeFileDownloadable extends Downloadable {
-+    private final RuntimeFileFile file;
++    private static final Logger LOGGER = LogManager.getLogger();
 +
-+    public RuntimeFileDownloadable(Proxy proxy, Path finalLoc, RuntimeFileFile file) {
++    private final String name;
++    private final RuntimeFileFile file;
++    private final Path objectLoc, finalLoc;
++    private Status status;
++
++    public RuntimeFileDownloadable(Proxy proxy, String name, Path objectsDir, Path finalLoc, RuntimeFileFile file) {
 +        super(proxy, file.getRaw().getUrl(), finalLoc.toFile(), false);
++        this.name = name;
++        objectLoc = file.getLzma() != null ? resolvePathFromHash(objectsDir, file.getLzma().getSha1()) : null;
++        this.finalLoc = finalLoc;
 +        this.file = file;
++        status = Status.DOWNLOADING;
++    }
++
++    private Path resolvePathFromHash(Path p, String hash) {
++        return p.resolve(hash.substring(0, 2)).resolve(hash);
 +    }
 +
 +    @Override
 +    public String download() throws IOException {
++        ++this.numAttempts;
 +
-+        return null;
++        ensureFileWritable(finalLoc);
++        if (objectLoc != null) ensureFileWritable(objectLoc);
++
++        if (Files.isRegularFile(finalLoc)) {
++            long size = Files.size(finalLoc);
++            if (size == file.getRaw().getSize()) {
++                setExecutable(finalLoc);
++                return "Have local file and it's the correct size. Assuming it's okay!";
++            }
++
++            LOGGER.warn("Have local file, but it has the wrong size: {} expected, got {}", new Object[]{file.getRaw().getSize(), size});
++            Files.delete(finalLoc);
++            status = Status.DOWNLOADING;
++        }
++
++        if (objectLoc != null && Files.isRegularFile(objectLoc)) {
++            String hash = getDigest(objectLoc, "SHA-1", 40);
++            if (hash.equalsIgnoreCase(file.getLzma().getSha1())) {
++                return decompress();
++            }
++
++            LOGGER.warn("Have local compressed file, but it has the wrong hash: {} expected, got {}", new Object[]{file.getLzma().getSha1(), hash});
++            Files.delete(objectLoc);
++        }
++
++        if (objectLoc != null) { // download compressed :)
++            String hash = actuallyDownload(file.getLzma().getUrl(), objectLoc);
++
++            if (hash.equalsIgnoreCase(file.getLzma().getSha1())) {
++                return decompress();
++            }
++
++            Files.delete(objectLoc);
++            throw new RuntimeException(String.format("Hash does not match for downloaded compressed file. %s expected, got %s", file.getLzma().getSha1(), hash));
++        } else { // download raw :(
++            String hash = actuallyDownload(file.getRaw().getUrl(), finalLoc);
++
++            if (hash.equalsIgnoreCase(file.getRaw().getSha1())) {
++                setExecutable(finalLoc);
++                return "File downloaded and hash matched.";
++            }
++
++            Files.delete(finalLoc);
++            throw new RuntimeException(String.format("Hash does not match for downloaded file. %s expected, got %s", file.getRaw().getSha1(), hash));
++        }
++    }
++
++    @Override
++    public String getStatus() {
++        return status.name + " " + name;
++    }
++
++    private String actuallyDownload(URL url, Path target) throws IOException {
++        HttpURLConnection conn = makeConnection(url);
++        int res = conn.getResponseCode();
++        if (res / 100 != 2) {
++            throw new RuntimeException("Server responded with " + res + " " + conn.getResponseMessage());
++        }
++
++        updateExpectedSize(conn);
++        String hash;
++        try (InputStream is = new MonitoringInputStream(conn.getInputStream(), getMonitor());
++             OutputStream os = Files.newOutputStream(target)) {
++            hash = copyAndDigest(is, os, "SHA-1", 40);
++        }
++        return hash;
++    }
++
++    private void setExecutable(Path path) throws IOException {
++        Set<PosixFilePermission> permission = new HashSet<>(Files.getPosixFilePermissions(path));
++        permission.add(PosixFilePermission.OWNER_EXECUTE);
++        permission.add(PosixFilePermission.GROUP_EXECUTE);
++        permission.add(PosixFilePermission.OTHERS_EXECUTE);
++        Files.setPosixFilePermissions(path, permission);
++    }
++
++    private String decompress() throws IOException {
++        status = Status.DECOMPRESSING;
++
++        String hash;
++        try (OutputStream os = Files.newOutputStream(finalLoc);
++                InputStream is = new LZMACompressorInputStream(Files.newInputStream(objectLoc))) {
++            hash = copyAndDigest(is, os, "SHA-1", 40);
++        }
++
++        status = Status.DOWNLOADING;
++        if (hash.equalsIgnoreCase(file.getRaw().getSha1())) {
++            setExecutable(finalLoc);
++            return "Decompressed file and hash matched";
++        } else {
++            Files.delete(finalLoc);
++            throw new RuntimeException(String.format("Decompressed file hash did not match! %s expected, got %s", file.getRaw().getSha1(), hash));
++        }
++    }
++
++    private void ensureFileWritable(Path path) throws IOException {
++        Path parent = path.getParent();
++        if (parent != null && !Files.isDirectory(parent)) {
++            LOGGER.info("Making directory " + parent);
++            Files.createDirectories(parent);
++        }
++
++        if (Files.isRegularFile(path) && !Files.isWritable(path)) {
++            throw new RuntimeException("Do not have write permissions for " + path + " - aborting!");
++        }
++    }
++
++    private String getDigest(Path path, String digest, int padChars) throws IOException {
++        MessageDigest md;
++        try {
++            md = MessageDigest.getInstance(digest);
++        } catch (NoSuchAlgorithmException ex) {
++            throw new RuntimeException(ex);
++        }
++
++        try (InputStream is = new DigestInputStream(Files.newInputStream(path), md)) {
++            byte[] buf = new byte[65536];
++            int numread;
++            do {
++                numread = is.read(buf);
++            } while (numread > 0);
++        }
++
++        return String.format("%1$0" + padChars + "x", new BigInteger(1, md.digest()));
++    }
++
++    private static MessageDigest getSha1Digest() {
++        try {
++            return MessageDigest.getInstance("SHA-1");
++        } catch (NoSuchAlgorithmException ex) {
++            throw new RuntimeException(ex); // propagate
++        }
++    }
++
++    @RequiredArgsConstructor
++    private enum Status {
++        DOWNLOADING("Downloading"),
++        DECOMPRESSING("Decompressing");
++
++        private final String name;
 +    }
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFile.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFile.java
@@ -491,10 +844,10 @@ index 0000000..756a5c7
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileFile.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileFile.java
 new file mode 100644
-index 0000000..627034c
+index 0000000..2145f49
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileFile.java
-@@ -0,0 +1,35 @@
+@@ -0,0 +1,44 @@
 +/*
 + * OLauncher
 + * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
@@ -520,14 +873,23 @@ index 0000000..627034c
 +
 +import java.io.IOException;
 +import java.nio.file.Path;
++import java.util.Map;
 +
 +public class RuntimeFileFile implements RuntimeFile {
 +    @Getter private boolean executable;
-+    @Getter private DownloadInfo raw, lzma;
++    @Getter private Map<String, DownloadInfo> downloads;
 +
 +    @Override
 +    public void create(Path path) throws IOException {
 +        throw new UnsupportedOperationException("The file must be downloaded");
++    }
++
++    public DownloadInfo getRaw() {
++        return downloads.get("raw");
++    }
++
++    public DownloadInfo getLzma() {
++        return downloads.get("lzma");
 +    }
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileLink.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileLink.java
@@ -780,19 +1142,33 @@ index 06e506a..a7942e5 100644
                  SwingUserInterface.LOGGER.info("Awaiting termination.");
  
                  try {
+diff --git a/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
+index 74aeaaa..066ecb4 100644
+--- a/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
++++ b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
+@@ -117,7 +117,7 @@ public class GameLaunchDispatcher implements GameRunnerListener {
+ 
+                 var5.setStatus(GameInstanceStatus.IDLE);
+                 var5.addListener(GameLaunchDispatcher.this);
+-                var5.playGame(var1);
++                var5.playGame(var1, var2.getJavaPath() == null); // olauncher - add bundledRuntime argument
+             }
+         });
+     }
 diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
-index 6f7050d..37f787d 100644
+index 6f7050d..bc607d1 100644
 --- a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
 +++ b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
-@@ -34,6 +34,7 @@ import java.io.InputStreamReader;
+@@ -34,6 +34,8 @@ import java.io.InputStreamReader;
  import java.net.InetSocketAddress;
  import java.net.PasswordAuthentication;
  import java.net.Proxy;
 +import java.nio.file.Files;
++import java.nio.file.Path;
  import java.util.Collection;
  import java.util.Date;
  import java.util.Enumeration;
-@@ -47,6 +48,7 @@ import java.util.zip.ZipEntry;
+@@ -47,6 +49,7 @@ import java.util.zip.ZipEntry;
  import java.util.zip.ZipFile;
  
  import dev.figboot.olauncher.auth.MicrosoftUserAuthentication;
@@ -800,6 +1176,74 @@ index 6f7050d..37f787d 100644
  import net.minecraft.launcher.CompatibilityRule;
  import net.minecraft.launcher.CurrentLaunchFeatureMatcher;
  import net.minecraft.launcher.Launcher;
+@@ -157,7 +160,15 @@ public class MinecraftGameRunner extends AbstractGameRunner implements GameProce
+                 var3.mkdirs();
+             }
+ 
+-            GameProcessBuilder var4 = new GameProcessBuilder((String)MoreObjects.firstNonNull(this.selectedProfile.getJavaPath(), OperatingSystem.getCurrentPlatform().getJavaDir())); // olauncher - Objects -> MoreObjects
++            // olauncher start - pick the java path
++            String javaPath = this.selectedProfile.getJavaPath();
++            Path bundledDir = getBundledRuntimeDir();
++            if (javaPath == null || bundledDir != null) {
++                javaPath = bundledDir.toAbsolutePath().toString();
++            }
++            // olauncher end
++
++            GameProcessBuilder var4 = new GameProcessBuilder((String)MoreObjects.firstNonNull(javaPath, OperatingSystem.getCurrentPlatform().getJavaDir())); // olauncher - add bundled runtimes // olauncher - Objects -> MoreObjects
+             var4.withSysOutFilter(new Predicate<String>() {
+                 public boolean apply(String var1) {
+                     return var1.contains("#@!@#");
+diff --git a/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileJavaPanel.java b/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileJavaPanel.java
+index e510a79..c752284 100644
+--- a/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileJavaPanel.java
++++ b/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileJavaPanel.java
+@@ -22,6 +22,8 @@ public class ProfileJavaPanel extends JPanel {
+     private final JCheckBox javaArgsCustom = new JCheckBox("JVM Arguments:");
+     private final JTextField javaArgsField = new JTextField();
+ 
++    private String javaPath; // olauncher - bundled java runtime UI
++
+     public ProfileJavaPanel(ProfileEditorPopup var1) {
+         this.editor = var1;
+         this.setLayout(new GridBagLayout());
+@@ -29,6 +31,8 @@ public class ProfileJavaPanel extends JPanel {
+         this.createInterface();
+         this.fillDefaultValues();
+         this.addEventHandlers();
++
++        javaPath = OperatingSystem.getCurrentPlatform().getJavaDir();
+     }
+ 
+     protected void createInterface() {
+@@ -55,11 +59,13 @@ public class ProfileJavaPanel extends JPanel {
+     protected void fillDefaultValues() {
+         String var1 = this.editor.getProfile().getJavaPath();
+         if (var1 != null) {
++            javaPath = var1;
+             this.javaPathCustom.setSelected(true);
+             this.javaPathField.setText(var1);
+         } else {
+             this.javaPathCustom.setSelected(false);
+-            this.javaPathField.setText(OperatingSystem.getCurrentPlatform().getJavaDir());
++            //this.javaPathField.setText(OperatingSystem.getCurrentPlatform().getJavaDir()); // olauncher - bundled java runtime UI
++            this.javaPathField.setText("Use bundled runtime");
+         }
+ 
+         this.updateJavaPathState();
+@@ -126,9 +132,12 @@ public class ProfileJavaPanel extends JPanel {
+     private void updateJavaPathState() {
+         if (this.javaPathCustom.isSelected()) {
+             this.javaPathField.setEnabled(true);
+-            this.editor.getProfile().setJavaDir(this.javaPathField.getText());
++            this.javaPathField.setText(javaPath);
++            this.editor.getProfile().setJavaDir(javaPath);
+         } else {
+             this.javaPathField.setEnabled(false);
++            javaPath = javaPathField.getText();
++            javaPathField.setText("Use bundled runtime");
+             this.editor.getProfile().setJavaDir((String)null);
+         }
+ 
 diff --git a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
 index 9d786d5..3f95163 100644
 --- a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java

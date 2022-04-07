@@ -1,0 +1,22 @@
+From fd832788a2855024804b82788cef866510808818 Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot@figboot.dev>
+Date: Thu, 7 Apr 2022 04:10:54 -0500
+Subject: [PATCH] Change bug report URL
+
+
+diff --git a/src/main/java/com/mojang/launcher/game/runner/AbstractGameRunner.java b/src/main/java/com/mojang/launcher/game/runner/AbstractGameRunner.java
+index cd37a5b..d9c609c 100644
+--- a/src/main/java/com/mojang/launcher/game/runner/AbstractGameRunner.java
++++ b/src/main/java/com/mojang/launcher/game/runner/AbstractGameRunner.java
+@@ -291,7 +291,7 @@ public abstract class AbstractGameRunner implements GameRunner, DownloadListener
+                         this.setStatus(GameInstanceStatus.LAUNCHING);
+                         this.launchGame();
+                     } catch (Throwable var5) {
+-                        LOGGER.fatal("Fatal error launching game. Report this to http://bugs.mojang.com please!", var5);
++                        LOGGER.fatal("Fatal error launching game. Report this to https://github.com/olauncher/olauncher/issues/new please!", var5); // olauncher - have people report bugs to us
+                     }
+                 }
+             }
+-- 
+2.35.1
+
