@@ -1,4 +1,4 @@
-From 0cabee718db8c63a2302dc940083438e8ba4df18 Mon Sep 17 00:00:00 2001
+From 1089d03a24583ba666df78f6b9f57cb3dd3ab9f5 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Sat, 26 Mar 2022 15:24:44 -0500
 Subject: [PATCH] Add bundled java runtime functionality
@@ -558,10 +558,10 @@ index 0000000..a0bc907
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/download/RuntimeFileDownloadable.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/download/RuntimeFileDownloadable.java
 new file mode 100644
-index 0000000..8e01e94
+index 0000000..b14a8e7
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/download/RuntimeFileDownloadable.java
-@@ -0,0 +1,212 @@
+@@ -0,0 +1,218 @@
 +/*
 + * OLauncher
 + * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
@@ -701,11 +701,17 @@ index 0000000..8e01e94
 +    }
 +
 +    private void setExecutable(Path path) throws IOException {
-+        Set<PosixFilePermission> permission = new HashSet<>(Files.getPosixFilePermissions(path));
-+        permission.add(PosixFilePermission.OWNER_EXECUTE);
-+        permission.add(PosixFilePermission.GROUP_EXECUTE);
-+        permission.add(PosixFilePermission.OTHERS_EXECUTE);
-+        Files.setPosixFilePermissions(path, permission);
++        if (!file.isExecutable()) return;
++
++        try {
++            Set<PosixFilePermission> permission = new HashSet<>(Files.getPosixFilePermissions(path));
++            permission.add(PosixFilePermission.OWNER_EXECUTE);
++            permission.add(PosixFilePermission.GROUP_EXECUTE);
++            permission.add(PosixFilePermission.OTHERS_EXECUTE);
++            Files.setPosixFilePermissions(path, permission);
++        } catch (UnsupportedOperationException ex) {
++            LOGGER.info("Not setting " + path.toString() + " executable, the filesystem does not support it.");
++        }
 +    }
 +
 +    private String decompress() throws IOException {

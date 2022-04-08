@@ -1,4 +1,4 @@
-From 91fd4c8d5e185c48d57c7227163f44f25df97796 Mon Sep 17 00:00:00 2001
+From c87bec1c9660fe60d4ea5d4a7bf5514f457b55fc Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Tue, 29 Mar 2022 02:04:21 -0500
 Subject: [PATCH] Move MSLoginDialog2 to the firepit
