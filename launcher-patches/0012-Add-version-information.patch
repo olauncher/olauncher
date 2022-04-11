@@ -1,0 +1,201 @@
+From f53fbfb2eb2ac974cb0d009ac97f07d4f3050f39 Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot@figboot.dev>
+Date: Mon, 11 Apr 2022 02:52:40 -0500
+Subject: [PATCH] Add version information
+
+
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/LauncherVersion.java b/src/main/java/dev/figboot/olauncher/launcher/LauncherVersion.java
+new file mode 100644
+index 0000000..58f5905
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/launcher/LauncherVersion.java
+@@ -0,0 +1,111 @@
++/*
++ * OLauncher
++ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see https://github.com/olauncher/olauncher .
++ */
++
++package dev.figboot.olauncher.launcher;
++
++import lombok.SneakyThrows;
++
++import java.io.InputStream;
++import java.util.Objects;
++import java.util.Properties;
++
++public final class LauncherVersion {
++    private static final String VERSION, TAG;
++
++    private LauncherVersion() { }
++
++    public static String getLauncherName() {
++        return "OLauncher";
++    }
++
++    public static String getVersion() {
++        return VERSION;
++    }
++
++    public static String getTagName() {
++        return TAG;
++    }
++
++    @SneakyThrows
++    private static Ver loadVersion() {
++        Properties innerProps = new Properties();
++        Properties outerProps = new Properties();
++        try (InputStream innerIS = LauncherVersion.class.getResourceAsStream("/ver/git-inner.properties");
++             InputStream outerIS = LauncherVersion.class.getResourceAsStream("/ver/git-outer.properties")) {
++            Objects.requireNonNull(innerIS, "The /ver/git-inner.properties resource was not found. Version information will be missing.");
++            Objects.requireNonNull(outerIS, "The /ver/git-outer.properties resource was not found. Version information will be missing.");
++            innerProps.load(innerIS);
++            outerProps.load(outerIS);
++        }
++
++        return new Ver(innerProps, outerProps);
++    }
++
++    static {
++        Ver ver = null;
++        try {
++            ver = loadVersion();
++        } catch (Exception t) {
++            new RuntimeException("Error loading version information", t).printStackTrace();
++        } finally {
++            VERSION = ver == null ? "unknown" : ver.toString();
++            TAG = ver == null ? null : ver.tag;
++        }
++    }
++
++    private static class Ver {
++        private final String tag, tagSan, commitId;
++        private final boolean dirty, devVersion;
++
++        private Ver(Properties inner, Properties outer) {
++            tag = outer.getProperty("git.closest.tag.name");
++            if (tag == null || tag.isEmpty()) tagSan = "???";
++            else if (tag.startsWith("v")) tagSan = tag.substring(1);
++            else tagSan = tag;
++
++            String dist = outer.getProperty("git.closest.tag.commit.count");
++            devVersion = !dist.equals("0");
++
++            dirty = inner.getProperty("git.dirty").equalsIgnoreCase("true")
++                 || outer.getProperty("git.dirty").equalsIgnoreCase("true");
++
++            commitId = outer.getProperty("git.commit.id.abbrev");
++        }
++
++        @Override
++        public String toString() {
++            StringBuilder sb = new StringBuilder();
++            sb.append(tagSan);
++
++            if (devVersion) {
++                sb.append("-dev");
++            }
++
++            if (devVersion || dirty) {
++                sb.append("-");
++                sb.append(commitId);
++            }
++
++            if (dirty) {
++                sb.append("-dirty");
++            }
++
++            return sb.toString();
++        }
++    }
++}
+diff --git a/src/main/java/net/minecraft/launcher/LauncherConstants.java b/src/main/java/net/minecraft/launcher/LauncherConstants.java
+index faf0dc0..2776ab5 100644
+--- a/src/main/java/net/minecraft/launcher/LauncherConstants.java
++++ b/src/main/java/net/minecraft/launcher/LauncherConstants.java
+@@ -10,6 +10,8 @@ import java.net.MalformedURLException;
+ import java.net.URI;
+ import java.net.URISyntaxException;
+ import java.net.URL;
++
++import dev.figboot.olauncher.launcher.LauncherVersion;
+ import org.apache.commons.io.IOUtils;
+ 
+ public class LauncherConstants {
+@@ -61,7 +63,7 @@ public class LauncherConstants {
+     }
+ 
+     public static String getVersionName() {
+-        return (String)MoreObjects.firstNonNull(LauncherConstants.class.getPackage().getImplementationVersion(), "unknown"); // olauncher - Objects -> MoreObjects
++        return (String)MoreObjects.firstNonNull(LauncherVersion.getVersion(), "unknown"); // olauncher - Objects -> MoreObjects
+     }
+ 
+     private static LauncherConstants.LauncherProperties getProperties() {
+diff --git a/src/main/java/net/minecraft/launcher/Main.java b/src/main/java/net/minecraft/launcher/Main.java
+index cc91b34..fff6d93 100644
+--- a/src/main/java/net/minecraft/launcher/Main.java
++++ b/src/main/java/net/minecraft/launcher/Main.java
+@@ -13,6 +13,8 @@ import java.net.Proxy.Type;
+ import java.util.List;
+ import javax.imageio.ImageIO;
+ import javax.swing.JFrame;
++
++import dev.figboot.olauncher.launcher.LauncherVersion;
+ import joptsimple.ArgumentAcceptingOptionSpec;
+ import joptsimple.NonOptionArgumentSpec;
+ import joptsimple.OptionParser;
+@@ -54,7 +56,7 @@ public class Main {
+         var10.mkdirs();
+         LOGGER.debug("About to create JFrame.");
+         JFrame var12 = new JFrame();
+-        var12.setTitle("OLauncher " + LauncherConstants.getVersionName() + LauncherConstants.PROPERTIES.getEnvironment().getTitle());
++        var12.setTitle(LauncherVersion.getLauncherName() + " " + LauncherVersion.getVersion() + LauncherConstants.PROPERTIES.getEnvironment().getTitle()); // olauncher - update version
+         var12.setPreferredSize(new Dimension(900, 580));
+ 
+         try {
+diff --git a/src/main/java/net/minecraft/launcher/SwingUserInterface.java b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
+index 57ae6e7..c90c155 100644
+--- a/src/main/java/net/minecraft/launcher/SwingUserInterface.java
++++ b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
+@@ -26,6 +26,8 @@ import javax.swing.JOptionPane;
+ import javax.swing.JPanel;
+ import javax.swing.SwingUtilities;
+ import javax.swing.UIManager;
++
++import dev.figboot.olauncher.launcher.LauncherVersion;
+ import net.minecraft.launcher.game.MinecraftGameRunner;
+ import net.minecraft.launcher.profile.Profile;
+ import net.minecraft.launcher.profile.ProfileManager;
+@@ -93,7 +95,7 @@ public class SwingUserInterface implements MinecraftUserInterface {
+ 
+     public void initializeFrame() {
+         this.frame.getContentPane().removeAll();
+-        this.frame.setTitle("OLauncher " + LauncherConstants.getVersionName() + LauncherConstants.PROPERTIES.getEnvironment().getTitle());
++        this.frame.setTitle(LauncherVersion.getLauncherName() + " " + LauncherVersion.getVersion() + LauncherConstants.PROPERTIES.getEnvironment().getTitle()); // olauncher - update version
+         this.frame.setPreferredSize(new Dimension(900, 580));
+         this.frame.setDefaultCloseOperation(2);
+         this.frame.addWindowListener(new WindowAdapter() {
+@@ -301,7 +303,7 @@ public class SwingUserInterface implements MinecraftUserInterface {
+     }
+ 
+     public String getTitle() {
+-        return "OLauncher " + LauncherConstants.getVersionName();
++        return LauncherVersion.getLauncherName() + " " + LauncherVersion.getVersion(); // olauncher - update version
+     }
+ 
+     public JFrame getFrame() {
+-- 
+2.35.1
+

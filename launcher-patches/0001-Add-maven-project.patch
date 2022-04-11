@@ -1,4 +1,4 @@
-From c2edde7a48c6d91290fcff6907882cf886399273 Mon Sep 17 00:00:00 2001
+From 04a2b89fc1b162590b1b47d3e08f0156d75b3ca1 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 10 Mar 2022 01:37:59 -0600
 Subject: [PATCH] Add maven project
@@ -314,10 +314,10 @@ index aef7cf0..0000000
 -
 diff --git a/pom.xml b/pom.xml
 new file mode 100644
-index 0000000..1037840
+index 0000000..5fbdbf8
 --- /dev/null
 +++ b/pom.xml
-@@ -0,0 +1,168 @@
+@@ -0,0 +1,202 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +
 +<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -394,6 +394,40 @@ index 0000000..1037840
 +                        <version>2.17.1</version>
 +                    </dependency>
 +                </dependencies>
++            </plugin>
++            <plugin>
++                <groupId>io.github.git-commit-id</groupId>
++                <artifactId>git-commit-id-maven-plugin</artifactId>
++                <version>5.0.0</version>
++                <executions>
++                    <execution>
++                        <id>inner-repo</id>
++                        <phase>initialize</phase>
++                        <goals>
++                            <goal>revision</goal>
++                        </goals>
++                        <configuration>
++                            <generateGitPropertiesFilename>${project.build.outputDirectory}/ver/git-inner.properties</generateGitPropertiesFilename>
++                            <includeOnlyProperties>
++                                <property>git.dirty</property>
++                            </includeOnlyProperties>
++                        </configuration>
++                    </execution>
++                    <execution>
++                        <id>outer-repo</id>
++                        <phase>initialize</phase>
++                        <goals>
++                            <goal>revision</goal>
++                        </goals>
++                        <configuration>
++                            <generateGitPropertiesFilename>${project.build.outputDirectory}/ver/git-outer.properties</generateGitPropertiesFilename>
++                            <dotGitDirectory>../.git</dotGitDirectory>
++                        </configuration>
++                    </execution>
++                </executions>
++                <configuration>
++                    <generateGitPropertiesFile>true</generateGitPropertiesFile>
++                </configuration>
 +            </plugin>
 +        </plugins>
 +    </build>
