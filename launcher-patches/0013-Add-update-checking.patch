@@ -1,4 +1,4 @@
-From 89de79c97b0b7eee4ef93424031f325354934e79 Mon Sep 17 00:00:00 2001
+From 8e6d94c96594ce61d1138fde90fa1ca118b53221 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Wed, 13 Apr 2022 04:56:22 -0500
 Subject: [PATCH] Add update checking
@@ -296,10 +296,10 @@ index 0000000..c0a6ba0
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/update/UpdateAvailableDialog.java b/src/main/java/dev/figboot/olauncher/launcher/update/UpdateAvailableDialog.java
 new file mode 100644
-index 0000000..04f9d32
+index 0000000..d4644d5
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/update/UpdateAvailableDialog.java
-@@ -0,0 +1,180 @@
+@@ -0,0 +1,181 @@
 +package dev.figboot.olauncher.launcher.update;
 +
 +import com.mojang.launcher.OperatingSystem;
@@ -393,6 +393,7 @@ index 0000000..04f9d32
 +        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
 +        buttonPanel.setBorder(new EmptyBorder(0, 0, 5, 0));
 +        cbxOptionChoose = new JComboBox<>(new String[]{"Download this version", "Go to release page", "Remind me later", "Ignore this update", "Stop checking for updates"});
++        cbxOptionChoose.setSelectedIndex(asset == null ? 1 : 0);
 +        cbxOptionChoose.addActionListener(this::comboBoxOptionChoose);
 +        buttonPanel.add(cbxOptionChoose);
 +
