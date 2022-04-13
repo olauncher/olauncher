@@ -1,0 +1,514 @@
+From 1f923edaf0c00731e3628f7c29672be69ca0b141 Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot@figboot.dev>
+Date: Wed, 13 Apr 2022 04:56:22 -0500
+Subject: [PATCH] Add update checking
+
+
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/update/LauncherUpdateChecker.java b/src/main/java/dev/figboot/olauncher/launcher/update/LauncherUpdateChecker.java
+new file mode 100644
+index 0000000..e7febd1
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/launcher/update/LauncherUpdateChecker.java
+@@ -0,0 +1,158 @@
++package dev.figboot.olauncher.launcher.update;
++
++import com.google.gson.Gson;
++import com.google.gson.GsonBuilder;
++import dev.figboot.olauncher.launcher.LauncherVersion;
++import dev.figboot.olauncher.util.InstantTypeAdapter;
++import net.minecraft.launcher.Launcher;
++import org.apache.logging.log4j.LogManager;
++import org.apache.logging.log4j.Logger;
++
++import java.io.BufferedReader;
++import java.io.IOException;
++import java.io.InputStreamReader;
++import java.io.Reader;
++import java.io.Writer;
++import java.net.HttpURLConnection;
++import java.net.MalformedURLException;
++import java.net.URL;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.time.Instant;
++import java.time.temporal.ChronoUnit;
++import java.time.temporal.TemporalUnit;
++import java.util.LinkedList;
++import java.util.List;
++
++public class LauncherUpdateChecker {
++    private static final Logger LOGGER = LogManager.getLogger();
++    private static final String INFO_FILE_NAME = "olauncher_update.json";
++
++    private static final URL GITHUB_LATEST_RELEASE_URL = constantURL("https://api.github.com/repos/olauncher/olauncher/releases/latest");
++
++    private static final long UPDATE_CHECK_FREQ = 3;
++    private static final TemporalUnit UPDATE_CHECK_FREQ_UNIT = ChronoUnit.HOURS;
++
++    private final Gson gson;
++    private LauncherUpdateInfo info;
++
++    public LauncherUpdateChecker() {
++        gson = new GsonBuilder()
++                .registerTypeAdapter(Instant.class, new InstantTypeAdapter())
++                .create();
++    }
++
++    public void loadInfo() throws IOException {
++        Path workDir = Launcher.getCurrentInstance().getLauncher().getWorkingDirectory().toPath();
++        Path infoFile = workDir.resolve(INFO_FILE_NAME);
++        if (!Files.isRegularFile(infoFile)) {
++            info = LauncherUpdateInfo.defaults();
++            saveInfo();
++            return;
++        }
++
++        try (Reader r = Files.newBufferedReader(infoFile)) {
++            info = gson.fromJson(r, LauncherUpdateInfo.class);
++        }
++    }
++
++    public void saveInfo() throws IOException {
++        Path workDir = Launcher.getCurrentInstance().getLauncher().getWorkingDirectory().toPath();
++        Path infoFile = workDir.resolve(INFO_FILE_NAME);
++        try (Writer w = Files.newBufferedWriter(infoFile)) {
++            w.write(gson.toJson(info, LauncherUpdateInfo.class));
++        }
++    }
++
++    public void ignoreUpdate(long upd) {
++        info.getIgnoreVersions().add(upd);
++    }
++
++    public void setDisabled(boolean b) {
++        info.setDisabled(b);
++    }
++
++    public void updateCheck() throws IOException {
++        if (info == null) throw new IllegalStateException("Call loadInfo first!");
++
++        if (info.isDisabled()) {
++            LOGGER.info("Update checking disabled, not checking.");
++            return;
++        }
++
++        if (!System.getProperty("dev.figboot.olauncher.LauncherUpdateChecker.updateTest", "false").equalsIgnoreCase("true")
++            && (LauncherVersion.getInstance().isDevVersion()
++            || LauncherVersion.getInstance().isDirty())) {
++            LOGGER.info("Not checking for updates because this is a development version or the working tree is dirty.");
++            return;
++        }
++
++        Instant checkTime = info.getLastCheck().plus(UPDATE_CHECK_FREQ, UPDATE_CHECK_FREQ_UNIT);
++        Instant now = Instant.now();
++        if (checkTime.isAfter(now) && info.getLatestRelease() != null) {
++            LOGGER.info("It is not time to query releases yet. Wait another {} minutes.",
++                    new Object[]{ChronoUnit.MINUTES.between(now, checkTime)});
++
++            onReleaseResponse();
++            return;
++        }
++
++        Thread checker = new Thread(() -> {
++            try {
++                queryReleases();
++            } catch (IOException ex) {
++                LOGGER.error("Error querying latest release", ex);
++            }
++        });
++
++        LOGGER.info("Querying latest release...");
++        checker.setDaemon(true);
++        checker.start();
++    }
++
++    private void queryReleases() throws IOException {
++        HttpURLConnection conn = (HttpURLConnection)GITHUB_LATEST_RELEASE_URL.openConnection();
++        conn.setRequestProperty("Accept", "application/vnd.github.v3+json");
++        conn.setRequestProperty("User-Agent", LauncherVersion.getLauncherName() + "/" + LauncherVersion.getVersion());
++        conn.setConnectTimeout(5000);
++        conn.setReadTimeout(30000);
++
++        ReleaseInfo release;
++
++        if (conn.getResponseCode() / 100 != 2) {
++            LOGGER.error("Error response code returned by server: " + conn.getResponseCode() + " " + conn.getResponseMessage());
++            return;
++        }
++
++        try (Reader r = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
++            release = gson.fromJson(r, ReleaseInfo.class);
++
++            info.setLastCheck(Instant.now());
++            info.setLatestRelease(release);
++            saveInfo();
++        }
++        onReleaseResponse();
++    }
++
++    private void onReleaseResponse() {
++        ReleaseInfo release = info.getLatestRelease();
++        LOGGER.info("Latest release is {} (ID {}).", new Object[]{release.getName(), release.getID()});
++
++        if (info.getIgnoreVersions().contains(release.getID())) {
++            return;
++        }
++
++        String curTag = LauncherVersion.getInstance().getTag();
++        if (release.getTagName().compareTo(curTag) > 0) {
++            new UpdateAvailableDialog(this, release);
++        }
++    }
++
++    private static URL constantURL(String url) {
++        try {
++            return new URL(url);
++        } catch (MalformedURLException ex) {
++            throw new RuntimeException(ex);
++        }
++    }
++}
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/update/LauncherUpdateInfo.java b/src/main/java/dev/figboot/olauncher/launcher/update/LauncherUpdateInfo.java
+new file mode 100644
+index 0000000..836316b
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/launcher/update/LauncherUpdateInfo.java
+@@ -0,0 +1,25 @@
++package dev.figboot.olauncher.launcher.update;
++
++import lombok.Getter;
++import lombok.Setter;
++
++import java.time.Instant;
++import java.util.Collections;
++import java.util.LinkedList;
++import java.util.List;
++
++public class LauncherUpdateInfo {
++    @Getter @Setter private Instant lastCheck;
++    @Getter private List<Long> ignoreVersions;
++    @Getter @Setter private boolean disabled;
++    @Getter @Setter private ReleaseInfo latestRelease;
++
++    public static LauncherUpdateInfo defaults() {
++        LauncherUpdateInfo info = new LauncherUpdateInfo();
++        info.lastCheck = Instant.MIN;
++        info.ignoreVersions = new LinkedList<>();
++        info.disabled = false;
++        info.latestRelease = null;
++        return info;
++    }
++}
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/update/ReleaseInfo.java b/src/main/java/dev/figboot/olauncher/launcher/update/ReleaseInfo.java
+new file mode 100644
+index 0000000..c0a6ba0
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/launcher/update/ReleaseInfo.java
+@@ -0,0 +1,89 @@
++package dev.figboot.olauncher.launcher.update;
++
++import java.net.URL;
++import java.time.Instant;
++import java.util.Collections;
++import java.util.List;
++
++public class ReleaseInfo {
++    private Instant created_at;
++    private URL html_url;
++    private long id;
++    private String name;
++    private String tag_name;
++    private String body;
++
++    private List<Asset> assets;
++
++    public Instant getCreatedAt() {
++        return created_at;
++    }
++
++    public URL getPage() {
++        return html_url;
++    }
++
++    public long getID() {
++        return id;
++    }
++
++    public String getName() {
++        return name;
++    }
++
++    public String getTagName() {
++        return tag_name;
++    }
++
++    public String getBody() {
++        return body;
++    }
++
++    public List<Asset> getAssets() {
++        return Collections.unmodifiableList(assets);
++    }
++
++    public Asset getRedistAsset() {
++        for (Asset asset : assets) {
++            if (asset.isRedistJar()) return asset;
++        }
++        return null;
++    }
++
++    public static class Asset {
++        private String name;
++        private URL browser_download_url;
++        private String content_type;
++        private long size;
++        private int download_count;
++        private String state; // Should be "uploaded"
++
++        public String getName() {
++            return name;
++        }
++
++        public URL getDownloadURL() {
++            return browser_download_url;
++        }
++
++        public String getContentType() {
++            return content_type;
++        }
++
++        public long getSize() {
++            return size;
++        }
++
++        public int getDownloadCount() {
++            return download_count;
++        }
++
++        public String getState() {
++            return state;
++        }
++
++        public boolean isRedistJar() {
++            return getState().equals("uploaded") && getContentType().equals("application/x-java-archive") && getName().endsWith("-redist.jar");
++        }
++    }
++}
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/update/UpdateAvailableDialog.java b/src/main/java/dev/figboot/olauncher/launcher/update/UpdateAvailableDialog.java
+new file mode 100644
+index 0000000..04f9d32
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/launcher/update/UpdateAvailableDialog.java
+@@ -0,0 +1,180 @@
++package dev.figboot.olauncher.launcher.update;
++
++import com.mojang.launcher.OperatingSystem;
++import dev.figboot.olauncher.launcher.LauncherVersion;
++import org.apache.logging.log4j.LogManager;
++import org.apache.logging.log4j.Logger;
++
++import javax.swing.*;
++import javax.swing.border.EmptyBorder;
++import java.awt.*;
++import java.awt.event.ActionEvent;
++import java.io.IOException;
++import java.net.URISyntaxException;
++import java.time.Instant;
++
++public class UpdateAvailableDialog extends JDialog {
++    private static final Logger LOGGER = LogManager.getLogger();
++
++    private final LauncherUpdateChecker checker;
++    private final ReleaseInfo release;
++    private JScrollPane infoScrollPane;
++
++    private JComboBox<String> cbxOptionChoose;
++    private JButton btnConfirm;
++
++    private final Font headerFont = new Font(Font.SANS_SERIF, Font.BOLD, 24);
++    private final Font infoFont = new Font(Font.SANS_SERIF, Font.BOLD, 12);
++    private final Font valueFont = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
++
++    public UpdateAvailableDialog(LauncherUpdateChecker checker, ReleaseInfo release) {
++        this.checker = checker;
++        this.release = release;
++
++        SwingUtilities.invokeLater(this::initUI);
++    }
++
++    private int gridy = 1;
++    private void addUpdateInfo(JPanel panel, String key, String val) {
++        JLabel lbl = new JLabel(key);
++        lbl.setFont(infoFont);
++        panel.add(lbl, new GridBagConstraints(0, gridy, 1, 1, 0.3, 0, GridBagConstraints.LINE_START, GridBagConstraints.HORIZONTAL, new Insets(0,0,0,0), 0, 0));
++
++        lbl = new JLabel(val);
++        lbl.setFont(valueFont);
++        panel.add(lbl, new GridBagConstraints(1, gridy++, 1, 1, 0.7, 0, GridBagConstraints.LINE_START, GridBagConstraints.HORIZONTAL, new Insets(0,0,0,0), 0, 0));
++    }
++
++    private void initUI() {
++        setModal(true);
++        setModalityType(ModalityType.APPLICATION_MODAL);
++        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
++        setTitle("Launcher Update Checker");
++
++        setLayout(new BorderLayout());
++
++        JLabel headerLabel = new JLabel("Launcher update available");
++        headerLabel.setBorder(new EmptyBorder(5, 5, 5, 5));
++        headerLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
++        headerLabel.setFont(headerFont);
++        add(headerLabel, BorderLayout.PAGE_START);
++
++        JPanel infoPanel = new JPanel(new GridBagLayout());
++        infoPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
++        infoPanel.setAlignmentY(Component.TOP_ALIGNMENT);
++
++        infoScrollPane = new JScrollPane();
++
++        JTextPane area = new JTextPane();
++        area.setEditable(false);
++        area.setBackground(getBackground());
++        area.setContentType("text/plain");
++        area.setText(release.getBody());
++        infoScrollPane.setViewportView(area);
++
++        addUpdateInfo(infoPanel, "Update Version", LauncherVersion.getInstance().getTag() + " -> " + release.getTagName());
++        addUpdateInfo(infoPanel, "Released", getTimeSince(release.getCreatedAt()));
++
++        ReleaseInfo.Asset asset = release.getRedistAsset();
++        if (asset != null) {
++            addUpdateInfo(infoPanel, "File name", asset.getName());
++            addUpdateInfo(infoPanel, "Size", String.format("%.01f MB", asset.getSize() / 1000000.));
++            addUpdateInfo(infoPanel, "Downloads", Long.toString(asset.getDownloadCount()));
++        } else {
++            addUpdateInfo(infoPanel, "File name", "N/A");
++        }
++
++        infoPanel.add(infoScrollPane, new GridBagConstraints(0, gridy, 2, 1, 0, 0, GridBagConstraints.PAGE_START, GridBagConstraints.HORIZONTAL, new Insets(10, 0, 5, 0), 0, 0));
++
++        add(infoPanel, BorderLayout.CENTER);
++
++        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
++        buttonPanel.setBorder(new EmptyBorder(0, 0, 5, 0));
++        cbxOptionChoose = new JComboBox<>(new String[]{"Download this version", "Go to release page", "Remind me later", "Ignore this update", "Stop checking for updates"});
++        cbxOptionChoose.addActionListener(this::comboBoxOptionChoose);
++        buttonPanel.add(cbxOptionChoose);
++
++        btnConfirm = new JButton("Confirm");
++        btnConfirm.addActionListener(this::confirmClicked);
++        buttonPanel.add(btnConfirm);
++
++        add(buttonPanel, BorderLayout.PAGE_END);
++
++        pack();
++        setLocationByPlatform(true);
++        setLocationRelativeTo(null);
++        setVisible(true);
++    }
++
++    private void comboBoxOptionChoose(ActionEvent evt) {
++        btnConfirm.setEnabled(cbxOptionChoose.getSelectedIndex() != 0 || release.getRedistAsset() != null);
++    }
++
++    private void confirmClicked(ActionEvent evt) {
++        ReleaseInfo.Asset releaseAsset = release.getRedistAsset();
++        switch (cbxOptionChoose.getSelectedIndex()) {
++            case 0:
++                if (releaseAsset == null) return;
++                try {
++                    OperatingSystem.openLink(releaseAsset.getDownloadURL().toURI());
++                } catch (URISyntaxException ex) {
++                    LOGGER.error("Error opening link", ex);
++                }
++                break;
++            case 1:
++                try {
++                    OperatingSystem.openLink(release.getPage().toURI());
++                } catch (URISyntaxException ex) {
++                    LOGGER.error("Error opening link", ex);
++                }
++                break;
++            case 2:
++                break;
++            case 3:
++                checker.ignoreUpdate(release.getID());
++                try {
++                    checker.saveInfo();
++                } catch (IOException ex) {
++                    LOGGER.error("Unable to save update preferences", ex);
++                }
++                break;
++            case 4:
++                checker.setDisabled(true);
++                try {
++                    checker.saveInfo();
++                } catch (IOException ex) {
++                    LOGGER.error("Unable to save update preferences", ex);
++                }
++                break;
++            default:
++                return;
++        }
++
++        dispose();
++    }
++
++    private static String getTimeSince(Instant time) {
++        long seconds = Instant.now().getEpochSecond() - time.getEpochSecond();
++        long weeks = seconds / (7*24*60*60);
++        long leftOver = seconds % (7*24*60*60);
++
++        long days = seconds / (24*60*60);
++        leftOver %= (24*60*60);
++
++        long hours = leftOver / 3600;
++        leftOver %= 3600;
++
++        long minutes = leftOver / 60;
++
++        if (weeks == 0) {
++            if (days == 0) {
++                if (hours == 0) {
++                    return String.format("%d minute%s ago", minutes, minutes == 1 ? "" : "s");
++                }
++                return String.format("%d hour%s, %d minute%s ago", hours, hours == 1 ? "" : "s", minutes, minutes == 1 ? "" : "s");
++            }
++            return String.format("%d day%s, %d hour%s ago", days, days == 1 ? "" : "s", hours, hours == 1 ? "" : "s");
++        }
++        return String.format("%d week%s, %d day%s ago", weeks, weeks == 1 ? "" : "s", days, days == 1 ? "" : "s");
++    }
++}
+diff --git a/src/main/java/net/minecraft/launcher/Launcher.java b/src/main/java/net/minecraft/launcher/Launcher.java
+index 1ed2f8f..a9aeefa 100644
+--- a/src/main/java/net/minecraft/launcher/Launcher.java
++++ b/src/main/java/net/minecraft/launcher/Launcher.java
+@@ -34,6 +34,7 @@ import javax.swing.JFrame;
+ 
+ import dev.figboot.olauncher.OLauncherConstants;
+ import dev.figboot.olauncher.launcher.runtime.JavaRuntimeManager;
++import dev.figboot.olauncher.launcher.update.LauncherUpdateChecker;
+ import joptsimple.ArgumentAcceptingOptionSpec;
+ import joptsimple.NonOptionArgumentSpec;
+ import joptsimple.OptionException;
+@@ -116,6 +117,16 @@ public class Launcher {
+             ((SwingUserInterface)this.userInterface).initializeFrame();
+             refreshJavaRuntimes(); // olauncher - refresh java runtimes
+             this.refreshVersionsAndProfiles();
++
++            // olauncher start - check for updates
++            LauncherUpdateChecker checker = new LauncherUpdateChecker();
++            try {
++                checker.loadInfo();
++                checker.updateCheck();
++            } catch (IOException ex) {
++                LOGGER.error("Error checking for launcher updates. Update checking will not continue.", ex);
++            }
++            // olauncher end
+         }
+     }
+ 
+-- 
+2.35.1
+

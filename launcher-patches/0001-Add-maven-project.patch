@@ -1,4 +1,4 @@
-From 04a2b89fc1b162590b1b47d3e08f0156d75b3ca1 Mon Sep 17 00:00:00 2001
+From 4a5e4f248cdcf47d1bcb836733517ca7dc15da56 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 10 Mar 2022 01:37:59 -0600
 Subject: [PATCH] Add maven project
@@ -314,10 +314,10 @@ index aef7cf0..0000000
 -
 diff --git a/pom.xml b/pom.xml
 new file mode 100644
-index 0000000..5fbdbf8
+index 0000000..6208bc0
 --- /dev/null
 +++ b/pom.xml
-@@ -0,0 +1,202 @@
+@@ -0,0 +1,223 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +
 +<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -380,6 +380,15 @@ index 0000000..5fbdbf8
 +                    </execution>
 +                </executions>
 +                <configuration>
++                    <minimizeJar>true</minimizeJar>
++                    <filters>
++                        <filter>
++                            <artifact>*log4j*:*log4j*</artifact>
++                            <includes>
++                                <include>**</include>
++                            </includes>
++                        </filter>
++                    </filters>
 +                    <createDependencyReducedPom>false</createDependencyReducedPom>
 +                    <transformers>
 +                        <transformer
@@ -409,7 +418,7 @@ index 0000000..5fbdbf8
 +                        <configuration>
 +                            <generateGitPropertiesFilename>${project.build.outputDirectory}/ver/git-inner.properties</generateGitPropertiesFilename>
 +                            <includeOnlyProperties>
-+                                <property>git.dirty</property>
++                                <property>^git.dirty$</property>
 +                            </includeOnlyProperties>
 +                        </configuration>
 +                    </execution>
@@ -422,6 +431,12 @@ index 0000000..5fbdbf8
 +                        <configuration>
 +                            <generateGitPropertiesFilename>${project.build.outputDirectory}/ver/git-outer.properties</generateGitPropertiesFilename>
 +                            <dotGitDirectory>../.git</dotGitDirectory>
++                            <includeOnlyProperties>
++                                <property>^git.closest.tag.name$</property>
++                                <property>^git.closest.tag.commit.count$</property>
++                                <property>^git.dirty$</property>
++                                <property>^git.commit.id.abbrev$</property>
++                            </includeOnlyProperties>
 +                        </configuration>
 +                    </execution>
 +                </executions>
@@ -468,6 +483,12 @@ index 0000000..5fbdbf8
 +            <groupId>org.apache.commons</groupId>
 +            <artifactId>commons-compress</artifactId>
 +            <version>1.21</version>
++            <scope>compile</scope>
++        </dependency>
++        <dependency>
++            <groupId>org.apache.commons</groupId>
++            <artifactId>commons-text</artifactId>
++            <version>1.9</version>
 +            <scope>compile</scope>
 +        </dependency>
 +        <dependency>

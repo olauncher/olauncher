@@ -1,4 +1,4 @@
-From f53fbfb2eb2ac974cb0d009ac97f07d4f3050f39 Mon Sep 17 00:00:00 2001
+From 0b9a4a86e1521d9442da689c17676caa7a602611 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Mon, 11 Apr 2022 02:52:40 -0500
 Subject: [PATCH] Add version information
@@ -6,10 +6,10 @@ Subject: [PATCH] Add version information
 
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/LauncherVersion.java b/src/main/java/dev/figboot/olauncher/launcher/LauncherVersion.java
 new file mode 100644
-index 0000000..58f5905
+index 0000000..100c193
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/LauncherVersion.java
-@@ -0,0 +1,111 @@
+@@ -0,0 +1,112 @@
 +/*
 + * OLauncher
 + * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
@@ -30,6 +30,7 @@ index 0000000..58f5905
 +
 +package dev.figboot.olauncher.launcher;
 +
++import lombok.Getter;
 +import lombok.SneakyThrows;
 +
 +import java.io.InputStream;
@@ -37,24 +38,22 @@ index 0000000..58f5905
 +import java.util.Properties;
 +
 +public final class LauncherVersion {
-+    private static final String VERSION, TAG;
-+
-+    private LauncherVersion() { }
++    private static final LauncherVersion INSTANCE;
 +
 +    public static String getLauncherName() {
 +        return "OLauncher";
 +    }
 +
 +    public static String getVersion() {
-+        return VERSION;
++        return getInstance().toString();
 +    }
 +
-+    public static String getTagName() {
-+        return TAG;
++    public static LauncherVersion getInstance() {
++        return INSTANCE;
 +    }
 +
 +    @SneakyThrows
-+    private static Ver loadVersion() {
++    private static LauncherVersion loadVersion() {
 +        Properties innerProps = new Properties();
 +        Properties outerProps = new Properties();
 +        try (InputStream innerIS = LauncherVersion.class.getResourceAsStream("/ver/git-inner.properties");
@@ -65,59 +64,61 @@ index 0000000..58f5905
 +            outerProps.load(outerIS);
 +        }
 +
-+        return new Ver(innerProps, outerProps);
++        return new LauncherVersion(innerProps, outerProps);
++    }
++
++    @Getter private final String tag, commitId;
++    private final String tagSan;
++    @Getter private final boolean dirty, devVersion;
++
++    private transient String toStringCache;
++
++    private LauncherVersion(Properties inner, Properties outer) {
++        tag = outer.getProperty("git.closest.tag.name");
++        if (tag == null || tag.isEmpty()) tagSan = "???";
++        else if (tag.startsWith("v")) tagSan = tag.substring(1);
++        else tagSan = tag;
++
++        String dist = outer.getProperty("git.closest.tag.commit.count");
++        devVersion = !dist.equals("0");
++
++        dirty = inner.getProperty("git.dirty").equalsIgnoreCase("true")
++                || outer.getProperty("git.dirty").equalsIgnoreCase("true");
++
++        commitId = outer.getProperty("git.commit.id.abbrev");
++    }
++
++    @Override
++    public String toString() {
++        if (toStringCache != null) return toStringCache;
++
++        StringBuilder sb = new StringBuilder();
++        sb.append(tagSan);
++
++        if (devVersion) {
++            sb.append("-dev");
++        }
++
++        if (devVersion || dirty) {
++            sb.append("-");
++            sb.append(commitId);
++        }
++
++        if (dirty) {
++            sb.append("-dirty");
++        }
++
++        return toStringCache = sb.toString();
 +    }
 +
 +    static {
-+        Ver ver = null;
++        LauncherVersion ver = null;
 +        try {
 +            ver = loadVersion();
 +        } catch (Exception t) {
 +            new RuntimeException("Error loading version information", t).printStackTrace();
 +        } finally {
-+            VERSION = ver == null ? "unknown" : ver.toString();
-+            TAG = ver == null ? null : ver.tag;
-+        }
-+    }
-+
-+    private static class Ver {
-+        private final String tag, tagSan, commitId;
-+        private final boolean dirty, devVersion;
-+
-+        private Ver(Properties inner, Properties outer) {
-+            tag = outer.getProperty("git.closest.tag.name");
-+            if (tag == null || tag.isEmpty()) tagSan = "???";
-+            else if (tag.startsWith("v")) tagSan = tag.substring(1);
-+            else tagSan = tag;
-+
-+            String dist = outer.getProperty("git.closest.tag.commit.count");
-+            devVersion = !dist.equals("0");
-+
-+            dirty = inner.getProperty("git.dirty").equalsIgnoreCase("true")
-+                 || outer.getProperty("git.dirty").equalsIgnoreCase("true");
-+
-+            commitId = outer.getProperty("git.commit.id.abbrev");
-+        }
-+
-+        @Override
-+        public String toString() {
-+            StringBuilder sb = new StringBuilder();
-+            sb.append(tagSan);
-+
-+            if (devVersion) {
-+                sb.append("-dev");
-+            }
-+
-+            if (devVersion || dirty) {
-+                sb.append("-");
-+                sb.append(commitId);
-+            }
-+
-+            if (dirty) {
-+                sb.append("-dirty");
-+            }
-+
-+            return sb.toString();
++            INSTANCE = ver;
 +        }
 +    }
 +}
