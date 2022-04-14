@@ -1,4 +1,4 @@
-From 8e6d94c96594ce61d1138fde90fa1ca118b53221 Mon Sep 17 00:00:00 2001
+From 244238d354724e3e9ea628273bf726d680a61084 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Wed, 13 Apr 2022 04:56:22 -0500
 Subject: [PATCH] Add update checking
@@ -296,10 +296,10 @@ index 0000000..c0a6ba0
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/update/UpdateAvailableDialog.java b/src/main/java/dev/figboot/olauncher/launcher/update/UpdateAvailableDialog.java
 new file mode 100644
-index 0000000..d4644d5
+index 0000000..54d2325
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/update/UpdateAvailableDialog.java
-@@ -0,0 +1,181 @@
+@@ -0,0 +1,182 @@
 +package dev.figboot.olauncher.launcher.update;
 +
 +import com.mojang.launcher.OperatingSystem;
@@ -349,6 +349,7 @@ index 0000000..d4644d5
 +
 +    private void initUI() {
 +        setModal(true);
++        setResizable(false);
 +        setModalityType(ModalityType.APPLICATION_MODAL);
 +        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 +        setTitle("Launcher Update Checker");
