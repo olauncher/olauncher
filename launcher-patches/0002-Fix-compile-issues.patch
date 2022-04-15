@@ -1,4 +1,4 @@
-From fe727ed3feb2a29b68d923f498bbe77b072264fd Mon Sep 17 00:00:00 2001
+From 05015d9a960e088e5802eda66de215fe94b6634c Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 10 Mar 2022 02:35:36 -0600
 Subject: [PATCH] Fix compile issues
