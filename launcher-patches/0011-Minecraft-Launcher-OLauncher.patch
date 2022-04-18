@@ -1,4 +1,4 @@
-From 31a59089acab1c8e57664043953d2d5b07470009 Mon Sep 17 00:00:00 2001
+From 86a24997a671079070ab968e18d9e9904cd1d6dd Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 7 Apr 2022 05:25:03 -0500
 Subject: [PATCH] Minecraft Launcher -> OLauncher
@@ -18,7 +18,7 @@ index 3da8cfb..cc91b34 100644
  
          try {
 diff --git a/src/main/java/net/minecraft/launcher/SwingUserInterface.java b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
-index a7942e5..57ae6e7 100644
+index 4731988..11fcea0 100644
 --- a/src/main/java/net/minecraft/launcher/SwingUserInterface.java
 +++ b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
 @@ -93,7 +93,7 @@ public class SwingUserInterface implements MinecraftUserInterface {
@@ -30,7 +30,7 @@ index a7942e5..57ae6e7 100644
          this.frame.setPreferredSize(new Dimension(900, 580));
          this.frame.setDefaultCloseOperation(2);
          this.frame.addWindowListener(new WindowAdapter() {
-@@ -301,7 +301,7 @@ public class SwingUserInterface implements MinecraftUserInterface {
+@@ -302,7 +302,7 @@ public class SwingUserInterface implements MinecraftUserInterface {
      }
  
      public String getTitle() {

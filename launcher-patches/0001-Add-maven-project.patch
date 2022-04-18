@@ -1,4 +1,4 @@
-From 5bf5f2dd54bcf130bab68bba645fa02c6421064b Mon Sep 17 00:00:00 2001
+From a3bec61dda66817a88a0582105fbc42c8f41cf76 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 10 Mar 2022 01:37:59 -0600
 Subject: [PATCH] Add maven project
@@ -314,10 +314,10 @@ index aef7cf0..0000000
 -
 diff --git a/pom.xml b/pom.xml
 new file mode 100644
-index 0000000..3c55cf9
+index 0000000..39d36fd
 --- /dev/null
 +++ b/pom.xml
-@@ -0,0 +1,223 @@
+@@ -0,0 +1,243 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +
 +<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -538,6 +538,26 @@ index 0000000..3c55cf9
 +            <artifactId>lombok</artifactId>
 +            <version>1.18.22</version>
 +            <scope>provided</scope>
++        </dependency>
++
++        <!--skin editor stuff-->
++        <dependency>
++            <groupId>org.jogamp.jogl</groupId>
++            <artifactId>jogl-all-main</artifactId>
++            <version>2.3.2</version>
++            <scope>compile</scope>
++        </dependency>
++        <dependency>
++            <groupId>org.jogamp.gluegen</groupId>
++            <artifactId>gluegen-rt-main</artifactId>
++            <version>2.3.2</version>
++            <scope>compile</scope>
++        </dependency>
++        <dependency>
++            <groupId>org.joml</groupId>
++            <artifactId>joml</artifactId>
++            <version>1.10.4</version>
++            <scope>compile</scope>
 +        </dependency>
 +    </dependencies>
 +</project>

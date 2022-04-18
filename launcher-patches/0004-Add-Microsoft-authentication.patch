@@ -1,4 +1,4 @@
-From bd549894b88f4c7f6536fe0375611aa85d394fbf Mon Sep 17 00:00:00 2001
+From e35aadc5c980077fbcee877a5f5a5331b46ecfe6 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 17 Mar 2022 04:40:30 -0500
 Subject: [PATCH] Add Microsoft authentication
@@ -558,10 +558,10 @@ index 0000000..de4725c
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 new file mode 100644
-index 0000000..b2ff543
+index 0000000..1df535c
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
-@@ -0,0 +1,273 @@
+@@ -0,0 +1,277 @@
 +/*
 + * OLauncher
 + * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
@@ -760,6 +760,10 @@ index 0000000..b2ff543
 +        getModifiableUserProperties().clear();
 +        getModifiableUserProperties().putAll(profile.getProperties());
 +        setUserType(UserType.MICROSOFT);
++    }
++
++    public MCProfileInfo getProfileInfo() {
++        return profileInfo;
 +    }
 +
 +    @Override

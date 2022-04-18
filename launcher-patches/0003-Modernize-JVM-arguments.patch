@@ -1,4 +1,4 @@
-From c0497eb37a3bec983b945b41fa801c5ea5e868c4 Mon Sep 17 00:00:00 2001
+From 6501789df930fbc44c33e69a63b76d02135170b0 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Mon, 14 Mar 2022 10:09:55 -0500
 Subject: [PATCH] Modernize JVM arguments
