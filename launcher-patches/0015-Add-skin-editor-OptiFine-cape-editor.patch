@@ -1,0 +1,1443 @@
+From d281c81e9572e3e2429aef9303687fa052bb1a9b Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot@figboot.dev>
+Date: Tue, 26 Apr 2022 01:03:39 -0500
+Subject: [PATCH] Add skin editor + OptiFine cape editor
+
+
+diff --git a/pom.xml b/pom.xml
+index 39d36fd..50221ee 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -68,6 +68,12 @@
+                                 <include>**</include>
+                             </includes>
+                         </filter>
++                        <filter>
++                            <artifact>*jogl*:*jogl*</artifact>
++                            <includes>
++                                <include>**</include>
++                            </includes>
++                        </filter>
+                     </filters>
+                     <createDependencyReducedPom>false</createDependencyReducedPom>
+                     <transformers>
+diff --git a/src/main/java/dev/figboot/olauncher/OLauncherConstants.java b/src/main/java/dev/figboot/olauncher/OLauncherConstants.java
+index e88d992..0b242a4 100644
+--- a/src/main/java/dev/figboot/olauncher/OLauncherConstants.java
++++ b/src/main/java/dev/figboot/olauncher/OLauncherConstants.java
+@@ -33,4 +33,7 @@ public final class OLauncherConstants {
+     public static final String REDIR_URI = "http://localhost:" + REDIR_URI_PORT;
+ 
+     public static final URL JRE_MANIFEST_URL = constantURL("https://launchermeta.mojang.com/v1/products/java-runtime/2ec0cc96c44e5a76b9c8b7c39df7210883d12871/all.json");
++
++    public static final URL STEVE_SKIN_URL = constantURL("http://textures.minecraft.net/texture/1a4af718455d4aab528e7a61f86fa25e6a369d1768dcb13f7df319a713eb810b");
++    public static final URL ALEX_SKIN_URL = constantURL("http://textures.minecraft.net/texture/3b60a1f6d562f52aaebbf1434f1de147933a3affe0e764fa49ea057536623cd3");
+ }
+diff --git a/src/main/java/dev/figboot/olauncher/auth/MCProfileInfo.java b/src/main/java/dev/figboot/olauncher/auth/MCProfileInfo.java
+index b9a8ab6..0785a71 100644
+--- a/src/main/java/dev/figboot/olauncher/auth/MCProfileInfo.java
++++ b/src/main/java/dev/figboot/olauncher/auth/MCProfileInfo.java
+@@ -70,6 +70,24 @@ public class MCProfileInfo {
+         }
+     }
+ 
++    public Skin getActiveSkin() {
++        for (Skin skin : skins) {
++            if (skin.getState().equals("ACTIVE")) {
++                return skin;
++            }
++        }
++        return null;
++    }
++
++    public Cape getActiveCape() {
++        for (Cape cape : capes) {
++            if (cape.getState().equals("ACTIVE")) {
++                return cape;
++            }
++        }
++        return null;
++    }
++
+     @Override
+     public String toString() {
+         return "MCProfileInfo{" +
+diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
+index b265375..8421bc0 100644
+--- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
++++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
+@@ -209,8 +209,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+ 
+     private void profileLogIn() throws AuthenticationException {
+         LOGGER.debug("Getting your user profile...");
+-        profileInfo = getAuthenticationService().getAuthenticated(MicrosoftAuthenticationService.ROUTE_MINECRAFT_PROFILE,
+-                mojToken, MCProfileInfo.class);
++        reloadProfileInfo();
+ 
+         GameProfile profile = new GameProfile(profileInfo.getId(), profileInfo.getName());
+         profile = sessionService.fillProfileProperties(profile, false);
+@@ -280,6 +279,11 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+         return profileInfo;
+     }
+ 
++    public void reloadProfileInfo() throws AuthenticationException {
++        profileInfo = getAuthenticationService().getAuthenticated(MicrosoftAuthenticationService.ROUTE_MINECRAFT_PROFILE,
++                mojToken, MCProfileInfo.class);
++    }
++
+     @Override
+     public void logOut() {
+         super.logOut();
+diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/GLSkinViewer.java b/src/main/java/dev/figboot/olauncher/skin/ui/GLSkinViewer.java
+new file mode 100644
+index 0000000..7b92cf5
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/skin/ui/GLSkinViewer.java
+@@ -0,0 +1,421 @@
++package dev.figboot.olauncher.skin.ui;
++
++import com.jogamp.common.nio.Buffers;
++import com.jogamp.opengl.DebugGL3;
++import com.jogamp.opengl.GL;
++import com.jogamp.opengl.GL3;
++import com.jogamp.opengl.GLAutoDrawable;
++import com.jogamp.opengl.GLEventListener;
++import com.jogamp.opengl.util.glsl.ShaderProgram;
++import dev.figboot.olauncher.skin.ui.gl.GLSkinViewerUtils;
++import dev.figboot.olauncher.skin.ui.model.MainBodyPart;
++import dev.figboot.olauncher.skin.ui.model.Model;
++import dev.figboot.olauncher.skin.ui.model.ModelSkinPart;
++import dev.figboot.olauncher.skin.ui.model.OverlayBodyPart;
++import org.apache.logging.log4j.LogManager;
++import org.apache.logging.log4j.Logger;
++import org.joml.Matrix4f;
++import org.joml.Vector3f;
++import org.joml.Vector4f;
++
++import java.awt.image.BufferedImage;
++import java.nio.Buffer;
++import java.nio.ByteBuffer;
++import java.util.ArrayList;
++import java.util.EnumMap;
++import java.util.List;
++import java.util.Map;
++
++public class GLSkinViewer implements GLEventListener {
++    private static final Logger LOGGER = LogManager.getLogger();
++
++    private ShaderProgram program;
++
++    // uniform locations
++    private int projMatLoc, worldMatLoc, partMatLoc, lightPosLoc, flipNormalsLoc;
++    private int opaqueThreshLoc, allowTranslucentLoc;
++
++    private int skinTexture, capeTexture;
++
++    private Map<ModelSkinPart, Model> skinParts, overlayParts;
++    private Map<ModelSkinPart, Matrix4f> skinPartMats, overlayPartMats;
++    private Matrix4f projectionMatrix;
++
++    // stuff
++    private final Object dataLock = new Object();
++    private boolean skinLoaded = false;
++    private boolean textureDirty = false;
++    private BufferedImage skinImage, capeImage;
++    private boolean armTypeDirty = false;
++    private int armType = MainBodyPart.PART_ARM_NORMAL;
++
++    private boolean backgroundColorDirty = false;
++    private float bgColorR, bgColorG, bgColorB;
++
++    private boolean translucentOverlay = true;
++
++    private int overlayFlags = 0;
++
++    private float rotateX = (float)(Math.PI / 12), rotateY = (float)(-Math.PI / 4), rotateZ = 0;
++
++    @Override
++    public void init(GLAutoDrawable drawable) {
++        if (System.getProperty("dev.figboot.olauncher.GLSkinViewer.debugGL", "false").equalsIgnoreCase("true")) {
++            drawable.setGL(new DebugGL3(drawable.getGL().getGL3()));
++        }
++
++        for (ModelSkinPart part : ModelSkinPart.values()) {
++            overlayFlags |= part.getFlag();
++        }
++
++        GL3 gl = drawable.getGL().getGL3();
++
++        int[] ints = new int[2];
++        gl.glGenTextures(2, ints, 0);
++        skinTexture = ints[0];
++        capeTexture = ints[1];
++
++        gl.glEnable(GL.GL_TEXTURE_2D);
++
++        // Load shader program
++        program = new ShaderProgram();
++        program.init(gl);
++        GLSkinViewerUtils.loadShaders(gl, program, getClass());
++        program.useProgram(gl, true);
++
++        gl.glBindAttribLocation(program.program(), 0, "vertPos");
++        gl.glBindAttribLocation(program.program(), 1, "inTexCoord");
++        gl.glBindAttribLocation(program.program(), 2, "normal");
++
++        projMatLoc = gl.glGetUniformLocation(program.program(), "projmat");
++        worldMatLoc = gl.glGetUniformLocation(program.program(), "worldmat");
++        partMatLoc = gl.glGetUniformLocation(program.program(), "partmat");
++        lightPosLoc = gl.glGetUniformLocation(program.program(), "lightPos");
++        flipNormalsLoc = gl.glGetUniformLocation(program.program(), "flipNormals");
++
++        opaqueThreshLoc = gl.glGetUniformLocation(program.program(), "opaqueThresh");
++        allowTranslucentLoc = gl.glGetUniformLocation(program.program(), "allowTranslucent");
++
++        skinParts = new EnumMap<>(ModelSkinPart.class);
++        overlayParts = new EnumMap<>(ModelSkinPart.class);
++
++        skinPartMats = new EnumMap<>(ModelSkinPart.class);
++        overlayPartMats = new EnumMap<>(ModelSkinPart.class);
++
++        gl.glEnable(GL.GL_DEPTH_TEST);
++        gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
++
++        Vector3f diffuseLightPos = new Vector3f(0, 0, -1).normalize();
++        gl.glUniform3f(lightPosLoc, diffuseLightPos.x, diffuseLightPos.y, diffuseLightPos.z);
++        gl.glUniform1i(flipNormalsLoc, 0);
++
++        /*try (InputStream is = getClass().getResourceAsStream("/figboot.png")) {
++            skinTexture = TextureIO.newTexture(is, false, "png").getTextureObject();
++        } catch (IOException ex) {
++            throw new RuntimeException(ex);
++        }
++
++        try (InputStream is = getClass().getResourceAsStream("/mojiramodcape.png")) {
++            capeTexture = TextureIO.newTexture(is, false, "png").getTextureObject();
++        } catch (IOException ex) {
++            throw new RuntimeException(ex);
++        }*/
++    }
++
++    private void destroyParts(GL3 gl) {
++        Model model;
++        for (ModelSkinPart msp : ModelSkinPart.values()) {
++            model = skinParts.remove(msp);
++            if (model != null) model.destroy(gl);
++
++            model = overlayParts.remove(msp);
++            if (model != null) model.destroy(gl);
++        }
++
++        skinPartMats.clear();
++        overlayPartMats.clear();
++    }
++
++    @Override
++    public void dispose(GLAutoDrawable drawable) {
++        GL3 gl = drawable.getGL().getGL3();
++
++        int[] ints = new int[2];
++        ints[0] = skinTexture;
++        ints[1] = capeTexture;
++        gl.glDeleteTextures(2, ints, 0);
++
++        destroyParts(gl);
++
++        program.destroy(gl);
++    }
++
++    @Override
++    public void display(GLAutoDrawable drawable) {
++        synchronized (dataLock) {
++            drawFrame(drawable.getGL().getGL3());
++        }
++    }
++
++    private Buffer loadImage(BufferedImage image) {
++        final int width = image.getWidth(), height = image.getHeight(), stride = width;
++        int[] rgbs = image.getRGB(0, 0, width, height, null, 0, stride);
++        ByteBuffer buf = ByteBuffer.allocate(rgbs.length * Buffers.SIZEOF_INT);
++        int rgb;
++        for (int row = height-1; row >= 0; --row) {
++            for (int col = 0; col < width; ++col) {
++                rgb = rgbs[row * stride + col];
++                buf.put((byte)((rgb >>> 16) & 0xFF));
++                buf.put((byte)((rgb >>> 8) & 0xFF));
++                buf.put((byte)(rgb & 0xFF));
++                buf.put((byte)((rgb >>> 24) & 0xFF));
++            }
++        }
++        ((Buffer)buf).flip();
++        return buf;
++    }
++
++    private void loadTexImage(GL3 gl, int texObj, BufferedImage image) {
++        gl.glBindTexture(GL.GL_TEXTURE_2D, texObj);
++        gl.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_RGBA, image.getWidth(), image.getHeight(), 0, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, loadImage(image));
++        gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST);
++        gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST);
++        gl.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_REPEAT);
++        gl.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_REPEAT);
++    }
++
++    private void drawFrame(GL3 gl) {
++        if (textureDirty) {
++            if (skinImage != null) {
++                loadTexImage(gl, skinTexture, skinImage);
++            }
++
++            if (capeImage != null) {
++                loadTexImage(gl, capeTexture, capeImage);
++            }
++
++            skinLoaded = true;
++            textureDirty = false;
++        }
++
++        if (armTypeDirty) {
++            destroyParts(gl);
++
++            armTypeDirty = false;
++        }
++
++        if (backgroundColorDirty) {
++            gl.glClearColor(bgColorR, bgColorG, bgColorB, 1f);
++
++            backgroundColorDirty = false;
++        }
++
++        if (skinParts.isEmpty() || overlayParts.isEmpty()) {
++            if (skinLoaded && skinImage != null) {
++                Model model;
++                for (ModelSkinPart part : ModelSkinPart.values()) {
++                    model = new MainBodyPart(part, skinImage.getHeight(), armType);
++                    model.init(gl);
++                    skinParts.put(part, model);
++                    skinPartMats.put(part, model.getSuggestedPartMatrix());
++
++                    if (part == ModelSkinPart.CAPE) continue;
++                    model = new OverlayBodyPart(part, skinImage.getHeight(), armType);
++                    model.init(gl);
++                    overlayParts.put(part, model);
++                    overlayPartMats.put(part, model.getSuggestedPartMatrix());
++                }
++                LOGGER.debug("Model loaded");
++            } else {
++                return; // no rendering today :(
++            }
++        }
++
++        gl.glEnableVertexAttribArray(0); // vertices
++        gl.glEnableVertexAttribArray(1); // texture coordinates
++        gl.glEnableVertexAttribArray(2); // normals
++
++        Matrix4f worldMatrix = new Matrix4f().identity();
++        float[] buf = new float[16]; // for uploading matrices to the GPU
++        worldMatrix.rotateXYZ(rotateX, rotateY, rotateZ);
++        gl.glUniformMatrix4fv(worldMatLoc, 1, false, worldMatrix.get(buf), 0);
++
++        gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT);
++
++        gl.glUniform1f(opaqueThreshLoc, 0.5f);
++        gl.glUniform1i(allowTranslucentLoc, 0);
++
++        gl.glBindTexture(GL.GL_TEXTURE_2D, skinTexture);
++
++        // render person
++        for (Map.Entry<ModelSkinPart, Model> entry : skinParts.entrySet()) {
++            Matrix4f partMat = skinPartMats.get(entry.getKey());
++            if (capeImage == null && entry.getKey() == ModelSkinPart.CAPE) continue;
++            else if (skinImage == null && entry.getKey() != ModelSkinPart.CAPE) continue;
++
++            if (entry.getKey() == ModelSkinPart.CAPE) {
++                if ((overlayFlags & ModelSkinPart.CAPE.getFlag()) == 0) continue;
++                gl.glBindTexture(GL.GL_TEXTURE_2D, capeTexture);
++                partMat = partMat.rotateX(0.2f, new Matrix4f()).rotateY((float)Math.PI);
++            }
++
++            gl.glUniformMatrix4fv(partMatLoc, 1, false, partMat.get(buf), 0);
++            entry.getValue().render(gl);
++
++            if (entry.getKey() == ModelSkinPart.CAPE) {
++                gl.glBindTexture(GL.GL_TEXTURE_2D, skinTexture);
++            }
++        }
++
++        if (skinImage == null) return; // skip rendering overlay if the skin is not set
++        if (skinImage.getHeight() == 32) {
++            gl.glEnable(GL.GL_BLEND);
++            if ((overlayFlags & ModelSkinPart.HEAD.getFlag()) == 0) return;
++            Model head = overlayParts.get(ModelSkinPart.HEAD);
++            Matrix4f headPartMat = skinPartMats.get(ModelSkinPart.HEAD);
++
++            gl.glUniformMatrix4fv(partMatLoc, 1, false, headPartMat.get(buf), 0);
++            head.render(gl);
++            gl.glDisable(GL.GL_BLEND);
++        } else {
++            if (translucentOverlay) {
++                gl.glUniform1f(opaqueThreshLoc, 1f);
++                gl.glUniform1i(allowTranslucentLoc, 1);
++            }
++
++            gl.glEnable(GL.GL_BLEND);
++
++            List<Pair<Model, Matrix4f>> transparentParts = new ArrayList<>();
++            for (Map.Entry<ModelSkinPart, Model> entry : overlayParts.entrySet()) {
++                if ((overlayFlags & entry.getKey().getFlag()) == 0) continue;
++                Matrix4f partMat = overlayPartMats.get(entry.getKey());
++                transparentParts.add(new Pair<>(entry.getValue(), partMat));
++            }
++
++            Matrix4f factor = worldMatrix.mul(projectionMatrix, new Matrix4f());
++            transparentParts.sort((p1, p2) -> {
++                float depth1 = new Vector4f(0, 0, 1f, 1f).mul(p1.u.mul(factor, new Matrix4f()), new Vector4f()).z;
++                float depth2 = new Vector4f(0, 0, 1f, 1f).mul(p2.u.mul(factor, new Matrix4f()), new Vector4f()).z;
++                return Float.compare(depth1, depth2);
++            });
++
++            gl.glEnable(GL.GL_CULL_FACE);
++            gl.glCullFace(GL.GL_FRONT);
++            gl.glUniform1i(flipNormalsLoc, 1);
++            for (Pair<Model, Matrix4f> part : transparentParts) {
++                gl.glUniformMatrix4fv(partMatLoc, 1, false, part.u.get(buf), 0);
++                part.t.render(gl);
++            }
++
++            gl.glEnable(GL.GL_CULL_FACE);
++            gl.glCullFace(GL.GL_BACK);
++            gl.glUniform1i(flipNormalsLoc, 0);
++            for (Pair<Model, Matrix4f> part : transparentParts) {
++                gl.glUniformMatrix4fv(partMatLoc, 1, false, part.u.get(buf), 0);
++                part.t.render(gl);
++            }
++
++            gl.glDisable(GL.GL_CULL_FACE);
++            gl.glDisable(GL.GL_BLEND);
++        }
++    }
++
++    @Override
++    public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
++        GL3 gl = drawable.getGL().getGL3();
++
++        LOGGER.debug("loaded projection mat");
++        float aspect = (float)height / width;
++        projectionMatrix = new Matrix4f().ortho(-1, 1, -aspect, aspect, -4, 4);
++        gl.glUniformMatrix4fv(projMatLoc, 1, false, projectionMatrix.get(new float[16]), 0);
++    }
++
++    public void setTextures(BufferedImage skinImage, BufferedImage capeImage) {
++        synchronized (dataLock) {
++            this.skinImage = skinImage;
++            this.capeImage = capeImage;
++            textureDirty = true;
++        }
++    }
++
++    public void setArmType(int armType) {
++        synchronized (dataLock) {
++            this.armType = armType;
++            armTypeDirty = true;
++        }
++    }
++
++    public void setBackgroundColor(float r, float g, float b) {
++        synchronized (dataLock) {
++            this.bgColorR = r;
++            this.bgColorG = g;
++            this.bgColorB = b;
++            backgroundColorDirty = true;
++        }
++    }
++
++    public void addRotation(float x, float y, float z) {
++        synchronized (dataLock) {
++            this.rotateX += x;
++            this.rotateY += y;
++            this.rotateZ += z;
++
++            if (rotateX < -Math.PI / 2) rotateX = (float)(-Math.PI / 2);
++            else if (rotateX > Math.PI / 2) rotateX = (float)(Math.PI / 2);
++        }
++    }
++
++    public void setTranslucentOverlay(boolean t) {
++        synchronized (dataLock) {
++            this.translucentOverlay = t;
++        }
++    }
++
++    public void setOverlayFlags(ModelSkinPart... parts) {
++        synchronized (dataLock) {
++            overlayFlags = 0;
++            addOverlayFlags(parts);
++        }
++    }
++
++    public void addOverlayFlags(ModelSkinPart... parts) {
++        synchronized (dataLock) {
++            for (ModelSkinPart part : parts) {
++                overlayFlags |= part.getFlag();
++            }
++        }
++    }
++
++    public void resetOverlayFlags(ModelSkinPart... parts) {
++        int i = 0;
++        for (ModelSkinPart part : parts) {
++            i |= part.getFlag();
++        }
++
++        synchronized (dataLock) {
++            overlayFlags &= ~i;
++        }
++    }
++
++    public void clearOverlayFlags() {
++        synchronized (dataLock) {
++            overlayFlags = 0;
++        }
++    }
++
++    public boolean getOverlayFlag(ModelSkinPart part) {
++        synchronized (dataLock) {
++            return (overlayFlags & part.getFlag()) != 0;
++        }
++    }
++
++    private static class Pair<T, U> {
++        public T t;
++        public U u;
++
++        public Pair(T t, U u) {
++            this.t = t;
++            this.u = u;
++        }
++    }
++}
+diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/SkinEditorTab.java b/src/main/java/dev/figboot/olauncher/skin/ui/SkinEditorTab.java
+new file mode 100644
+index 0000000..ee90327
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/skin/ui/SkinEditorTab.java
+@@ -0,0 +1,186 @@
++package dev.figboot.olauncher.skin.ui;
++
++import com.jogamp.opengl.GLCapabilities;
++import com.jogamp.opengl.GLProfile;
++import com.jogamp.opengl.awt.GLCanvas;
++import com.mojang.authlib.UserAuthentication;
++import dev.figboot.olauncher.auth.MCProfileInfo;
++import dev.figboot.olauncher.auth.MicrosoftUserAuthentication;
++import dev.figboot.olauncher.skin.ui.model.MainBodyPart;
++import dev.figboot.olauncher.skin.ui.model.ModelSkinPart;
++import lombok.RequiredArgsConstructor;
++import net.minecraft.launcher.Launcher;
++import net.minecraft.launcher.profile.ProfileManager;
++import org.apache.logging.log4j.LogManager;
++import org.apache.logging.log4j.Logger;
++
++import javax.imageio.ImageIO;
++import javax.swing.*;
++import java.awt.*;
++import java.awt.event.MouseAdapter;
++import java.awt.event.MouseEvent;
++import java.awt.event.MouseMotionListener;
++import java.awt.image.BufferedImage;
++import java.io.IOException;
++import java.net.URL;
++import java.util.Map;
++import java.util.TreeMap;
++import java.util.UUID;
++import java.util.concurrent.ScheduledExecutorService;
++import java.util.concurrent.ScheduledFuture;
++import java.util.concurrent.TimeUnit;
++
++public class SkinEditorTab extends JPanel {
++    private static final Logger LOGGER = LogManager.getLogger();
++
++    private final Launcher launcher;
++    private final GLCanvas canvas;
++    private final GLSkinViewer viewer;
++
++    private final ScheduledFuture<?> frameUpdateFuture;
++
++    private final Object downloadedTexturesLock = new Object();
++    private final Map<UUID, DownloadedSkin> downloadedSkins;
++    private final Map<UUID, DownloadedCape> downloadedCapes;
++
++    private UUID activeSkin;
++    private UUID activeCape;
++
++    public SkinEditorTab(Launcher launcher, ScheduledExecutorService executorService, MCProfileInfo mcProfile) {
++        this.launcher = launcher;
++
++        setLayout(new FlowLayout());
++        GLProfile profile = GLProfile.getGL2GL3();
++        GLCapabilities caps = new GLCapabilities(profile);
++        canvas = new GLCanvas(caps);
++
++        canvas.setPreferredSize(new Dimension(200, 300));
++        add(canvas);
++
++        viewer = new GLSkinViewer();
++        canvas.addGLEventListener(viewer);
++
++        MouseListener ml = new MouseListener();
++        canvas.addMouseListener(ml);
++        canvas.addMouseMotionListener(ml);
++
++        viewer.setTranslucentOverlay(true);
++        viewer.setBackgroundColor(.8f, .8f, .8f);
++
++        JCheckBox cb = new JCheckBox("transgender");
++        cb.addActionListener(e -> viewer.setTranslucentOverlay(cb.isSelected()));
++        add(cb);
++        System.out.println(mcProfile);
++
++        downloadedSkins = new TreeMap<>();
++        downloadedCapes = new TreeMap<>();
++
++        frameUpdateFuture = executorService.scheduleAtFixedRate(() -> SwingUtilities.invokeLater(canvas::repaint), 0, 1000 / 50, TimeUnit.MILLISECONDS);
++
++        executorService.submit(() -> queryTextures(mcProfile));
++    }
++
++    public void queryTextures(MCProfileInfo profileInfo) {
++        ProfileManager pman = launcher.getProfileManager();
++
++        MicrosoftUserAuthentication auth = null;
++
++        {
++            UserAuthentication uAuth = pman.getAuthDatabase().getByUUID(pman.getSelectedUser());
++            if (uAuth instanceof MicrosoftUserAuthentication) auth = (MicrosoftUserAuthentication)uAuth;
++        }
++
++        synchronized (downloadedTexturesLock) {
++            for (MCProfileInfo.Skin skin : profileInfo.getSkins()) {
++                if (skin.getState().equals("ACTIVE")) activeSkin = skin.getId();
++                if (!downloadedSkins.containsKey(skin.getId())) {
++                    DownloadedSkin skinDL;
++                    try {
++                        LOGGER.info("Downloading skin: {} (alias {})", new Object[]{skin.getId(), skin.getAlias()});
++                        skinDL = new DownloadedSkin(skin, ImageIO.read(new URL(skin.getUrl())), skin.getVariant().equals("CLASSIC") ? MainBodyPart.PART_ARM_NORMAL : MainBodyPart.PART_ARM_SLIM);
++                        downloadedSkins.put(skin.getId(), skinDL);
++                    } catch (IOException ex) {
++                        LOGGER.error("Error downloading skin " + skin.getId() + " (alias " + skin.getAlias() + ")", ex);
++                    }
++                }
++            }
++
++            for (MCProfileInfo.Cape cape : profileInfo.getCapes()) {
++                if (cape.getState().equals("ACTIVE")) activeCape = cape.getId();
++                if (!downloadedCapes.containsKey(cape.getId())) {
++                    DownloadedCape capeDL;
++                    try {
++                        LOGGER.info("Downloading cape: {} (alias {})", new Object[]{cape.getId(), cape.getAlias()});
++                        capeDL = new DownloadedCape(cape, ImageIO.read(new URL(cape.getUrl())));
++                        downloadedCapes.put(cape.getId(), capeDL);
++                    } catch (IOException ex) {
++                        LOGGER.error("Error downloading cape " + cape.getId() + " (alias " + cape.getAlias() + ")", ex);
++                    }
++                }
++            }
++
++            DownloadedSkin dlSkin = activeSkin != null ? downloadedSkins.get(activeSkin) : null;
++            DownloadedCape dlCape = activeCape != null ? downloadedCapes.get(activeCape) : null;
++            //viewer.setTextures(dlSkin == null ? null : dlSkin.image, dlCape == null ? null : dlCape.image);
++            viewer.setTextures(dlSkin == null ? null : dlSkin.image, auth.getOptiFineCapeTexture());
++
++            if (dlSkin != null) {
++                viewer.setArmType(dlSkin.skinParam);
++                if (dlSkin.image.getHeight() == 32) {
++                    viewer.setOverlayFlags(ModelSkinPart.HEAD);
++                }
++            }
++        }
++    }
++
++    public void shutdown() {
++        frameUpdateFuture.cancel(true);
++    }
++
++    private class MouseListener extends MouseAdapter implements MouseMotionListener {
++        private Point lastPos;
++
++        private MouseListener() { }
++
++        @Override
++        public void mouseDragged(MouseEvent e) {
++            Point pos = e.getPoint();
++            if (lastPos == null) {
++                lastPos = pos;
++                return;
++            }
++
++            int deltaX = pos.x - lastPos.x;
++            int deltaY = pos.y - lastPos.y;
++
++            viewer.addRotation(deltaY / 75f, deltaX / 75f, 0);
++            lastPos = pos;
++        }
++
++        @Override
++        public void mouseReleased(MouseEvent e) {
++            lastPos = null;
++        }
++    }
++
++    @RequiredArgsConstructor
++    private static class DownloadedSkin {
++        private final MCProfileInfo.Skin skin;
++        private final BufferedImage image;
++        private final int skinParam;
++    }
++
++    @RequiredArgsConstructor
++    private static class DownloadedCape {
++        private final MCProfileInfo.Cape cape;
++        private final BufferedImage image;
++
++        @Override
++        public String toString() {
++            return "DownloadedCape{" +
++                    "cape=" + cape +
++                    ", image=" + image +
++                    '}';
++        }
++    }
++}
+diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/gl/GLSkinViewerUtils.java b/src/main/java/dev/figboot/olauncher/skin/ui/gl/GLSkinViewerUtils.java
+new file mode 100644
+index 0000000..e613ed5
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/skin/ui/gl/GLSkinViewerUtils.java
+@@ -0,0 +1,39 @@
++package dev.figboot.olauncher.skin.ui.gl;
++
++import com.jogamp.opengl.GL3;
++import com.jogamp.opengl.util.glsl.ShaderCode;
++import com.jogamp.opengl.util.glsl.ShaderProgram;
++import org.apache.logging.log4j.LogManager;
++import org.apache.logging.log4j.Logger;
++
++public class GLSkinViewerUtils {
++    private GLSkinViewerUtils() { }
++
++    private static final Logger LOGGER = LogManager.getLogger();
++
++    public static void loadShaders(GL3 gl, ShaderProgram program, Class<?> resClass) {
++        ShaderCode vertShader = ShaderCode.create(gl, GL3.GL_VERTEX_SHADER, 1, resClass, new String[]{"vert.glsl"}, false);
++        ShaderCode fragShader = ShaderCode.create(gl, GL3.GL_FRAGMENT_SHADER, 1, resClass, new String[]{"frag.glsl"}, false);
++
++        LOGGER.debug("Compiling vertex shader...");
++        if (!vertShader.compile(gl, System.err)) {
++            throw new RuntimeException("Error compiling vertex shader");
++        }
++
++        LOGGER.debug("Compiling fragment shader...");
++        if (!fragShader.compile(gl, System.err)) {
++            throw new RuntimeException("Error compiling fragment shader");
++        }
++
++        program.add(vertShader);
++        program.add(fragShader);
++
++        LOGGER.debug("Linking fragment shader...");
++        if (!program.link(gl, System.err)) {
++            throw new RuntimeException("Error linking shader program");
++        }
++
++        vertShader.destroy(gl);
++        fragShader.destroy(gl);
++    }
++}
+diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/model/MainBodyPart.java b/src/main/java/dev/figboot/olauncher/skin/ui/model/MainBodyPart.java
+new file mode 100644
+index 0000000..8811039
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/skin/ui/model/MainBodyPart.java
+@@ -0,0 +1,102 @@
++package dev.figboot.olauncher.skin.ui.model;
++
++import org.joml.Matrix4f;
++import org.joml.Vector3f;
++
++import java.nio.FloatBuffer;
++
++public class MainBodyPart extends Model {
++    private final FloatBuffer verts, normals, texCoords;
++
++    private final int vertCount, normalCount, texCoordCount;
++
++    public static final int PART_ARM_NORMAL = 0, PART_ARM_SLIM = 1;
++
++    private final Matrix4f partMat;
++
++    public MainBodyPart(ModelSkinPart part, int texHeight, int partInfo) {
++        ModelBuilder mb = new ModelBuilder();
++
++        switch (part) {
++            case HEAD:
++                mb.addCube(new Vector3f(-4f/16, -4f/16, -4f/16), new Vector3f(4f/16, 4f/16, 4f/16),
++                        ModelBuilder.boxTexCoords(8f/64, 1 - 16f/texHeight, 8f/64, 8f/texHeight, 8f/64, 8f/texHeight));
++                partMat = new Matrix4f().identity().translate(0, 12f/16, 0);
++                break;
++            case BODY:
++                mb.addCube(new Vector3f(-4f/16, -6f/16, -2f/16), new Vector3f(4f/16, 6f/16, 2f/16),
++                        ModelBuilder.boxTexCoords(20f/64, 1 - 32f/texHeight, 8f/64, 12f/texHeight, 4f/64, 4f/texHeight));
++                partMat = new Matrix4f().identity().translate(0, 2f/16, 0);
++                break;
++            case RARM:
++                mb.addCube(new Vector3f(partInfo == PART_ARM_NORMAL ? -2f/16 : -1f/16, -10f/16, -2f/16), new Vector3f(2f/16, 2f/16, 2f/16),
++                        ModelBuilder.boxTexCoords(44f/64, 1 - 32f/texHeight, partInfo == PART_ARM_NORMAL ? 4f/64 : 3f/64, 12f/texHeight, 4f/64, 4f/texHeight));
++                partMat = new Matrix4f().identity().translate(-6f/16, 6f/16, 0);
++                break;
++            case LARM:
++                mb.addCube(new Vector3f(-2f/16, -10f/16, -2f/16), new Vector3f(partInfo == PART_ARM_NORMAL ? 2f/16 : 1f/16, 2f/16, 2f/16),
++                        ModelBuilder.boxTexCoords(texHeight == 64 ? 36f/64 : 44f/64, texHeight == 64 ? 1 - 64f/64 : 1 - 32f/32, partInfo == PART_ARM_NORMAL ? 4f/64 : 3f/64, 12f/texHeight, 4f/64, 4f/texHeight));
++                partMat = new Matrix4f().identity().translate(6f/16, 6f/16, 0);
++                break;
++            case RLEG:
++                mb.addCube(new Vector3f(-2f/16, -12f/16, -2f/16), new Vector3f(2f/16, 0, 2f/16),
++                        ModelBuilder.boxTexCoords(4f/64, 1 - 32f/texHeight, 4f/64, 12f/texHeight, 4f/64, 4f/texHeight));
++                partMat = new Matrix4f().identity().translate(-2f/16, -4f/16, 0);
++                break;
++            case LLEG:
++                mb.addCube(new Vector3f(-2f/16, -12f/16, -2f/16), new Vector3f(2f/16, 0, 2f/16),
++                        ModelBuilder.boxTexCoords(texHeight == 64 ? 20f/64 : 4f/64, texHeight == 64 ? 1 - 64f/64 : 1 - 32f/32, 4f/64, 12f/texHeight, 4f/64, 4f/texHeight));
++                partMat = new Matrix4f().identity().translate(2f/16, -4f/16, 0);
++                break;
++            case CAPE:
++                mb.addCube(new Vector3f(-5f/16, -16f/16, 0), new Vector3f(5f/16, 0, 1f/16),
++                        ModelBuilder.boxTexCoords(1f/64, 1 - 17f/32, 10f/64, 16f/32, 1f/64, 1f/32));
++                partMat = new Matrix4f().identity().translate(0, 8f/16, -2f/16);
++                break;
++            default:
++                throw new IllegalArgumentException("Invalid model part specified");
++        }
++
++        verts = mb.getVerts();
++        normals = mb.getNormals();
++        texCoords = mb.getTexCoords();
++        vertCount = mb.getVertCount();
++        normalCount = mb.getNormalCount();
++        texCoordCount = mb.getTexCoordCount();
++    }
++
++    @Override
++    protected FloatBuffer getVertices() {
++        return verts;
++    }
++
++    @Override
++    protected FloatBuffer getTexCoords() {
++        return texCoords;
++    }
++
++    @Override
++    protected FloatBuffer getNormals() {
++        return normals;
++    }
++
++    @Override
++    protected int getVertexCount() {
++        return vertCount;
++    }
++
++    @Override
++    protected int getNormalCount() {
++        return normalCount;
++    }
++
++    @Override
++    protected int getTexCoordCount() {
++        return texCoordCount;
++    }
++
++    @Override
++    public Matrix4f getSuggestedPartMatrix() {
++        return new Matrix4f(partMat);
++    }
++}
+diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/model/Model.java b/src/main/java/dev/figboot/olauncher/skin/ui/model/Model.java
+new file mode 100644
+index 0000000..87004b6
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/skin/ui/model/Model.java
+@@ -0,0 +1,75 @@
++package dev.figboot.olauncher.skin.ui.model;
++
++import com.jogamp.common.nio.Buffers;
++import com.jogamp.opengl.GL;
++import com.jogamp.opengl.GL3;
++import org.joml.Matrix4f;
++
++import java.nio.FloatBuffer;
++
++public abstract class Model {
++    private int vao;
++    private int vboVert, vboTex, vboNormal;
++
++    public Model() { }
++
++    public void init(GL3 gl) {
++        int[] ints = new int[3];
++        gl.glGenVertexArrays(1, ints, 0);
++        vao = ints[0];
++
++        gl.glGenBuffers(3, ints, 0);
++        vboVert = ints[0];
++        vboTex = ints[1];
++        vboNormal = ints[2];
++
++        loadModel(gl);
++    }
++
++    public void destroy(GL3 gl) {
++        int[] ints = new int[3];
++        ints[0] = vao;
++        gl.glDeleteVertexArrays(1, ints, 0);
++
++        ints[0] = vboVert;
++        ints[1] = vboTex;
++        ints[2] = vboNormal;
++        gl.glDeleteBuffers(3, ints, 0);
++    }
++
++    protected abstract FloatBuffer getVertices();
++    protected abstract FloatBuffer getTexCoords();
++    protected abstract FloatBuffer getNormals();
++
++    protected abstract int getVertexCount();
++    protected abstract int getTexCoordCount();
++    protected abstract int getNormalCount();
++
++    public Matrix4f getSuggestedPartMatrix() {
++        return new Matrix4f().identity();
++    }
++
++    protected void loadModel(GL3 gl) {
++        gl.glBindVertexArray(vao);
++        gl.glBindBuffer(GL3.GL_ARRAY_BUFFER, vboVert);
++        gl.glVertexAttribPointer(0, 3, GL.GL_FLOAT, false, 0, 0);
++        gl.glBufferData(GL.GL_ARRAY_BUFFER, (long)getVertexCount() * Buffers.SIZEOF_FLOAT, getVertices(), GL.GL_STATIC_DRAW);
++
++        gl.glBindBuffer(GL3.GL_ARRAY_BUFFER, vboTex);
++        gl.glVertexAttribPointer(1, 2, GL.GL_FLOAT, false, 0, 0);
++        gl.glBufferData(GL.GL_ARRAY_BUFFER, (long)getTexCoordCount() * Buffers.SIZEOF_FLOAT, getTexCoords(), GL.GL_STATIC_DRAW);
++
++        gl.glBindBuffer(GL3.GL_ARRAY_BUFFER, vboNormal);
++        gl.glVertexAttribPointer(2, 3, GL.GL_FLOAT, false, 0, 0);
++        gl.glBufferData(GL.GL_ARRAY_BUFFER, (long)getNormalCount() * Buffers.SIZEOF_FLOAT, getNormals(), GL.GL_STATIC_DRAW);
++    }
++
++    public void render(GL3 gl) {
++        gl.glBindVertexArray(vao);
++        gl.glEnableVertexAttribArray(0);
++        gl.glEnableVertexAttribArray(1);
++        gl.glEnableVertexAttribArray(2);
++
++        gl.glDrawArrays(GL.GL_TRIANGLES, 0, getVertexCount());
++    }
++}
+diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/model/ModelBuilder.java b/src/main/java/dev/figboot/olauncher/skin/ui/model/ModelBuilder.java
+new file mode 100644
+index 0000000..76e90ea
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/skin/ui/model/ModelBuilder.java
+@@ -0,0 +1,172 @@
++package dev.figboot.olauncher.skin.ui.model;
++
++import org.joml.Vector2f;
++import org.joml.Vector3f;
++
++import java.nio.Buffer;
++import java.nio.FloatBuffer;
++import java.util.ArrayList;
++import java.util.Arrays;
++import java.util.List;
++
++class ModelBuilder {
++    private final List<Float> vertVals;
++    private final List<Float> texCoordVals;
++    private final List<Float> normalVals;
++
++    public ModelBuilder() {
++        vertVals = new ArrayList<>();
++        texCoordVals = new ArrayList<>();
++        normalVals = new ArrayList<>();
++    }
++
++    public void addTri(Vector3f p1, Vector3f p2, Vector3f p3, Vector2f t1, Vector2f t2, Vector2f t3, boolean invertNormals) {
++        vertVals.add(p1.x);
++        vertVals.add(p1.y);
++        vertVals.add(p1.z);
++        vertVals.add(p2.x);
++        vertVals.add(p2.y);
++        vertVals.add(p2.z);
++        vertVals.add(p3.x);
++        vertVals.add(p3.y);
++        vertVals.add(p3.z);
++
++        texCoordVals.add(t1.x);
++        texCoordVals.add(t1.y);
++        texCoordVals.add(t2.x);
++        texCoordVals.add(t2.y);
++        texCoordVals.add(t3.x);
++        texCoordVals.add(t3.y);
++
++        Vector3f normals = (p1.sub(p3, new Vector3f()).cross(p1.sub(p2, new Vector3f()), new Vector3f())).normalize();
++        if (invertNormals) normals.mul(-1);
++        normalVals.add(normals.x);
++        normalVals.add(normals.y);
++        normalVals.add(normals.z);
++        normalVals.add(normals.x);
++        normalVals.add(normals.y);
++        normalVals.add(normals.z);
++        normalVals.add(normals.x);
++        normalVals.add(normals.y);
++        normalVals.add(normals.z);
++    }
++
++    public void addVParallelogram(Vector3f c1, Vector3f c2, Vector2f tc1, Vector2f tc2, boolean invertNormals) {
++        // c3   c2
++        //
++        // c1   c4
++
++        Vector3f c3 = new Vector3f(c1.x, c2.y, c1.z);
++        Vector3f c4 = new Vector3f(c2.x, c1.y, c2.z);
++
++        Vector2f tc3 = new Vector2f(tc1.x, tc2.y);
++        Vector2f tc4 = new Vector2f(tc2.x, tc1.y);
++
++        addTri(c2, c3, c1, tc2, tc3, tc1, invertNormals);
++        addTri(c1, c4, c2, tc1, tc4, tc2, invertNormals);
++    }
++
++    public void addHParallelogram(Vector3f c1, Vector3f c2, Vector2f tc1, Vector2f tc2, boolean invertNormals) {
++        // c3    c2
++        //   c1    c4
++
++        Vector3f c3 = new Vector3f(c1.x, c1.y, c2.z);
++        Vector3f c4 = new Vector3f(c2.x, c2.y, c1.z);
++
++        Vector2f tc3 = new Vector2f(tc1.x, tc2.y);
++        Vector2f tc4 = new Vector2f(tc2.x, tc1.y);
++
++        addTri(c2, c3, c1, tc2, tc3, tc1, invertNormals);
++        addTri(c1, c4, c2, tc1, tc4, tc2, invertNormals);
++    }
++
++    public void addCube(Vector3f c1, Vector3f c2, Vector2f[] faceTexCoords) {
++        // c3    c2
++        //   c7    c6
++        //
++        // c4    c5
++        //   c1    c8
++
++        Vector3f c3 = new Vector3f(c1.x, c2.y, c2.z);
++        Vector3f c4 = new Vector3f(c1.x, c1.y, c2.z);
++        Vector3f c5 = new Vector3f(c2.x, c1.y, c2.z);
++        Vector3f c6 = new Vector3f(c2.x, c2.y, c1.z);
++        Vector3f c7 = new Vector3f(c1.x, c2.y, c1.z);
++        Vector3f c8 = new Vector3f(c2.x, c1.y, c1.z);
++
++        addVParallelogram(c4, c2, faceTexCoords[0], faceTexCoords[1], false);
++        addVParallelogram(c5, c6, faceTexCoords[2], faceTexCoords[3], false);
++        addVParallelogram(c8, c7, faceTexCoords[4], faceTexCoords[5], false);
++        addVParallelogram(c1, c3, faceTexCoords[6], faceTexCoords[7], false);
++        addHParallelogram(c3, c6, faceTexCoords[8], faceTexCoords[9], false);
++        addHParallelogram(c4, c8, faceTexCoords[10], faceTexCoords[11], true);
++    }
++
++    public FloatBuffer getVerts() {
++        FloatBuffer fb = FloatBuffer.allocate(vertVals.size());
++        for (float f : vertVals) {
++            fb.put(f);
++        }
++        ((Buffer)fb).flip();
++        return fb;
++    }
++
++    public FloatBuffer getTexCoords() {
++        FloatBuffer fb = FloatBuffer.allocate(texCoordVals.size());
++        for (float f : texCoordVals) {
++            fb.put(f);
++        }
++        ((Buffer)fb).flip();
++        return fb;
++    }
++
++    public FloatBuffer getNormals() {
++        FloatBuffer fb = FloatBuffer.allocate(normalVals.size());
++        for (float f : normalVals) {
++            fb.put(f);
++        }
++        ((Buffer)fb).flip();
++        return fb;
++    }
++
++    public int getVertCount() {
++        return vertVals.size();
++    }
++
++    public int getTexCoordCount() {
++        return texCoordVals.size();
++    }
++
++    public int getNormalCount() {
++        return normalVals.size();
++    }
++
++    public static Vector2f[] boxTexCoords(float xBase, float yBase, float width, float height, float depth, float depthY) {
++        Vector2f[] arr = new Vector2f[]{
++                // top
++                new Vector2f(xBase, yBase),
++                new Vector2f(xBase + width, yBase + height),
++
++                // right
++                new Vector2f(xBase + width, yBase),
++                new Vector2f(xBase + width + depth, yBase + height),
++
++                // back
++                new Vector2f(xBase + width + depth, yBase),
++                new Vector2f(xBase + 2 * width + depth, yBase + height),
++
++                // left
++                new Vector2f(xBase - depth, yBase),
++                new Vector2f(xBase, yBase + height),
++
++                // top
++                new Vector2f(xBase, yBase + height),
++                new Vector2f(xBase + width, yBase + height + depthY),
++
++                // bottom
++                new Vector2f(xBase + width, yBase + height),
++                new Vector2f(xBase + 2 * width, yBase + height + depthY),
++        };
++        return arr;
++    }
++}
+diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/model/ModelSkinPart.java b/src/main/java/dev/figboot/olauncher/skin/ui/model/ModelSkinPart.java
+new file mode 100644
+index 0000000..b6936ac
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/skin/ui/model/ModelSkinPart.java
+@@ -0,0 +1,19 @@
++package dev.figboot.olauncher.skin.ui.model;
++
++import lombok.Getter;
++
++public enum ModelSkinPart {
++    HEAD(1),
++    BODY(2),
++    RARM(4),
++    LARM(8),
++    RLEG(16),
++    LLEG(32),
++    CAPE(64);
++
++    @Getter private final int flag;
++
++    ModelSkinPart(int flag) {
++        this.flag = flag;
++    }
++}
+diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/model/OverlayBodyPart.java b/src/main/java/dev/figboot/olauncher/skin/ui/model/OverlayBodyPart.java
+new file mode 100644
+index 0000000..e0f1458
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/skin/ui/model/OverlayBodyPart.java
+@@ -0,0 +1,101 @@
++package dev.figboot.olauncher.skin.ui.model;
++
++import org.joml.Matrix4f;
++import org.joml.Vector3f;
++
++import java.nio.FloatBuffer;
++
++public class OverlayBodyPart extends Model {
++    private final FloatBuffer verts, normals, texCoords;
++
++    private final int vertCount, normalCount, texCoordCount;
++
++    public static final int PART_ARM_NORMAL = 0, PART_ARM_SLIM = 1;
++    private static final float ZFIGHT_OFFSET = 0;
++    private static final float OVERLAY_OFFSET = 0.25f / 16f;
++    private static final float HEAD_OVERLAY_OFFSET = 0.5f / 16f;
++
++    private final Matrix4f partMat;
++
++    public OverlayBodyPart(ModelSkinPart part, int texHeight, int partInfo) {
++        ModelBuilder mb = new ModelBuilder();
++        if (part == ModelSkinPart.CAPE) throw new IllegalArgumentException("Capes do not have an overlay");
++
++        switch (part) {
++            case HEAD:
++                mb.addCube(new Vector3f(-4f/16 - HEAD_OVERLAY_OFFSET, -4f/16 - HEAD_OVERLAY_OFFSET, -4f/16 - HEAD_OVERLAY_OFFSET), new Vector3f(4f/16 + HEAD_OVERLAY_OFFSET, 4f/16 + HEAD_OVERLAY_OFFSET, 4f/16 + HEAD_OVERLAY_OFFSET),
++                        ModelBuilder.boxTexCoords(40f/64, 1 - 16f/texHeight, 8f/64, 8f/texHeight, 8f/64, 8f/texHeight));
++                partMat = new Matrix4f().identity().translate(0, 12f/16, 0);
++                break;
++            case BODY:
++                mb.addCube(new Vector3f(-4f/16 - OVERLAY_OFFSET, -6f/16 - OVERLAY_OFFSET, -2f/16 - OVERLAY_OFFSET), new Vector3f(4f/16 + OVERLAY_OFFSET, 6f/16 + OVERLAY_OFFSET, 2f/16 + OVERLAY_OFFSET),
++                        ModelBuilder.boxTexCoords(20f/64, 1 - 48f/texHeight, 8f/64, 12f/texHeight, 4f/64, 4f/texHeight));
++                partMat = new Matrix4f().identity().translate(0, 2f/16, 0);
++                break;
++            case RARM:
++                mb.addCube(new Vector3f((partInfo == PART_ARM_NORMAL ? -2f/16 : -1f/16) - OVERLAY_OFFSET, -10f/16 - OVERLAY_OFFSET, -2f/16 - OVERLAY_OFFSET - ZFIGHT_OFFSET), new Vector3f(2f/16 + OVERLAY_OFFSET, 2f/16 + OVERLAY_OFFSET, 2f/16 + OVERLAY_OFFSET + ZFIGHT_OFFSET),
++                        ModelBuilder.boxTexCoords(44f/64, 1 - 48f/texHeight, partInfo == PART_ARM_NORMAL ? 4f/64 : 3f/64, 12f/texHeight, 4f/64, 4f/texHeight));
++                partMat = new Matrix4f().identity().translate(-6f/16, 6f/16, 0);
++                break;
++            case LARM:
++                mb.addCube(new Vector3f(-2f/16 - OVERLAY_OFFSET, -10f/16 - OVERLAY_OFFSET, -2f/16 - OVERLAY_OFFSET - ZFIGHT_OFFSET), new Vector3f((partInfo == PART_ARM_NORMAL ? 2f/16 : 1f/16) + OVERLAY_OFFSET, 2f/16 + OVERLAY_OFFSET, 2f/16 + OVERLAY_OFFSET + ZFIGHT_OFFSET),
++                        ModelBuilder.boxTexCoords(52f/64, 1 - 64f/64, partInfo == PART_ARM_NORMAL ? 4f/64 : 3f/64, 12f/texHeight, 4f/64, 4f/texHeight));
++                partMat = new Matrix4f().identity().translate(6f/16, 6f/16, 0);
++                break;
++            case RLEG:
++                mb.addCube(new Vector3f(-2f/16 - OVERLAY_OFFSET - ZFIGHT_OFFSET, -12f/16 - OVERLAY_OFFSET, -2f/16 - OVERLAY_OFFSET), new Vector3f(2f/16 + OVERLAY_OFFSET + ZFIGHT_OFFSET, 0f/16 + OVERLAY_OFFSET, 2f/16 + OVERLAY_OFFSET),
++                        ModelBuilder.boxTexCoords(4f/64, 1 - 48f/texHeight, 4f/64, 12f/texHeight, 4f/64, 4f/texHeight));
++                partMat = new Matrix4f().identity().translate(-2f/16, -4f/16, 0);
++                break;
++            case LLEG:
++                mb.addCube(new Vector3f(-2f/16 - OVERLAY_OFFSET - ZFIGHT_OFFSET, -12f/16 - OVERLAY_OFFSET, -2f/16 - OVERLAY_OFFSET), new Vector3f(2f/16 + OVERLAY_OFFSET + ZFIGHT_OFFSET, 0f/16 + OVERLAY_OFFSET, 2f/16 + OVERLAY_OFFSET),
++                        ModelBuilder.boxTexCoords(4f/64, 1 - 64f/64, 4f/64, 12f/texHeight, 4f/64, 4f/texHeight));
++                partMat = new Matrix4f().identity().translate(2f/16, -4f/16, 0);
++                break;
++            default:
++                throw new IllegalArgumentException("Invalid model part specified");
++        }
++
++        verts = mb.getVerts();
++        normals = mb.getNormals();
++        texCoords = mb.getTexCoords();
++        vertCount = mb.getVertCount();
++        normalCount = mb.getNormalCount();
++        texCoordCount = mb.getTexCoordCount();
++    }
++
++    @Override
++    protected FloatBuffer getVertices() {
++        return verts;
++    }
++
++    @Override
++    protected FloatBuffer getNormals() {
++        return normals;
++    }
++
++    @Override
++    protected FloatBuffer getTexCoords() {
++        return texCoords;
++    }
++
++    @Override
++    protected int getVertexCount() {
++        return vertCount;
++    }
++
++    @Override
++    protected int getNormalCount() {
++        return normalCount;
++    }
++
++    @Override
++    protected int getTexCoordCount() {
++        return texCoordCount;
++    }
++
++    @Override
++    public Matrix4f getSuggestedPartMatrix() {
++        return partMat;
++    }
++}
+diff --git a/src/main/java/net/minecraft/launcher/SwingUserInterface.java b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
+index a00d3dc..b2b1417 100644
+--- a/src/main/java/net/minecraft/launcher/SwingUserInterface.java
++++ b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
+@@ -106,11 +106,15 @@ public class SwingUserInterface implements MinecraftUserInterface {
+                 SwingUserInterface.LOGGER.info("Halting executors");
+                 SwingUserInterface.this.minecraftLauncher.getLauncher().getVersionManager().getExecutorService().shutdown();
+                 SwingUserInterface.this.minecraftLauncher.getLauncher().getJreManager().getExecutorService().shutdown(); // olauncher - shut down jreManager executor
++
++                launcherPanel.getTabPanel().shutdownSkinEditor(); // olauncher - shut down the skin editor executor
++
+                 SwingUserInterface.LOGGER.info("Awaiting termination.");
+ 
+                 try {
+                     SwingUserInterface.this.minecraftLauncher.getLauncher().getVersionManager().getExecutorService().awaitTermination(10L, TimeUnit.SECONDS);
+                     SwingUserInterface.this.minecraftLauncher.getLauncher().getVersionManager().getExecutorService().awaitTermination(10L, TimeUnit.SECONDS); // olauncher - wait for jreManager executor to stop
++                    launcherPanel.getTabPanel().getSkinEditorService().awaitTermination(10L, TimeUnit.SECONDS); // olauncher - wait for skin editor executor to stop
+                 } catch (InterruptedException var3) {
+                     SwingUserInterface.LOGGER.info("Termination took too long.");
+                 }
+diff --git a/src/main/java/net/minecraft/launcher/ui/tabs/LauncherTabPanel.java b/src/main/java/net/minecraft/launcher/ui/tabs/LauncherTabPanel.java
+index fe39640..50d12bf 100644
+--- a/src/main/java/net/minecraft/launcher/ui/tabs/LauncherTabPanel.java
++++ b/src/main/java/net/minecraft/launcher/ui/tabs/LauncherTabPanel.java
+@@ -1,21 +1,43 @@
+ package net.minecraft.launcher.ui.tabs;
+ 
+ import java.awt.Component;
+-import javax.swing.JTabbedPane;
++import java.util.concurrent.ScheduledExecutorService;
++import java.util.concurrent.ScheduledThreadPoolExecutor;
++import javax.swing.*;
++
++import com.mojang.authlib.UserAuthentication;
++import dev.figboot.olauncher.auth.MCProfileInfo;
++import dev.figboot.olauncher.auth.MicrosoftUserAuthentication;
++import dev.figboot.olauncher.skin.ui.SkinEditorTab;
+ import net.minecraft.launcher.Launcher;
++import net.minecraft.launcher.profile.ProfileManager;
+ 
+ public class LauncherTabPanel extends JTabbedPane {
+     private final Launcher minecraftLauncher;
+     private final WebsiteTab blog;
+     private final ConsoleTab console;
++    private SkinEditorTab skinEditor;
+     private CrashReportTab crashReportTab;
+ 
++    private ScheduledExecutorService skinEditorService;
++
+     public LauncherTabPanel(Launcher var1) {
+         super(1);
+         this.minecraftLauncher = var1;
+         this.blog = new WebsiteTab(var1);
+         this.console = new ConsoleTab(var1);
+         this.createInterface();
++
++        // olauncher start - handle skin editor tab
++        skinEditorService = new ScheduledThreadPoolExecutor(5, r -> {
++            Thread t = new Thread(r);
++            t.setDaemon(true);
++            return t;
++        });
++
++        minecraftLauncher.getProfileManager().addUserChangedListener((man) -> handleUpdate(true));
++        minecraftLauncher.getProfileManager().addRefreshedProfilesListener((man) -> handleUpdate(false));
++        // olauncher end
+     }
+ 
+     protected void createInterface() {
+@@ -36,6 +58,12 @@ public class LauncherTabPanel extends JTabbedPane {
+         return this.console;
+     }
+ 
++    // olauncher start - add skinEditor tab getter
++    public SkinEditorTab getSkinEditor() {
++        return skinEditor;
++    }
++    // olauncher end
++
+     public void showConsole() {
+         this.setSelectedComponent(this.console);
+     }
+@@ -67,4 +95,52 @@ public class LauncherTabPanel extends JTabbedPane {
+         }
+ 
+     }
++
++    // olauncher start - create skin editor tab when possible
++    public ScheduledExecutorService getSkinEditorService() {
++        return skinEditorService;
++    }
++
++    public void shutdownSkinEditor() {
++        if (skinEditor != null) skinEditor.shutdown();
++        skinEditorService.shutdown();
++    }
++
++    private void removeSkinEditor() {
++        if (skinEditor != null) {
++            skinEditor.shutdown();
++            removeTab("Skin Editor");
++        }
++        skinEditor = null;
++    }
++
++    public void addSkinEditor(MCProfileInfo profile, boolean force) {
++        if (skinEditor != null && !force) return;
++
++        removeSkinEditor();
++        skinEditor = new SkinEditorTab(minecraftLauncher, skinEditorService, profile);
++        addTab("Skin Editor", skinEditor);
++    }
++
++    private void handleUpdate(boolean force) {
++        SwingUtilities.invokeLater(() -> {
++            ProfileManager pman = minecraftLauncher.getProfileManager();
++            String activeUser = pman.getSelectedUser();
++            UserAuthentication auth = pman.getAuthDatabase().getByUUID(activeUser);
++            if (!(auth instanceof MicrosoftUserAuthentication)) {
++                removeSkinEditor();
++                return;
++            }
++
++            MicrosoftUserAuthentication msua = (MicrosoftUserAuthentication)auth;
++            MCProfileInfo profileInfo = msua.getProfileInfo();
++            if (profileInfo == null) {
++                removeSkinEditor();
++                return;
++            }
++
++            addSkinEditor(profileInfo, force);
++        });
++    }
++    // olauncher end
+ }
+diff --git a/src/main/resources/dev/figboot/olauncher/skin/ui/frag.glsl b/src/main/resources/dev/figboot/olauncher/skin/ui/frag.glsl
+new file mode 100644
+index 0000000..4d95535
+--- /dev/null
++++ b/src/main/resources/dev/figboot/olauncher/skin/ui/frag.glsl
+@@ -0,0 +1,17 @@
++#version 130
++
++uniform float opaqueThresh;
++uniform bool allowTranslucent;
++uniform sampler2D sampler;
++
++in vec2 texCoord;
++in float mul;
++
++out vec4 fragColor;
++
++void main() {
++    vec4 color = texture(sampler, texCoord);
++    color = vec4(color.xyz * mul, color.w);
++    fragColor = vec4(color.xyz, color.w >= opaqueThresh ? 1. : (allowTranslucent ? color.w : 0.));
++    //fragColor = color;
++}
+diff --git a/src/main/resources/dev/figboot/olauncher/skin/ui/vert.glsl b/src/main/resources/dev/figboot/olauncher/skin/ui/vert.glsl
+new file mode 100644
+index 0000000..762b86c
+--- /dev/null
++++ b/src/main/resources/dev/figboot/olauncher/skin/ui/vert.glsl
+@@ -0,0 +1,23 @@
++#version 130
++
++uniform mat4 projmat;
++uniform mat4 worldmat;
++uniform mat4 partmat;
++
++uniform vec3 lightPos;
++uniform bool flipNormals;
++
++in vec3 vertPos;
++in vec2 inTexCoord;
++in vec3 normal;
++
++out vec2 texCoord;
++out float mul;
++
++void main() {
++    gl_Position = projmat * worldmat * partmat * vec4(vertPos, 1.0);
++    texCoord = inTexCoord;
++    vec4 realNormal = vec4(normal, 1.);
++    if (flipNormals) realNormal = -realNormal;
++    mul = (dot(normalize((worldmat * partmat * realNormal).xyz), lightPos) + 1) / 2;
++}
+-- 
+2.35.1
+
