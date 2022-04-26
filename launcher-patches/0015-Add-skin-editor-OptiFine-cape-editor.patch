@@ -1,4 +1,4 @@
-From a0fb718cdec19af3444c1e1e553d05d9bc3f2b83 Mon Sep 17 00:00:00 2001
+From ed165d12178bf3f0b3329f1ded9bce075cdd2f52 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Tue, 26 Apr 2022 01:03:39 -0500
 Subject: [PATCH] Add skin editor + OptiFine cape editor
@@ -90,10 +90,10 @@ index b265375..8421bc0 100644
          super.logOut();
 diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/GLSkinViewer.java b/src/main/java/dev/figboot/olauncher/skin/ui/GLSkinViewer.java
 new file mode 100644
-index 0000000..3addb21
+index 0000000..4b3a7f6
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/skin/ui/GLSkinViewer.java
-@@ -0,0 +1,427 @@
+@@ -0,0 +1,464 @@
 +package dev.figboot.olauncher.skin.ui;
 +
 +import com.jogamp.common.nio.Buffers;
@@ -153,6 +153,10 @@ index 0000000..3addb21
 +    private int overlayFlags = 0;
 +
 +    private float rotateX = (float)(Math.PI / 12), rotateY = (float)(-Math.PI / 4), rotateZ = 0;
++
++    private float limbRotateTimer = 0, capeRotateTimer = 0;
++    private float limbRotate = 0, capeRotate = 0;
++    private long lastFrameTime = 0;
 +
 +    @Override
 +    public void init(GLAutoDrawable drawable) {
@@ -280,6 +284,26 @@ index 0000000..3addb21
 +        gl.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_REPEAT);
 +    }
 +
++    private static final float MAX_TIMER = (float)(Math.PI * 2);
++    private void handleAnimation() {
++        if (lastFrameTime == 0) {
++            lastFrameTime = System.nanoTime();
++            return;
++        }
++
++        long now = System.nanoTime();
++        float deltaTimeMS = (now - lastFrameTime) / 1000000f;
++        lastFrameTime = now;
++
++        limbRotate = (float)(Math.sin(limbRotateTimer) * (Math.PI / 10));
++        limbRotateTimer += deltaTimeMS / 400;
++        while (limbRotateTimer > MAX_TIMER) limbRotateTimer -= MAX_TIMER;
++
++        capeRotate = (float)((Math.sin(capeRotateTimer) + 3.3) * (Math.PI / 40));
++        capeRotateTimer += deltaTimeMS / 1000;
++        while (capeRotateTimer > MAX_TIMER) capeRotateTimer -= MAX_TIMER;
++    }
++
 +    private void drawFrame(GL3 gl) {
 +        if (textureDirty) {
 +            if (skinImage != null) {
@@ -328,10 +352,14 @@ index 0000000..3addb21
 +                    overlayPartMats.put(part, model.getSuggestedPartMatrix());
 +                }
 +                LOGGER.debug("Model loaded");
++
++                limbRotateTimer = capeRotateTimer = 0;
 +            } else {
 +                return; // no rendering today :(
 +            }
 +        }
++
++        handleAnimation();
 +
 +        gl.glEnableVertexAttribArray(0); // vertices
 +        gl.glEnableVertexAttribArray(1); // texture coordinates
@@ -355,10 +383,19 @@ index 0000000..3addb21
 +            if (capeImage == null && entry.getKey() == ModelSkinPart.CAPE) continue;
 +            else if (skinImage == null && entry.getKey() != ModelSkinPart.CAPE) continue;
 +
-+            if (entry.getKey() == ModelSkinPart.CAPE) {
-+                if ((overlayFlags & ModelSkinPart.CAPE.getFlag()) == 0) continue;
-+                gl.glBindTexture(GL.GL_TEXTURE_2D, capeTexture);
-+                partMat = partMat.rotateX(0.2f, new Matrix4f()).rotateY((float)Math.PI);
++            switch (entry.getKey()) {
++                case LLEG:
++                case RARM:
++                    partMat = partMat.rotateX(-limbRotate, new Matrix4f());
++                    break;
++                case RLEG:
++                case LARM:
++                    partMat = partMat.rotateX(limbRotate, new Matrix4f());
++                    break;
++                case CAPE:
++                    if ((overlayFlags & ModelSkinPart.CAPE.getFlag()) == 0) continue;
++                    gl.glBindTexture(GL.GL_TEXTURE_2D, capeTexture);
++                    partMat = partMat.rotateX(capeRotate, new Matrix4f()).rotateY((float)Math.PI);
 +            }
 +
 +            gl.glUniformMatrix4fv(partMatLoc, 1, false, partMat.get(buf), 0);
