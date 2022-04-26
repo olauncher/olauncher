@@ -1,0 +1,100 @@
+From 089fce696086f8928e3e66bc2e3afdef53fcd610 Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot@figboot.dev>
+Date: Tue, 26 Apr 2022 00:50:05 -0500
+Subject: [PATCH] Add OptiFine cape functions
+
+
+diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
+index 12a19ff..b265375 100644
+--- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
++++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
+@@ -37,7 +37,18 @@ import org.apache.commons.lang3.StringUtils;
+ import org.apache.logging.log4j.LogManager;
+ import org.apache.logging.log4j.Logger;
+ 
++import javax.imageio.ImageIO;
++import java.awt.image.BufferedImage;
++import java.io.IOException;
++import java.io.InputStream;
++import java.io.UnsupportedEncodingException;
++import java.math.BigInteger;
++import java.net.HttpURLConnection;
++import java.net.MalformedURLException;
++import java.net.URL;
++import java.net.URLEncoder;
+ import java.nio.charset.StandardCharsets;
++import java.security.SecureRandom;
+ import java.time.Instant;
+ import java.time.temporal.ChronoUnit;
+ import java.util.Base64;
+@@ -63,6 +74,8 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+ 
+     private final MinecraftSessionService sessionService;
+ 
++    private BufferedImage ofCape;
++
+     public MicrosoftUserAuthentication(MicrosoftAuthenticationService service, Agent agent) {
+         super(service);
+         this.agent = agent;
+@@ -209,6 +222,58 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+         getModifiableUserProperties().clear();
+         getModifiableUserProperties().putAll(profile.getProperties());
+         setUserType(UserType.MICROSOFT);
++
++        try {
++            refreshOptiFineCape();
++        } catch (IOException ex) {
++            throw new AuthenticationException("IO error while loading OptiFine cape");
++        }
++    }
++
++    public void refreshOptiFineCape() throws IOException {
++        URL url = new URL(String.format("http://s.optifine.net/capes/%s.png", URLEncoder.encode(profileInfo.getName(), "UTF-8")));
++
++        HttpURLConnection conn = (HttpURLConnection)url.openConnection(this.getAuthenticationService().getProxy());
++        int code = conn.getResponseCode();
++        if (code != 200) {
++            ofCape = null;
++
++            if (code != 404) {
++                LOGGER.error("Server replied with error when querying OptiFine cape: {} {}", code, conn.getResponseMessage());
++            }
++
++            return;
++        }
++
++        try (InputStream is = conn.getInputStream()) {
++            ofCape = ImageIO.read(is);
++        }
++    }
++
++    public boolean hasOptiFineCape() {
++        return ofCape != null;
++    }
++
++    public BufferedImage getOptiFineCapeTexture() {
++        return ofCape; // mutable D:
++    }
++
++    public URL createOptiFineCapeEditor() throws AuthenticationException, MalformedURLException {
++        if (getSelectedProfile() == null) throw new AuthenticationException("You must be logged in to open the cape editor");
++        if (!mojTokenValid(Instant.now()))
++            throw new AuthenticationException("Your Mojang token is invalid. Please restart the launcher.");
++
++        String serverID = new BigInteger(128, new SecureRandom()).toString(16);
++
++        sessionService.joinServer(getSelectedProfile(), mojToken, serverID);
++        try {
++            return new URL(String.format("https://optifine.net/capeChange?u=%s&n=%s&s=%s",
++                    URLEncoder.encode(profileInfo.getId().toString().replace("-", ""), "UTF-8"),
++                    URLEncoder.encode(profileInfo.getName(), "UTF-8"),
++                    URLEncoder.encode(serverID, "UTF-8")));
++        } catch (UnsupportedEncodingException ex) {
++            throw new RuntimeException("Error URLEncoding the cape change URL", ex);
++        }
+     }
+ 
+     public MCProfileInfo getProfileInfo() {
+-- 
+2.35.1
+
