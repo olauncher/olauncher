@@ -1,4 +1,4 @@
-From ed165d12178bf3f0b3329f1ded9bce075cdd2f52 Mon Sep 17 00:00:00 2001
+From 594e574e7c7dcc936ddb82ab7149aa5c1e821fdd Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Tue, 26 Apr 2022 01:03:39 -0500
 Subject: [PATCH] Add skin editor + OptiFine cape editor
@@ -90,10 +90,28 @@ index b265375..8421bc0 100644
          super.logOut();
 diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/GLSkinViewer.java b/src/main/java/dev/figboot/olauncher/skin/ui/GLSkinViewer.java
 new file mode 100644
-index 0000000..4b3a7f6
+index 0000000..0421b51
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/skin/ui/GLSkinViewer.java
-@@ -0,0 +1,464 @@
+@@ -0,0 +1,482 @@
++/*
++ * OLauncher
++ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see https://github.com/olauncher/olauncher .
++ */
++
 +package dev.figboot.olauncher.skin.ui;
 +
 +import com.jogamp.common.nio.Buffers;
@@ -560,10 +578,28 @@ index 0000000..4b3a7f6
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/SkinEditorTab.java b/src/main/java/dev/figboot/olauncher/skin/ui/SkinEditorTab.java
 new file mode 100644
-index 0000000..a73d0df
+index 0000000..d3055a1
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/skin/ui/SkinEditorTab.java
-@@ -0,0 +1,208 @@
+@@ -0,0 +1,226 @@
++/*
++ * OLauncher
++ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see https://github.com/olauncher/olauncher .
++ */
++
 +package dev.figboot.olauncher.skin.ui;
 +
 +import com.jogamp.opengl.GLCapabilities;
@@ -774,10 +810,28 @@ index 0000000..a73d0df
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/gl/GLSkinViewerUtils.java b/src/main/java/dev/figboot/olauncher/skin/ui/gl/GLSkinViewerUtils.java
 new file mode 100644
-index 0000000..e613ed5
+index 0000000..7a6f5b7
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/skin/ui/gl/GLSkinViewerUtils.java
-@@ -0,0 +1,39 @@
+@@ -0,0 +1,57 @@
++/*
++ * OLauncher
++ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see https://github.com/olauncher/olauncher .
++ */
++
 +package dev.figboot.olauncher.skin.ui.gl;
 +
 +import com.jogamp.opengl.GL3;
@@ -819,10 +873,28 @@ index 0000000..e613ed5
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/model/MainBodyPart.java b/src/main/java/dev/figboot/olauncher/skin/ui/model/MainBodyPart.java
 new file mode 100644
-index 0000000..4adadea
+index 0000000..dedd45f
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/skin/ui/model/MainBodyPart.java
-@@ -0,0 +1,102 @@
+@@ -0,0 +1,120 @@
++/*
++ * OLauncher
++ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see https://github.com/olauncher/olauncher .
++ */
++
 +package dev.figboot.olauncher.skin.ui.model;
 +
 +import org.joml.Matrix4f;
@@ -927,10 +999,28 @@ index 0000000..4adadea
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/model/Model.java b/src/main/java/dev/figboot/olauncher/skin/ui/model/Model.java
 new file mode 100644
-index 0000000..87004b6
+index 0000000..0aa93b7
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/skin/ui/model/Model.java
-@@ -0,0 +1,75 @@
+@@ -0,0 +1,93 @@
++/*
++ * OLauncher
++ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see https://github.com/olauncher/olauncher .
++ */
++
 +package dev.figboot.olauncher.skin.ui.model;
 +
 +import com.jogamp.common.nio.Buffers;
@@ -1008,10 +1098,28 @@ index 0000000..87004b6
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/model/ModelBuilder.java b/src/main/java/dev/figboot/olauncher/skin/ui/model/ModelBuilder.java
 new file mode 100644
-index 0000000..76e90ea
+index 0000000..ada263a
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/skin/ui/model/ModelBuilder.java
-@@ -0,0 +1,172 @@
+@@ -0,0 +1,190 @@
++/*
++ * OLauncher
++ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see https://github.com/olauncher/olauncher .
++ */
++
 +package dev.figboot.olauncher.skin.ui.model;
 +
 +import org.joml.Vector2f;
@@ -1186,10 +1294,28 @@ index 0000000..76e90ea
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/model/ModelSkinPart.java b/src/main/java/dev/figboot/olauncher/skin/ui/model/ModelSkinPart.java
 new file mode 100644
-index 0000000..b6936ac
+index 0000000..a58c080
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/skin/ui/model/ModelSkinPart.java
-@@ -0,0 +1,19 @@
+@@ -0,0 +1,37 @@
++/*
++ * OLauncher
++ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see https://github.com/olauncher/olauncher .
++ */
++
 +package dev.figboot.olauncher.skin.ui.model;
 +
 +import lombok.Getter;
@@ -1211,10 +1337,28 @@ index 0000000..b6936ac
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/model/OverlayBodyPart.java b/src/main/java/dev/figboot/olauncher/skin/ui/model/OverlayBodyPart.java
 new file mode 100644
-index 0000000..e0f1458
+index 0000000..4ea03e4
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/skin/ui/model/OverlayBodyPart.java
-@@ -0,0 +1,101 @@
+@@ -0,0 +1,119 @@
++/*
++ * OLauncher
++ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see https://github.com/olauncher/olauncher .
++ */
++
 +package dev.figboot.olauncher.skin.ui.model;
 +
 +import org.joml.Matrix4f;
