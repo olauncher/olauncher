@@ -21,8 +21,9 @@ Have you used the new launcher in this .minecraft directory? If so, switch .mine
 - Add skin/cape management
 
 ### Minor TODOs
+- Replace Mojang's Hopper service with our own
+- Support demo users (if they have a Microsoft account but no Minecraft profile)
 - Use `version_manifest_v2`
-- Support demo users (I don't think this is a thing anymore)
 
 ## How to build from source
 The commands must be run in the following order to build from source:
