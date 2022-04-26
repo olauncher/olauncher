@@ -1,4 +1,4 @@
-From d281c81e9572e3e2429aef9303687fa052bb1a9b Mon Sep 17 00:00:00 2001
+From a0fb718cdec19af3444c1e1e553d05d9bc3f2b83 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Tue, 26 Apr 2022 01:03:39 -0500
 Subject: [PATCH] Add skin editor + OptiFine cape editor
@@ -90,10 +90,10 @@ index b265375..8421bc0 100644
          super.logOut();
 diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/GLSkinViewer.java b/src/main/java/dev/figboot/olauncher/skin/ui/GLSkinViewer.java
 new file mode 100644
-index 0000000..7b92cf5
+index 0000000..3addb21
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/skin/ui/GLSkinViewer.java
-@@ -0,0 +1,421 @@
+@@ -0,0 +1,427 @@
 +package dev.figboot.olauncher.skin.ui;
 +
 +import com.jogamp.common.nio.Buffers;
@@ -310,7 +310,13 @@ index 0000000..7b92cf5
 +            if (skinLoaded && skinImage != null) {
 +                Model model;
 +                for (ModelSkinPart part : ModelSkinPart.values()) {
-+                    model = new MainBodyPart(part, skinImage.getHeight(), armType);
++                    if (part == ModelSkinPart.CAPE) {
++                        if (capeImage == null) continue;
++                        model = new MainBodyPart(part, capeImage.getHeight(), capeImage.getWidth(), armType);
++                    } else {
++                        model = new MainBodyPart(part, skinImage.getHeight(), skinImage.getWidth(), armType);
++                    }
++
 +                    model.init(gl);
 +                    skinParts.put(part, model);
 +                    skinPartMats.put(part, model.getSuggestedPartMatrix());
@@ -517,20 +523,22 @@ index 0000000..7b92cf5
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/SkinEditorTab.java b/src/main/java/dev/figboot/olauncher/skin/ui/SkinEditorTab.java
 new file mode 100644
-index 0000000..ee90327
+index 0000000..a73d0df
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/skin/ui/SkinEditorTab.java
-@@ -0,0 +1,186 @@
+@@ -0,0 +1,208 @@
 +package dev.figboot.olauncher.skin.ui;
 +
 +import com.jogamp.opengl.GLCapabilities;
 +import com.jogamp.opengl.GLProfile;
 +import com.jogamp.opengl.awt.GLCanvas;
 +import com.mojang.authlib.UserAuthentication;
++import com.mojang.launcher.OperatingSystem;
 +import dev.figboot.olauncher.auth.MCProfileInfo;
 +import dev.figboot.olauncher.auth.MicrosoftUserAuthentication;
 +import dev.figboot.olauncher.skin.ui.model.MainBodyPart;
 +import dev.figboot.olauncher.skin.ui.model.ModelSkinPart;
++import lombok.Getter;
 +import lombok.RequiredArgsConstructor;
 +import net.minecraft.launcher.Launcher;
 +import net.minecraft.launcher.profile.ProfileManager;
@@ -556,6 +564,8 @@ index 0000000..ee90327
 +public class SkinEditorTab extends JPanel {
 +    private static final Logger LOGGER = LogManager.getLogger();
 +
++    @Getter private final UUID playerUuid;
++
 +    private final Launcher launcher;
 +    private final GLCanvas canvas;
 +    private final GLSkinViewer viewer;
@@ -570,6 +580,7 @@ index 0000000..ee90327
 +    private UUID activeCape;
 +
 +    public SkinEditorTab(Launcher launcher, ScheduledExecutorService executorService, MCProfileInfo mcProfile) {
++        this.playerUuid = mcProfile.getId();
 +        this.launcher = launcher;
 +
 +        setLayout(new FlowLayout());
@@ -592,7 +603,26 @@ index 0000000..ee90327
 +
 +        JCheckBox cb = new JCheckBox("transgender");
 +        cb.addActionListener(e -> viewer.setTranslucentOverlay(cb.isSelected()));
++
++        JButton ofCapeEdit = new JButton("OptiFine Cape Editor");
++        ofCapeEdit.addActionListener(e -> {
++            MicrosoftUserAuthentication auth = null;
++
++            {
++                ProfileManager pman = launcher.getProfileManager();
++                UserAuthentication uAuth = pman.getAuthDatabase().getByUUID(pman.getSelectedUser());
++                if (uAuth instanceof MicrosoftUserAuthentication) auth = (MicrosoftUserAuthentication)uAuth;
++            }
++
++            try {
++                OperatingSystem.openLink(auth.createOptiFineCapeEditor().toURI());
++            } catch (Exception ex) {
++                throw new RuntimeException(ex);
++            }
++        });
++
 +        add(cb);
++        add(ofCapeEdit);
 +        System.out.println(mcProfile);
 +
 +        downloadedSkins = new TreeMap<>();
@@ -604,11 +634,10 @@ index 0000000..ee90327
 +    }
 +
 +    public void queryTextures(MCProfileInfo profileInfo) {
-+        ProfileManager pman = launcher.getProfileManager();
-+
 +        MicrosoftUserAuthentication auth = null;
 +
 +        {
++            ProfileManager pman = launcher.getProfileManager();
 +            UserAuthentication uAuth = pman.getAuthDatabase().getByUUID(pman.getSelectedUser());
 +            if (uAuth instanceof MicrosoftUserAuthentication) auth = (MicrosoftUserAuthentication)uAuth;
 +        }
@@ -629,7 +658,7 @@ index 0000000..ee90327
 +            }
 +
 +            for (MCProfileInfo.Cape cape : profileInfo.getCapes()) {
-+                if (cape.getState().equals("ACTIVE")) activeCape = cape.getId();
++                /*if (cape.getState().equals("ACTIVE"))*/ activeCape = cape.getId();
 +                if (!downloadedCapes.containsKey(cape.getId())) {
 +                    DownloadedCape capeDL;
 +                    try {
@@ -644,8 +673,7 @@ index 0000000..ee90327
 +
 +            DownloadedSkin dlSkin = activeSkin != null ? downloadedSkins.get(activeSkin) : null;
 +            DownloadedCape dlCape = activeCape != null ? downloadedCapes.get(activeCape) : null;
-+            //viewer.setTextures(dlSkin == null ? null : dlSkin.image, dlCape == null ? null : dlCape.image);
-+            viewer.setTextures(dlSkin == null ? null : dlSkin.image, auth.getOptiFineCapeTexture());
++            viewer.setTextures(dlSkin == null ? null : dlSkin.image, dlCape == null ? null : dlCape.image);
 +
 +            if (dlSkin != null) {
 +                viewer.setArmType(dlSkin.skinParam);
@@ -754,7 +782,7 @@ index 0000000..e613ed5
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/model/MainBodyPart.java b/src/main/java/dev/figboot/olauncher/skin/ui/model/MainBodyPart.java
 new file mode 100644
-index 0000000..8811039
+index 0000000..4adadea
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/skin/ui/model/MainBodyPart.java
 @@ -0,0 +1,102 @@
@@ -774,7 +802,7 @@ index 0000000..8811039
 +
 +    private final Matrix4f partMat;
 +
-+    public MainBodyPart(ModelSkinPart part, int texHeight, int partInfo) {
++    public MainBodyPart(ModelSkinPart part, int texHeight, int texWidth, int partInfo) {
 +        ModelBuilder mb = new ModelBuilder();
 +
 +        switch (part) {
@@ -810,7 +838,7 @@ index 0000000..8811039
 +                break;
 +            case CAPE:
 +                mb.addCube(new Vector3f(-5f/16, -16f/16, 0), new Vector3f(5f/16, 0, 1f/16),
-+                        ModelBuilder.boxTexCoords(1f/64, 1 - 17f/32, 10f/64, 16f/32, 1f/64, 1f/32));
++                        ModelBuilder.boxTexCoords(1f/texWidth, 1 - 17f/texHeight, 10f/texWidth, 16f/texHeight, 1f/texWidth, 1f/texHeight));
 +                partMat = new Matrix4f().identity().translate(0, 8f/16, -2f/16);
 +                break;
 +            default:
@@ -1272,7 +1300,7 @@ index a00d3dc..b2b1417 100644
                      SwingUserInterface.LOGGER.info("Termination took too long.");
                  }
 diff --git a/src/main/java/net/minecraft/launcher/ui/tabs/LauncherTabPanel.java b/src/main/java/net/minecraft/launcher/ui/tabs/LauncherTabPanel.java
-index fe39640..50d12bf 100644
+index fe39640..eae4b87 100644
 --- a/src/main/java/net/minecraft/launcher/ui/tabs/LauncherTabPanel.java
 +++ b/src/main/java/net/minecraft/launcher/ui/tabs/LauncherTabPanel.java
 @@ -1,21 +1,43 @@
@@ -1314,8 +1342,8 @@ index fe39640..50d12bf 100644
 +            return t;
 +        });
 +
-+        minecraftLauncher.getProfileManager().addUserChangedListener((man) -> handleUpdate(true));
-+        minecraftLauncher.getProfileManager().addRefreshedProfilesListener((man) -> handleUpdate(false));
++        minecraftLauncher.getProfileManager().addUserChangedListener((man) -> handleUpdate());
++        minecraftLauncher.getProfileManager().addRefreshedProfilesListener((man) -> handleUpdate());
 +        // olauncher end
      }
  
@@ -1356,15 +1384,15 @@ index fe39640..50d12bf 100644
 +        skinEditor = null;
 +    }
 +
-+    public void addSkinEditor(MCProfileInfo profile, boolean force) {
-+        if (skinEditor != null && !force) return;
++    public void addSkinEditor(MCProfileInfo profile) {
++        if (skinEditor != null && skinEditor.getPlayerUuid().equals(profile.getId())) return;
 +
 +        removeSkinEditor();
 +        skinEditor = new SkinEditorTab(minecraftLauncher, skinEditorService, profile);
 +        addTab("Skin Editor", skinEditor);
 +    }
 +
-+    private void handleUpdate(boolean force) {
++    private void handleUpdate() {
 +        SwingUtilities.invokeLater(() -> {
 +            ProfileManager pman = minecraftLauncher.getProfileManager();
 +            String activeUser = pman.getSelectedUser();
@@ -1381,7 +1409,7 @@ index fe39640..50d12bf 100644
 +                return;
 +            }
 +
-+            addSkinEditor(profileInfo, force);
++            addSkinEditor(profileInfo);
 +        });
 +    }
 +    // olauncher end
