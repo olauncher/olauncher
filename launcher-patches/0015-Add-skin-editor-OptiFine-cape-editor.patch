@@ -1,26 +1,71 @@
-From 594e574e7c7dcc936ddb82ab7149aa5c1e821fdd Mon Sep 17 00:00:00 2001
+From c49f1697e5a9c3df89eb4d84c6bc6e9274361ef2 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Tue, 26 Apr 2022 01:03:39 -0500
 Subject: [PATCH] Add skin editor + OptiFine cape editor
 
 
 diff --git a/pom.xml b/pom.xml
-index 39d36fd..50221ee 100644
+index 7a17615..cae8c68 100644
 --- a/pom.xml
 +++ b/pom.xml
-@@ -68,6 +68,12 @@
+@@ -81,12 +81,6 @@
                                  <include>**</include>
                              </includes>
                          </filter>
-+                        <filter>
-+                            <artifact>*jogl*:*jogl*</artifact>
-+                            <includes>
-+                                <include>**</include>
-+                            </includes>
-+                        </filter>
+-                        <filter>
+-                            <artifact>*lwjgl*:*lwjgl*</artifact>
+-                            <includes>
+-                                <include>**</include>
+-                            </includes>
+-                        </filter>
                      </filters>
                      <createDependencyReducedPom>false</createDependencyReducedPom>
                      <transformers>
+@@ -305,6 +299,44 @@
+             <classifier>${lwjgl.natives}</classifier>
+             <scope>compile</scope>
+         </dependency>
++
++        <dependency>
++            <groupId>org.lwjgl</groupId>
++            <artifactId>lwjgl</artifactId>
++            <classifier>natives-windows</classifier>
++            <scope>compile</scope>
++        </dependency>
++        <dependency>
++            <groupId>org.lwjgl</groupId>
++            <artifactId>lwjgl-opengl</artifactId>
++            <classifier>natives-windows</classifier>
++            <scope>compile</scope>
++        </dependency>
++        <dependency>
++            <groupId>org.lwjgl</groupId>
++            <artifactId>lwjgl-stb</artifactId>
++            <classifier>natives-windows</classifier>
++            <scope>compile</scope>
++        </dependency>
++
++        <dependency>
++            <groupId>org.lwjgl</groupId>
++            <artifactId>lwjgl</artifactId>
++            <classifier>natives-windows-x86</classifier>
++            <scope>compile</scope>
++        </dependency>
++        <dependency>
++            <groupId>org.lwjgl</groupId>
++            <artifactId>lwjgl-opengl</artifactId>
++            <classifier>natives-windows-x86</classifier>
++            <scope>compile</scope>
++        </dependency>
++        <dependency>
++            <groupId>org.lwjgl</groupId>
++            <artifactId>lwjgl-stb</artifactId>
++            <classifier>natives-windows-x86</classifier>
++            <scope>compile</scope>
++        </dependency>
+     </dependencies>
+ 
+     <profiles>
 diff --git a/src/main/java/dev/figboot/olauncher/OLauncherConstants.java b/src/main/java/dev/figboot/olauncher/OLauncherConstants.java
 index e88d992..0b242a4 100644
 --- a/src/main/java/dev/figboot/olauncher/OLauncherConstants.java
@@ -90,10 +135,10 @@ index b265375..8421bc0 100644
          super.logOut();
 diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/GLSkinViewer.java b/src/main/java/dev/figboot/olauncher/skin/ui/GLSkinViewer.java
 new file mode 100644
-index 0000000..0421b51
+index 0000000..9048540
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/skin/ui/GLSkinViewer.java
-@@ -0,0 +1,482 @@
+@@ -0,0 +1,542 @@
 +/*
 + * OLauncher
 + * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
@@ -114,13 +159,6 @@ index 0000000..0421b51
 +
 +package dev.figboot.olauncher.skin.ui;
 +
-+import com.jogamp.common.nio.Buffers;
-+import com.jogamp.opengl.DebugGL3;
-+import com.jogamp.opengl.GL;
-+import com.jogamp.opengl.GL3;
-+import com.jogamp.opengl.GLAutoDrawable;
-+import com.jogamp.opengl.GLEventListener;
-+import com.jogamp.opengl.util.glsl.ShaderProgram;
 +import dev.figboot.olauncher.skin.ui.gl.GLSkinViewerUtils;
 +import dev.figboot.olauncher.skin.ui.model.MainBodyPart;
 +import dev.figboot.olauncher.skin.ui.model.Model;
@@ -131,8 +169,17 @@ index 0000000..0421b51
 +import org.joml.Matrix4f;
 +import org.joml.Vector3f;
 +import org.joml.Vector4f;
++import org.lwjgl.opengl.GL;
++import org.lwjgl.opengl.GLCapabilities;
++import org.lwjgl.opengl.GLUtil;
++import org.lwjgl.opengl.awt.AWTGLCanvas;
++import org.lwjgl.opengl.awt.GLData;
++import org.lwjgl.system.MemoryStack;
 +
++import java.awt.event.ComponentAdapter;
++import java.awt.event.ComponentEvent;
 +import java.awt.image.BufferedImage;
++import java.io.IOException;
 +import java.nio.Buffer;
 +import java.nio.ByteBuffer;
 +import java.util.ArrayList;
@@ -140,10 +187,12 @@ index 0000000..0421b51
 +import java.util.List;
 +import java.util.Map;
 +
-+public class GLSkinViewer implements GLEventListener {
++import static org.lwjgl.opengl.GL30.*;
++
++public class GLSkinViewer extends AWTGLCanvas {
 +    private static final Logger LOGGER = LogManager.getLogger();
 +
-+    private ShaderProgram program;
++    private int program;
 +
 +    // uniform locations
 +    private int projMatLoc, worldMatLoc, partMatLoc, lightPosLoc, flipNormalsLoc;
@@ -153,6 +202,8 @@ index 0000000..0421b51
 +
 +    private Map<ModelSkinPart, Model> skinParts, overlayParts;
 +    private Map<ModelSkinPart, Matrix4f> skinPartMats, overlayPartMats;
++
++    private boolean projMatDirty = false;
 +    private Matrix4f projectionMatrix;
 +
 +    // stuff
@@ -176,78 +227,101 @@ index 0000000..0421b51
 +    private float limbRotate = 0, capeRotate = 0;
 +    private long lastFrameTime = 0;
 +
-+    @Override
-+    public void init(GLAutoDrawable drawable) {
-+        if (System.getProperty("dev.figboot.olauncher.GLSkinViewer.debugGL", "false").equalsIgnoreCase("true")) {
-+            drawable.setGL(new DebugGL3(drawable.getGL().getGL3()));
-+        }
++    private GLCapabilities caps;
 +
-+        for (ModelSkinPart part : ModelSkinPart.values()) {
-+            overlayFlags |= part.getFlag();
-+        }
-+
-+        GL3 gl = drawable.getGL().getGL3();
-+
-+        int[] ints = new int[2];
-+        gl.glGenTextures(2, ints, 0);
-+        skinTexture = ints[0];
-+        capeTexture = ints[1];
-+
-+        gl.glEnable(GL.GL_TEXTURE_2D);
-+
-+        // Load shader program
-+        program = new ShaderProgram();
-+        program.init(gl);
-+        GLSkinViewerUtils.loadShaders(gl, program, getClass());
-+        program.useProgram(gl, true);
-+
-+        gl.glBindAttribLocation(program.program(), 0, "vertPos");
-+        gl.glBindAttribLocation(program.program(), 1, "inTexCoord");
-+        gl.glBindAttribLocation(program.program(), 2, "normal");
-+
-+        projMatLoc = gl.glGetUniformLocation(program.program(), "projmat");
-+        worldMatLoc = gl.glGetUniformLocation(program.program(), "worldmat");
-+        partMatLoc = gl.glGetUniformLocation(program.program(), "partmat");
-+        lightPosLoc = gl.glGetUniformLocation(program.program(), "lightPos");
-+        flipNormalsLoc = gl.glGetUniformLocation(program.program(), "flipNormals");
-+
-+        opaqueThreshLoc = gl.glGetUniformLocation(program.program(), "opaqueThresh");
-+        allowTranslucentLoc = gl.glGetUniformLocation(program.program(), "allowTranslucent");
-+
-+        skinParts = new EnumMap<>(ModelSkinPart.class);
-+        overlayParts = new EnumMap<>(ModelSkinPart.class);
-+
-+        skinPartMats = new EnumMap<>(ModelSkinPart.class);
-+        overlayPartMats = new EnumMap<>(ModelSkinPart.class);
-+
-+        gl.glEnable(GL.GL_DEPTH_TEST);
-+        gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
-+
-+        Vector3f diffuseLightPos = new Vector3f(0, 0, -1).normalize();
-+        gl.glUniform3f(lightPosLoc, diffuseLightPos.x, diffuseLightPos.y, diffuseLightPos.z);
-+        gl.glUniform1i(flipNormalsLoc, 0);
-+
-+        /*try (InputStream is = getClass().getResourceAsStream("/figboot.png")) {
-+            skinTexture = TextureIO.newTexture(is, false, "png").getTextureObject();
-+        } catch (IOException ex) {
-+            throw new RuntimeException(ex);
-+        }
-+
-+        try (InputStream is = getClass().getResourceAsStream("/mojiramodcape.png")) {
-+            capeTexture = TextureIO.newTexture(is, false, "png").getTextureObject();
-+        } catch (IOException ex) {
-+            throw new RuntimeException(ex);
-+        }*/
++    public GLSkinViewer(GLData data) {
++        super(data);
++        initCalled = false;
 +    }
 +
-+    private void destroyParts(GL3 gl) {
++    @Override
++    public void initGL() {
++        synchronized (dataLock) {
++            LOGGER.info("Using OpenGL {}.{} (Profile: {}, Debug: {})", effective.majorVersion, effective.minorVersion, effective.profile, effective.debug);
++            caps = GL.createCapabilities();
++            GLUtil.setupDebugMessageCallback();
++
++            for (ModelSkinPart part : ModelSkinPart.values()) {
++                overlayFlags |= part.getFlag();
++            }
++
++            int[] ints = new int[2];
++            glGenTextures(ints);
++            skinTexture = ints[0];
++            capeTexture = ints[1];
++
++            glEnable(GL_TEXTURE_2D);
++
++            // Load shader program
++            //program = new ShaderProgram();
++            //program.init(gl);
++            //GLSkinViewerUtils.loadShaders(gl, program, getClass());
++            //program.useProgram(gl, true);
++            program = glCreateProgram();
++            try {
++                GLSkinViewerUtils.loadShaderProgram(program, getClass());
++            } catch (IOException ex) {
++                throw new RuntimeException("Unable to load shaders", ex);
++            }
++            glUseProgram(program);
++
++            glBindAttribLocation(program, 0, "vertPos");
++            glBindAttribLocation(program, 1, "inTexCoord");
++            glBindAttribLocation(program, 2, "normal");
++
++            projMatLoc = glGetUniformLocation(program, "projmat");
++            worldMatLoc = glGetUniformLocation(program, "worldmat");
++            partMatLoc = glGetUniformLocation(program, "partmat");
++            lightPosLoc = glGetUniformLocation(program, "lightPos");
++            flipNormalsLoc = glGetUniformLocation(program, "flipNormals");
++
++            opaqueThreshLoc = glGetUniformLocation(program, "opaqueThresh");
++            allowTranslucentLoc = glGetUniformLocation(program, "allowTranslucent");
++
++            skinParts = new EnumMap<>(ModelSkinPart.class);
++            overlayParts = new EnumMap<>(ModelSkinPart.class);
++
++            skinPartMats = new EnumMap<>(ModelSkinPart.class);
++            overlayPartMats = new EnumMap<>(ModelSkinPart.class);
++
++            glEnable(GL_DEPTH_TEST);
++            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
++
++            Vector3f diffuseLightPos = new Vector3f(0, 0, -1).normalize();
++            glUniform3f(lightPosLoc, diffuseLightPos.x, diffuseLightPos.y, diffuseLightPos.z);
++            glUniform1i(flipNormalsLoc, 0);
++
++            /*try (InputStream is = getClass().getResourceAsStream("/figboot.png")) {
++                skinTexture = TextureIO.newTexture(is, false, "png").getTextureObject();
++            } catch (IOException ex) {
++                throw new RuntimeException(ex);
++            }
++
++            try (InputStream is = getClass().getResourceAsStream("/mojiramodcape.png")) {
++                capeTexture = TextureIO.newTexture(is, false, "png").getTextureObject();
++            } catch (IOException ex) {
++                throw new RuntimeException(ex);
++            }*/
++
++            handleResized(getFramebufferWidth(), getFramebufferHeight());
++
++            addComponentListener(new ComponentAdapter() {
++                @Override
++                public void componentResized(ComponentEvent e) {
++                    handleResized(getFramebufferWidth(), getFramebufferHeight());
++                }
++            });
++        }
++    }
++
++    private void destroyParts() {
 +        Model model;
 +        for (ModelSkinPart msp : ModelSkinPart.values()) {
 +            model = skinParts.remove(msp);
-+            if (model != null) model.destroy(gl);
++            if (model != null) model.destroy();
 +
 +            model = overlayParts.remove(msp);
-+            if (model != null) model.destroy(gl);
++            if (model != null) model.destroy();
 +        }
 +
 +        skinPartMats.clear();
@@ -255,51 +329,56 @@ index 0000000..0421b51
 +    }
 +
 +    @Override
-+    public void dispose(GLAutoDrawable drawable) {
-+        GL3 gl = drawable.getGL().getGL3();
++    public void disposeCanvas() {
++        if (caps == null) return;
 +
-+        int[] ints = new int[2];
-+        ints[0] = skinTexture;
-+        ints[1] = capeTexture;
-+        gl.glDeleteTextures(2, ints, 0);
++        int[] ints = new int[]{
++                skinTexture,
++                capeTexture
++        };
 +
-+        destroyParts(gl);
++        glDeleteTextures(ints);
 +
-+        program.destroy(gl);
++        destroyParts();
++        glDeleteProgram(program);
++
++        super.disposeCanvas();
 +    }
 +
 +    @Override
-+    public void display(GLAutoDrawable drawable) {
++    public void paintGL() {
 +        synchronized (dataLock) {
-+            drawFrame(drawable.getGL().getGL3());
-+        }
-+    }
-+
-+    private Buffer loadImage(BufferedImage image) {
-+        final int width = image.getWidth(), height = image.getHeight(), stride = width;
-+        int[] rgbs = image.getRGB(0, 0, width, height, null, 0, stride);
-+        ByteBuffer buf = ByteBuffer.allocate(rgbs.length * Buffers.SIZEOF_INT);
-+        int rgb;
-+        for (int row = height-1; row >= 0; --row) {
-+            for (int col = 0; col < width; ++col) {
-+                rgb = rgbs[row * stride + col];
-+                buf.put((byte)((rgb >>> 16) & 0xFF));
-+                buf.put((byte)((rgb >>> 8) & 0xFF));
-+                buf.put((byte)(rgb & 0xFF));
-+                buf.put((byte)((rgb >>> 24) & 0xFF));
++            try {
++                drawFrame();
++            } finally {
++                swapBuffers();
 +            }
 +        }
-+        ((Buffer)buf).flip();
-+        return buf;
 +    }
 +
-+    private void loadTexImage(GL3 gl, int texObj, BufferedImage image) {
-+        gl.glBindTexture(GL.GL_TEXTURE_2D, texObj);
-+        gl.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_RGBA, image.getWidth(), image.getHeight(), 0, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, loadImage(image));
-+        gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST);
-+        gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST);
-+        gl.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_REPEAT);
-+        gl.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_REPEAT);
++    private void loadImage(BufferedImage image) {
++        try (MemoryStack stack = MemoryStack.stackPush()) {
++            final int width = image.getWidth(), height = image.getHeight(), stride = width;
++            int[] rgbs = image.getRGB(0, 0, width, height, null, 0, stride);
++            ByteBuffer buf = stack.malloc(rgbs.length * (Integer.SIZE / 8));
++            int rgb;
++            for (int row = height - 1; row >= 0; --row) {
++                for (int col = 0; col < width; ++col) {
++                    rgb = rgbs[row * stride + col];
++                    buf.put((byte)((rgb >>> 16) & 0xFF));
++                    buf.put((byte)((rgb >>> 8) & 0xFF));
++                    buf.put((byte)(rgb & 0xFF));
++                    buf.put((byte)((rgb >>> 24) & 0xFF));
++                }
++            }
++            ((Buffer)buf).flip();
++
++            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.getWidth(), image.getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, buf);
++            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
++            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
++            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
++            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
++        }
 +    }
 +
 +    private static final float MAX_TIMER = (float)(Math.PI * 2);
@@ -322,14 +401,20 @@ index 0000000..0421b51
 +        while (capeRotateTimer > MAX_TIMER) capeRotateTimer -= MAX_TIMER;
 +    }
 +
-+    private void drawFrame(GL3 gl) {
++    private void drawFrame() {
 +        if (textureDirty) {
 +            if (skinImage != null) {
-+                loadTexImage(gl, skinTexture, skinImage);
++                //loadTexImage(skinTexture, skinImage);
++                glBindTexture(GL_TEXTURE_2D, skinTexture);
++                loadImage(skinImage);
++                LOGGER.debug("Loaded skin texture");
 +            }
 +
 +            if (capeImage != null) {
-+                loadTexImage(gl, capeTexture, capeImage);
++                //loadTexImage(capeTexture, capeImage);
++                glBindTexture(GL_TEXTURE_2D, capeTexture);
++                loadImage(capeImage);
++                LOGGER.debug("Loaded cape texture");
 +            }
 +
 +            skinLoaded = true;
@@ -337,19 +422,28 @@ index 0000000..0421b51
 +        }
 +
 +        if (armTypeDirty) {
-+            destroyParts(gl);
++            destroyParts();
++            LOGGER.debug("Arm type set (parts destroyed)");
 +
 +            armTypeDirty = false;
 +        }
 +
 +        if (backgroundColorDirty) {
-+            gl.glClearColor(bgColorR, bgColorG, bgColorB, 1f);
++            glClearColor(bgColorR, bgColorG, bgColorB, 1f);
 +
 +            backgroundColorDirty = false;
 +        }
 +
++        if (projMatDirty) {
++            try (MemoryStack stack = MemoryStack.stackPush()) {
++                glUniformMatrix4fv(projMatLoc, false, projectionMatrix.get(stack.mallocFloat(16)));
++            }
++            projMatDirty = false;
++        }
++
 +        if (skinParts.isEmpty() || overlayParts.isEmpty()) {
 +            if (skinLoaded && skinImage != null) {
++                LOGGER.debug("Model being created...");
 +                Model model;
 +                for (ModelSkinPart part : ModelSkinPart.values()) {
 +                    if (part == ModelSkinPart.CAPE) {
@@ -359,13 +453,13 @@ index 0000000..0421b51
 +                        model = new MainBodyPart(part, skinImage.getHeight(), skinImage.getWidth(), armType);
 +                    }
 +
-+                    model.init(gl);
++                    model.init();
 +                    skinParts.put(part, model);
 +                    skinPartMats.put(part, model.getSuggestedPartMatrix());
 +
 +                    if (part == ModelSkinPart.CAPE) continue;
 +                    model = new OverlayBodyPart(part, skinImage.getHeight(), armType);
-+                    model.init(gl);
++                    model.init();
 +                    overlayParts.put(part, model);
 +                    overlayPartMats.put(part, model.getSuggestedPartMatrix());
 +                }
@@ -373,27 +467,33 @@ index 0000000..0421b51
 +
 +                limbRotateTimer = capeRotateTimer = 0;
 +            } else {
++                LOGGER.debug("no rendering today :(");
 +                return; // no rendering today :(
 +            }
 +        }
 +
 +        handleAnimation();
 +
-+        gl.glEnableVertexAttribArray(0); // vertices
-+        gl.glEnableVertexAttribArray(1); // texture coordinates
-+        gl.glEnableVertexAttribArray(2); // normals
++        glEnableVertexAttribArray(0); // vertices
++        glEnableVertexAttribArray(1); // texture coordinates
++        glEnableVertexAttribArray(2); // normals
 +
 +        Matrix4f worldMatrix = new Matrix4f().identity();
 +        float[] buf = new float[16]; // for uploading matrices to the GPU
 +        worldMatrix.rotateXYZ(rotateX, rotateY, rotateZ);
-+        gl.glUniformMatrix4fv(worldMatLoc, 1, false, worldMatrix.get(buf), 0);
++        glUniformMatrix4fv(worldMatLoc,false, worldMatrix.get(buf));
 +
-+        gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT);
++        if (projectionMatrix == null) {
++            LOGGER.info("The projection matrix is not set up, skipping rendering for now.");
++            return;
++        }
 +
-+        gl.glUniform1f(opaqueThreshLoc, 0.5f);
-+        gl.glUniform1i(allowTranslucentLoc, 0);
++        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 +
-+        gl.glBindTexture(GL.GL_TEXTURE_2D, skinTexture);
++        glUniform1f(opaqueThreshLoc, 0.5f);
++        glUniform1i(allowTranslucentLoc, 0);
++
++        glBindTexture(GL_TEXTURE_2D, skinTexture);
 +
 +        // render person
 +        for (Map.Entry<ModelSkinPart, Model> entry : skinParts.entrySet()) {
@@ -412,35 +512,35 @@ index 0000000..0421b51
 +                    break;
 +                case CAPE:
 +                    if ((overlayFlags & ModelSkinPart.CAPE.getFlag()) == 0) continue;
-+                    gl.glBindTexture(GL.GL_TEXTURE_2D, capeTexture);
++                    glBindTexture(GL_TEXTURE_2D, capeTexture);
 +                    partMat = partMat.rotateX(capeRotate, new Matrix4f()).rotateY((float)Math.PI);
 +            }
 +
-+            gl.glUniformMatrix4fv(partMatLoc, 1, false, partMat.get(buf), 0);
-+            entry.getValue().render(gl);
++            glUniformMatrix4fv(partMatLoc, false, partMat.get(buf));
++            entry.getValue().render();
 +
 +            if (entry.getKey() == ModelSkinPart.CAPE) {
-+                gl.glBindTexture(GL.GL_TEXTURE_2D, skinTexture);
++                glBindTexture(GL_TEXTURE_2D, skinTexture);
 +            }
 +        }
 +
 +        if (skinImage == null) return; // skip rendering overlay if the skin is not set
 +        if (skinImage.getHeight() == 32) {
-+            gl.glEnable(GL.GL_BLEND);
++            glEnable(GL_BLEND);
 +            if ((overlayFlags & ModelSkinPart.HEAD.getFlag()) == 0) return;
 +            Model head = overlayParts.get(ModelSkinPart.HEAD);
 +            Matrix4f headPartMat = skinPartMats.get(ModelSkinPart.HEAD);
 +
-+            gl.glUniformMatrix4fv(partMatLoc, 1, false, headPartMat.get(buf), 0);
-+            head.render(gl);
-+            gl.glDisable(GL.GL_BLEND);
++            glUniformMatrix4fv(partMatLoc, false, headPartMat.get(buf));
++            head.render();
++            glDisable(GL_BLEND);
 +        } else {
 +            if (translucentOverlay) {
-+                gl.glUniform1f(opaqueThreshLoc, 1f);
-+                gl.glUniform1i(allowTranslucentLoc, 1);
++                glUniform1f(opaqueThreshLoc, 1f);
++                glUniform1i(allowTranslucentLoc, 1);
 +            }
 +
-+            gl.glEnable(GL.GL_BLEND);
++            glEnable(GL_BLEND);
 +
 +            List<Pair<Model, Matrix4f>> transparentParts = new ArrayList<>();
 +            for (Map.Entry<ModelSkinPart, Model> entry : overlayParts.entrySet()) {
@@ -449,42 +549,47 @@ index 0000000..0421b51
 +                transparentParts.add(new Pair<>(entry.getValue(), partMat));
 +            }
 +
-+            Matrix4f factor = worldMatrix.mul(projectionMatrix, new Matrix4f());
++            if (projectionMatrix == null) LOGGER.info("projMat == null!");
++            Matrix4f factor = projectionMatrix.mul(worldMatrix, new Matrix4f());
 +            transparentParts.sort((p1, p2) -> {
-+                float depth1 = new Vector4f(0, 0, 1f, 1f).mul(p1.u.mul(factor, new Matrix4f()), new Vector4f()).z;
-+                float depth2 = new Vector4f(0, 0, 1f, 1f).mul(p2.u.mul(factor, new Matrix4f()), new Vector4f()).z;
++                float depth1 = new Vector4f(0, 0, 1f, 1f).mul(factor.mul(p1.u, new Matrix4f())).z;
++                float depth2 = new Vector4f(0, 0, 1f, 1f).mul(factor.mul(p2.u, new Matrix4f())).z;
++                //float depth1 = new Vector4f(0, 0, 1f, 1f).mul(p1.u.mul(factor, new Matrix4f()), new Vector4f()).z;
++                //float depth2 = new Vector4f(0, 0, 1f, 1f).mul(p2.u.mul(factor, new Matrix4f()), new Vector4f()).z;
 +                return Float.compare(depth1, depth2);
 +            });
 +
-+            gl.glEnable(GL.GL_CULL_FACE);
-+            gl.glCullFace(GL.GL_FRONT);
-+            gl.glUniform1i(flipNormalsLoc, 1);
++            glEnable(GL_CULL_FACE);
++            glCullFace(GL_FRONT);
++            glUniform1i(flipNormalsLoc, 1);
 +            for (Pair<Model, Matrix4f> part : transparentParts) {
-+                gl.glUniformMatrix4fv(partMatLoc, 1, false, part.u.get(buf), 0);
-+                part.t.render(gl);
++                glUniformMatrix4fv(partMatLoc, false, part.u.get(buf));
++                part.t.render();
 +            }
 +
-+            gl.glEnable(GL.GL_CULL_FACE);
-+            gl.glCullFace(GL.GL_BACK);
-+            gl.glUniform1i(flipNormalsLoc, 0);
++            glEnable(GL_CULL_FACE);
++            glCullFace(GL_BACK);
++            glUniform1i(flipNormalsLoc, 0);
 +            for (Pair<Model, Matrix4f> part : transparentParts) {
-+                gl.glUniformMatrix4fv(partMatLoc, 1, false, part.u.get(buf), 0);
-+                part.t.render(gl);
++                glUniformMatrix4fv(partMatLoc, false, part.u.get(buf));
++                part.t.render();
 +            }
 +
-+            gl.glDisable(GL.GL_CULL_FACE);
-+            gl.glDisable(GL.GL_BLEND);
++            glDisable(GL_CULL_FACE);
++            glDisable(GL_BLEND);
 +        }
 +    }
 +
-+    @Override
-+    public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
-+        GL3 gl = drawable.getGL().getGL3();
++    private void handleResized(int width, int height) {
++        if (width == 0 && height == 0) return;
 +
-+        LOGGER.debug("loaded projection mat");
-+        float aspect = (float)height / width;
-+        projectionMatrix = new Matrix4f().ortho(-1, 1, -aspect, aspect, -4, 4);
-+        gl.glUniformMatrix4fv(projMatLoc, 1, false, projectionMatrix.get(new float[16]), 0);
++        synchronized (dataLock) {
++            float aspect = (float)height / width;
++
++            LOGGER.debug("loaded projection matrix");
++            projectionMatrix = new Matrix4f().ortho(-1, 1, -aspect, aspect, -4, 4);
++            projMatDirty = true;
++        }
 +    }
 +
 +    public void setTextures(BufferedImage skinImage, BufferedImage capeImage) {
@@ -578,10 +683,10 @@ index 0000000..0421b51
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/SkinEditorTab.java b/src/main/java/dev/figboot/olauncher/skin/ui/SkinEditorTab.java
 new file mode 100644
-index 0000000..d3055a1
+index 0000000..0787acd
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/skin/ui/SkinEditorTab.java
-@@ -0,0 +1,226 @@
+@@ -0,0 +1,231 @@
 +/*
 + * OLauncher
 + * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
@@ -602,9 +707,6 @@ index 0000000..d3055a1
 +
 +package dev.figboot.olauncher.skin.ui;
 +
-+import com.jogamp.opengl.GLCapabilities;
-+import com.jogamp.opengl.GLProfile;
-+import com.jogamp.opengl.awt.GLCanvas;
 +import com.mojang.authlib.UserAuthentication;
 +import com.mojang.launcher.OperatingSystem;
 +import dev.figboot.olauncher.auth.MCProfileInfo;
@@ -617,6 +719,7 @@ index 0000000..d3055a1
 +import net.minecraft.launcher.profile.ProfileManager;
 +import org.apache.logging.log4j.LogManager;
 +import org.apache.logging.log4j.Logger;
++import org.lwjgl.opengl.awt.GLData;
 +
 +import javax.imageio.ImageIO;
 +import javax.swing.*;
@@ -640,7 +743,6 @@ index 0000000..d3055a1
 +    @Getter private final UUID playerUuid;
 +
 +    private final Launcher launcher;
-+    private final GLCanvas canvas;
 +    private final GLSkinViewer viewer;
 +
 +    private final ScheduledFuture<?> frameUpdateFuture;
@@ -657,19 +759,19 @@ index 0000000..d3055a1
 +        this.launcher = launcher;
 +
 +        setLayout(new FlowLayout());
-+        GLProfile profile = GLProfile.getGL2GL3();
-+        GLCapabilities caps = new GLCapabilities(profile);
-+        canvas = new GLCanvas(caps);
++        GLData glData = new GLData();
 +
-+        canvas.setPreferredSize(new Dimension(200, 300));
-+        add(canvas);
++        if (System.getProperty("dev.figboot.olauncher.GLSkinViewer.debugGL", "false").equalsIgnoreCase("true")) {
++            glData.debug = true;
++        }
 +
-+        viewer = new GLSkinViewer();
-+        canvas.addGLEventListener(viewer);
++        viewer = new GLSkinViewer(glData);
++        viewer.setPreferredSize(new Dimension(200, 300));
++        add(viewer);
 +
 +        MouseListener ml = new MouseListener();
-+        canvas.addMouseListener(ml);
-+        canvas.addMouseMotionListener(ml);
++        viewer.addMouseListener(ml);
++        viewer.addMouseMotionListener(ml);
 +
 +        viewer.setTranslucentOverlay(true);
 +        viewer.setBackgroundColor(.8f, .8f, .8f);
@@ -701,14 +803,22 @@ index 0000000..d3055a1
 +        downloadedSkins = new TreeMap<>();
 +        downloadedCapes = new TreeMap<>();
 +
-+        frameUpdateFuture = executorService.scheduleAtFixedRate(() -> SwingUtilities.invokeLater(canvas::repaint), 0, 1000 / 50, TimeUnit.MILLISECONDS);
++        revalidate();
++        frameUpdateFuture = executorService.scheduleAtFixedRate(() -> SwingUtilities.invokeLater(() -> {
++            if (isVisible()) {
++                try {
++                    viewer.render();
++                } catch (Exception ex) {
++                    LOGGER.error("Exception while rendering frame", ex);
++                }
++            }
++        }), 50, 1000 / 50, TimeUnit.MILLISECONDS);
 +
 +        executorService.submit(() -> queryTextures(mcProfile));
 +    }
 +
 +    public void queryTextures(MCProfileInfo profileInfo) {
 +        MicrosoftUserAuthentication auth = null;
-+
 +        {
 +            ProfileManager pman = launcher.getProfileManager();
 +            UserAuthentication uAuth = pman.getAuthDatabase().getByUUID(pman.getSelectedUser());
@@ -810,10 +920,10 @@ index 0000000..d3055a1
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/gl/GLSkinViewerUtils.java b/src/main/java/dev/figboot/olauncher/skin/ui/gl/GLSkinViewerUtils.java
 new file mode 100644
-index 0000000..7a6f5b7
+index 0000000..a0b7e42
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/skin/ui/gl/GLSkinViewerUtils.java
-@@ -0,0 +1,57 @@
+@@ -0,0 +1,104 @@
 +/*
 + * OLauncher
 + * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
@@ -834,18 +944,65 @@ index 0000000..7a6f5b7
 +
 +package dev.figboot.olauncher.skin.ui.gl;
 +
-+import com.jogamp.opengl.GL3;
-+import com.jogamp.opengl.util.glsl.ShaderCode;
-+import com.jogamp.opengl.util.glsl.ShaderProgram;
++import org.apache.commons.io.IOUtils;
 +import org.apache.logging.log4j.LogManager;
 +import org.apache.logging.log4j.Logger;
++
++import java.io.IOException;
++import java.io.InputStream;
++import java.nio.charset.StandardCharsets;
++import java.util.Objects;
++
++import static org.lwjgl.opengl.GL30.*;
 +
 +public class GLSkinViewerUtils {
 +    private GLSkinViewerUtils() { }
 +
 +    private static final Logger LOGGER = LogManager.getLogger();
 +
-+    public static void loadShaders(GL3 gl, ShaderProgram program, Class<?> resClass) {
++    private static int loadShader(Class<?> clazz, String resource, int type) throws IOException {
++        LOGGER.debug("Loading shader: {}", resource);
++        String source;
++        try (InputStream is = Objects.requireNonNull(clazz.getResourceAsStream(resource))) {
++            source = IOUtils.toString(is, StandardCharsets.UTF_8);
++        }
++
++        LOGGER.debug("Compiling shader: {}", resource);
++        int shader = glCreateShader(type);
++        glShaderSource(shader, source);
++        glCompileShader(shader);
++        int status = glGetShaderi(shader, GL_COMPILE_STATUS);
++        if (status != GL_TRUE) {
++            String infoLog = glGetShaderInfoLog(status);
++            LOGGER.error("Error compiling " + resource + ":");
++            LOGGER.error(infoLog);
++            throw new RuntimeException(resource + " shader compilation failed");
++        }
++        LOGGER.debug("Shader {} compiled successfully", resource);
++        return shader;
++    }
++
++    public static void loadShaderProgram(int program, Class<?> resClass) throws IOException {
++        int vertShader = loadShader(resClass, "vert.glsl", GL_VERTEX_SHADER);
++        int fragShader = loadShader(resClass, "frag.glsl", GL_FRAGMENT_SHADER);
++
++        glAttachShader(program, vertShader);
++        glAttachShader(program, fragShader);
++
++        glLinkProgram(program);
++        int status = glGetProgrami(program, GL_LINK_STATUS);
++        if (status != GL_TRUE) {
++            String log = glGetProgramInfoLog(program);
++            LOGGER.error("Error linking shader program:");
++            LOGGER.error(log);
++            throw new RuntimeException("Shader program linking failed");
++        }
++
++        glDeleteShader(vertShader);
++        glDeleteShader(fragShader);
++    }
++
++    /*public static void loadShaders(GL3 gl, ShaderProgram program, Class<?> resClass) {
 +        ShaderCode vertShader = ShaderCode.create(gl, GL3.GL_VERTEX_SHADER, 1, resClass, new String[]{"vert.glsl"}, false);
 +        ShaderCode fragShader = ShaderCode.create(gl, GL3.GL_FRAGMENT_SHADER, 1, resClass, new String[]{"frag.glsl"}, false);
 +
@@ -869,14 +1026,14 @@ index 0000000..7a6f5b7
 +
 +        vertShader.destroy(gl);
 +        fragShader.destroy(gl);
-+    }
++    }*/
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/model/MainBodyPart.java b/src/main/java/dev/figboot/olauncher/skin/ui/model/MainBodyPart.java
 new file mode 100644
-index 0000000..dedd45f
+index 0000000..b256385
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/skin/ui/model/MainBodyPart.java
-@@ -0,0 +1,120 @@
+@@ -0,0 +1,118 @@
 +/*
 + * OLauncher
 + * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
@@ -900,10 +1057,8 @@ index 0000000..dedd45f
 +import org.joml.Matrix4f;
 +import org.joml.Vector3f;
 +
-+import java.nio.FloatBuffer;
-+
 +public class MainBodyPart extends Model {
-+    private final FloatBuffer verts, normals, texCoords;
++    private final float[] verts, normals, texCoords;
 +
 +    private final int vertCount, normalCount, texCoordCount;
 +
@@ -963,17 +1118,17 @@ index 0000000..dedd45f
 +    }
 +
 +    @Override
-+    protected FloatBuffer getVertices() {
++    protected float[] getVertices() {
 +        return verts;
 +    }
 +
 +    @Override
-+    protected FloatBuffer getTexCoords() {
++    protected float[] getTexCoords() {
 +        return texCoords;
 +    }
 +
 +    @Override
-+    protected FloatBuffer getNormals() {
++    protected float[] getNormals() {
 +        return normals;
 +    }
 +
@@ -999,10 +1154,10 @@ index 0000000..dedd45f
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/model/Model.java b/src/main/java/dev/figboot/olauncher/skin/ui/model/Model.java
 new file mode 100644
-index 0000000..0aa93b7
+index 0000000..ff9669f
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/skin/ui/model/Model.java
-@@ -0,0 +1,93 @@
+@@ -0,0 +1,92 @@
 +/*
 + * OLauncher
 + * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
@@ -1023,12 +1178,9 @@ index 0000000..0aa93b7
 +
 +package dev.figboot.olauncher.skin.ui.model;
 +
-+import com.jogamp.common.nio.Buffers;
-+import com.jogamp.opengl.GL;
-+import com.jogamp.opengl.GL3;
 +import org.joml.Matrix4f;
 +
-+import java.nio.FloatBuffer;
++import static org.lwjgl.opengl.GL30.*;
 +
 +public abstract class Model {
 +    private int vao;
@@ -1036,33 +1188,35 @@ index 0000000..0aa93b7
 +
 +    public Model() { }
 +
-+    public void init(GL3 gl) {
-+        int[] ints = new int[3];
-+        gl.glGenVertexArrays(1, ints, 0);
-+        vao = ints[0];
++    public void init() {
++        int[] ints1 = new int[1];
++        int[] ints2 = new int[3];
++        glGenVertexArrays(ints1);
++        vao = ints1[0];
 +
-+        gl.glGenBuffers(3, ints, 0);
-+        vboVert = ints[0];
-+        vboTex = ints[1];
-+        vboNormal = ints[2];
++        glGenBuffers(ints2);
++        vboVert = ints2[0];
++        vboTex = ints2[1];
++        vboNormal = ints2[2];
 +
-+        loadModel(gl);
++        loadModel();
 +    }
 +
-+    public void destroy(GL3 gl) {
-+        int[] ints = new int[3];
-+        ints[0] = vao;
-+        gl.glDeleteVertexArrays(1, ints, 0);
++    public void destroy() {
++        int[] ints1 = new int[1];
++        int[] ints2 = new int[3];
++        ints1[0] = vao;
++        glDeleteVertexArrays(ints1);
 +
-+        ints[0] = vboVert;
-+        ints[1] = vboTex;
-+        ints[2] = vboNormal;
-+        gl.glDeleteBuffers(3, ints, 0);
++        ints2[0] = vboVert;
++        ints2[1] = vboTex;
++        ints2[2] = vboNormal;
++        glDeleteBuffers(ints2);
 +    }
 +
-+    protected abstract FloatBuffer getVertices();
-+    protected abstract FloatBuffer getTexCoords();
-+    protected abstract FloatBuffer getNormals();
++    protected abstract float[] getVertices();
++    protected abstract float[] getTexCoords();
++    protected abstract float[] getNormals();
 +
 +    protected abstract int getVertexCount();
 +    protected abstract int getTexCoordCount();
@@ -1072,36 +1226,36 @@ index 0000000..0aa93b7
 +        return new Matrix4f().identity();
 +    }
 +
-+    protected void loadModel(GL3 gl) {
-+        gl.glBindVertexArray(vao);
-+        gl.glBindBuffer(GL3.GL_ARRAY_BUFFER, vboVert);
-+        gl.glVertexAttribPointer(0, 3, GL.GL_FLOAT, false, 0, 0);
-+        gl.glBufferData(GL.GL_ARRAY_BUFFER, (long)getVertexCount() * Buffers.SIZEOF_FLOAT, getVertices(), GL.GL_STATIC_DRAW);
++    protected void loadModel() {
++        glBindVertexArray(vao);
++        glBindBuffer(GL_ARRAY_BUFFER, vboVert);
++        glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
++        glBufferData(GL_ARRAY_BUFFER, getVertices(), GL_STATIC_DRAW);
 +
-+        gl.glBindBuffer(GL3.GL_ARRAY_BUFFER, vboTex);
-+        gl.glVertexAttribPointer(1, 2, GL.GL_FLOAT, false, 0, 0);
-+        gl.glBufferData(GL.GL_ARRAY_BUFFER, (long)getTexCoordCount() * Buffers.SIZEOF_FLOAT, getTexCoords(), GL.GL_STATIC_DRAW);
++        glBindBuffer(GL_ARRAY_BUFFER, vboTex);
++        glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0);
++        glBufferData(GL_ARRAY_BUFFER, getTexCoords(), GL_STATIC_DRAW);
 +
-+        gl.glBindBuffer(GL3.GL_ARRAY_BUFFER, vboNormal);
-+        gl.glVertexAttribPointer(2, 3, GL.GL_FLOAT, false, 0, 0);
-+        gl.glBufferData(GL.GL_ARRAY_BUFFER, (long)getNormalCount() * Buffers.SIZEOF_FLOAT, getNormals(), GL.GL_STATIC_DRAW);
++        glBindBuffer(GL_ARRAY_BUFFER, vboNormal);
++        glVertexAttribPointer(2, 3, GL_FLOAT, false, 0, 0);
++        glBufferData(GL_ARRAY_BUFFER, getNormals(), GL_STATIC_DRAW);
 +    }
 +
-+    public void render(GL3 gl) {
-+        gl.glBindVertexArray(vao);
-+        gl.glEnableVertexAttribArray(0);
-+        gl.glEnableVertexAttribArray(1);
-+        gl.glEnableVertexAttribArray(2);
++    public void render() {
++        glBindVertexArray(vao);
++        glEnableVertexAttribArray(0);
++        glEnableVertexAttribArray(1);
++        glEnableVertexAttribArray(2);
 +
-+        gl.glDrawArrays(GL.GL_TRIANGLES, 0, getVertexCount());
++        glDrawArrays(GL_TRIANGLES, 0, getVertexCount());
 +    }
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/model/ModelBuilder.java b/src/main/java/dev/figboot/olauncher/skin/ui/model/ModelBuilder.java
 new file mode 100644
-index 0000000..ada263a
+index 0000000..a27dad7
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/skin/ui/model/ModelBuilder.java
-@@ -0,0 +1,190 @@
+@@ -0,0 +1,208 @@
 +/*
 + * OLauncher
 + * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
@@ -1125,10 +1279,7 @@ index 0000000..ada263a
 +import org.joml.Vector2f;
 +import org.joml.Vector3f;
 +
-+import java.nio.Buffer;
-+import java.nio.FloatBuffer;
 +import java.util.ArrayList;
-+import java.util.Arrays;
 +import java.util.List;
 +
 +class ModelBuilder {
@@ -1224,7 +1375,16 @@ index 0000000..ada263a
 +        addHParallelogram(c4, c8, faceTexCoords[10], faceTexCoords[11], true);
 +    }
 +
-+    public FloatBuffer getVerts() {
++    private float[] unboxList(List<Float> floatList) {
++        int idx = 0;
++        float[] ret = new float[floatList.size()];
++        for (float f : floatList) {
++            ret[idx++] = f;
++        }
++        return ret;
++    }
++
++    /*public FloatBuffer getVerts() {
 +        FloatBuffer fb = FloatBuffer.allocate(vertVals.size());
 +        for (float f : vertVals) {
 +            fb.put(f);
@@ -1233,7 +1393,7 @@ index 0000000..ada263a
 +        return fb;
 +    }
 +
-+    public FloatBuffer getTexCoords() {
++    public float[] getTexCoords() {
 +        FloatBuffer fb = FloatBuffer.allocate(texCoordVals.size());
 +        for (float f : texCoordVals) {
 +            fb.put(f);
@@ -1249,6 +1409,18 @@ index 0000000..ada263a
 +        }
 +        ((Buffer)fb).flip();
 +        return fb;
++    }*/
++
++    public float[] getVerts() {
++        return unboxList(vertVals);
++    }
++
++    public float[] getTexCoords() {
++        return unboxList(texCoordVals);
++    }
++
++    public float[] getNormals() {
++        return unboxList(normalVals);
 +    }
 +
 +    public int getVertCount() {
@@ -1337,10 +1509,10 @@ index 0000000..a58c080
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/model/OverlayBodyPart.java b/src/main/java/dev/figboot/olauncher/skin/ui/model/OverlayBodyPart.java
 new file mode 100644
-index 0000000..4ea03e4
+index 0000000..db79bc0
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/skin/ui/model/OverlayBodyPart.java
-@@ -0,0 +1,119 @@
+@@ -0,0 +1,117 @@
 +/*
 + * OLauncher
 + * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
@@ -1364,10 +1536,8 @@ index 0000000..4ea03e4
 +import org.joml.Matrix4f;
 +import org.joml.Vector3f;
 +
-+import java.nio.FloatBuffer;
-+
 +public class OverlayBodyPart extends Model {
-+    private final FloatBuffer verts, normals, texCoords;
++    private final float[] verts, normals, texCoords;
 +
 +    private final int vertCount, normalCount, texCoordCount;
 +
@@ -1426,17 +1596,17 @@ index 0000000..4ea03e4
 +    }
 +
 +    @Override
-+    protected FloatBuffer getVertices() {
++    protected float[] getVertices() {
 +        return verts;
 +    }
 +
 +    @Override
-+    protected FloatBuffer getNormals() {
++    protected float[] getNormals() {
 +        return normals;
 +    }
 +
 +    @Override
-+    protected FloatBuffer getTexCoords() {
++    protected float[] getTexCoords() {
 +        return texCoords;
 +    }
 +
@@ -1597,10 +1767,10 @@ index fe39640..eae4b87 100644
  }
 diff --git a/src/main/resources/dev/figboot/olauncher/skin/ui/frag.glsl b/src/main/resources/dev/figboot/olauncher/skin/ui/frag.glsl
 new file mode 100644
-index 0000000..4d95535
+index 0000000..95db88c
 --- /dev/null
 +++ b/src/main/resources/dev/figboot/olauncher/skin/ui/frag.glsl
-@@ -0,0 +1,17 @@
+@@ -0,0 +1,16 @@
 +#version 130
 +
 +uniform float opaqueThresh;
@@ -1616,7 +1786,6 @@ index 0000000..4d95535
 +    vec4 color = texture(sampler, texCoord);
 +    color = vec4(color.xyz * mul, color.w);
 +    fragColor = vec4(color.xyz, color.w >= opaqueThresh ? 1. : (allowTranslucent ? color.w : 0.));
-+    //fragColor = color;
 +}
 diff --git a/src/main/resources/dev/figboot/olauncher/skin/ui/vert.glsl b/src/main/resources/dev/figboot/olauncher/skin/ui/vert.glsl
 new file mode 100644

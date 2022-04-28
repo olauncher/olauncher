@@ -1,4 +1,4 @@
-From bac70aabd5029a11b831b094ecf1af44baff79d2 Mon Sep 17 00:00:00 2001
+From 2f85ea62391bea9ef6c26bd88f4c47f362e5a442 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 17 Mar 2022 16:58:53 -0500
 Subject: [PATCH] Add xuid parameter and remove unused imports
@@ -150,7 +150,7 @@ index c739732..db78fda 100644
  import com.google.gson.GsonBuilder;
  import com.mojang.launcher.updater.LowerCaseEnumTypeAdapterFactory;
 diff --git a/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
-index 09fa151..74aeaaa 100644
+index c5a8fc4..a4b4e50 100644
 --- a/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
 +++ b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
 @@ -1,7 +1,6 @@
