@@ -1,4 +1,4 @@
-From c49f1697e5a9c3df89eb4d84c6bc6e9274361ef2 Mon Sep 17 00:00:00 2001
+From f60aeb168a77125d3f90c2eaf4f51f34c261119d Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Tue, 26 Apr 2022 01:03:39 -0500
 Subject: [PATCH] Add skin editor + OptiFine cape editor
@@ -135,10 +135,10 @@ index b265375..8421bc0 100644
          super.logOut();
 diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/GLSkinViewer.java b/src/main/java/dev/figboot/olauncher/skin/ui/GLSkinViewer.java
 new file mode 100644
-index 0000000..9048540
+index 0000000..673152d
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/skin/ui/GLSkinViewer.java
-@@ -0,0 +1,542 @@
+@@ -0,0 +1,543 @@
 +/*
 + * OLauncher
 + * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
@@ -239,7 +239,8 @@ index 0000000..9048540
 +        synchronized (dataLock) {
 +            LOGGER.info("Using OpenGL {}.{} (Profile: {}, Debug: {})", effective.majorVersion, effective.minorVersion, effective.profile, effective.debug);
 +            caps = GL.createCapabilities();
-+            GLUtil.setupDebugMessageCallback();
++
++            if (data.debug) GLUtil.setupDebugMessageCallback();
 +
 +            for (ModelSkinPart part : ModelSkinPart.values()) {
 +                overlayFlags |= part.getFlag();
