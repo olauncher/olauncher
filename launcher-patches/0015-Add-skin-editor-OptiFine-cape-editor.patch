@@ -1,27 +1,14 @@
-From f60aeb168a77125d3f90c2eaf4f51f34c261119d Mon Sep 17 00:00:00 2001
+From b6eca38daee9678a13f870369f4f8785dd63f2da Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Tue, 26 Apr 2022 01:03:39 -0500
 Subject: [PATCH] Add skin editor + OptiFine cape editor
 
 
 diff --git a/pom.xml b/pom.xml
-index 7a17615..cae8c68 100644
+index b8a1b9a..cae8c68 100644
 --- a/pom.xml
 +++ b/pom.xml
-@@ -81,12 +81,6 @@
-                                 <include>**</include>
-                             </includes>
-                         </filter>
--                        <filter>
--                            <artifact>*lwjgl*:*lwjgl*</artifact>
--                            <includes>
--                                <include>**</include>
--                            </includes>
--                        </filter>
-                     </filters>
-                     <createDependencyReducedPom>false</createDependencyReducedPom>
-                     <transformers>
-@@ -305,6 +299,44 @@
+@@ -299,6 +299,44 @@
              <classifier>${lwjgl.natives}</classifier>
              <scope>compile</scope>
          </dependency>
