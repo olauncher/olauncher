@@ -1,4 +1,4 @@
-From b6eca38daee9678a13f870369f4f8785dd63f2da Mon Sep 17 00:00:00 2001
+From 88b4218bfd64823e4a6963ae11ba94a4fe3a2805 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Tue, 26 Apr 2022 01:03:39 -0500
 Subject: [PATCH] Add skin editor + OptiFine cape editor
@@ -122,10 +122,10 @@ index b265375..8421bc0 100644
          super.logOut();
 diff --git a/src/main/java/dev/figboot/olauncher/skin/ui/GLSkinViewer.java b/src/main/java/dev/figboot/olauncher/skin/ui/GLSkinViewer.java
 new file mode 100644
-index 0000000..673152d
+index 0000000..e44e405
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/skin/ui/GLSkinViewer.java
-@@ -0,0 +1,543 @@
+@@ -0,0 +1,552 @@
 +/*
 + * OLauncher
 + * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
@@ -389,6 +389,22 @@ index 0000000..673152d
 +        while (capeRotateTimer > MAX_TIMER) capeRotateTimer -= MAX_TIMER;
 +    }
 +
++    private Matrix4f applyAnimRotate(ModelSkinPart part, Matrix4f partMat) {
++        switch (part) {
++            case LLEG:
++            case RARM:
++                partMat = partMat.rotateX(-limbRotate, new Matrix4f());
++                break;
++            case RLEG:
++            case LARM:
++                partMat = partMat.rotateX(limbRotate, new Matrix4f());
++                break;
++            case CAPE:
++                partMat = partMat.rotateX(capeRotate, new Matrix4f()).rotateY((float)Math.PI);
++        }
++        return partMat;
++    }
++
 +    private void drawFrame() {
 +        if (textureDirty) {
 +            if (skinImage != null) {
@@ -486,23 +502,15 @@ index 0000000..673152d
 +        // render person
 +        for (Map.Entry<ModelSkinPart, Model> entry : skinParts.entrySet()) {
 +            Matrix4f partMat = skinPartMats.get(entry.getKey());
-+            if (capeImage == null && entry.getKey() == ModelSkinPart.CAPE) continue;
-+            else if (skinImage == null && entry.getKey() != ModelSkinPart.CAPE) continue;
 +
-+            switch (entry.getKey()) {
-+                case LLEG:
-+                case RARM:
-+                    partMat = partMat.rotateX(-limbRotate, new Matrix4f());
-+                    break;
-+                case RLEG:
-+                case LARM:
-+                    partMat = partMat.rotateX(limbRotate, new Matrix4f());
-+                    break;
-+                case CAPE:
-+                    if ((overlayFlags & ModelSkinPart.CAPE.getFlag()) == 0) continue;
-+                    glBindTexture(GL_TEXTURE_2D, capeTexture);
-+                    partMat = partMat.rotateX(capeRotate, new Matrix4f()).rotateY((float)Math.PI);
++            if (entry.getKey() == ModelSkinPart.CAPE) {
++                if (capeImage == null || (overlayFlags & ModelSkinPart.CAPE.getFlag()) == 0) continue;
++                glBindTexture(GL_TEXTURE_2D, capeTexture);
++            } else if (skinImage == null) {
++                continue;
 +            }
++
++            partMat = applyAnimRotate(entry.getKey(), partMat);
 +
 +            glUniformMatrix4fv(partMatLoc, false, partMat.get(buf));
 +            entry.getValue().render();
@@ -534,6 +542,7 @@ index 0000000..673152d
 +            for (Map.Entry<ModelSkinPart, Model> entry : overlayParts.entrySet()) {
 +                if ((overlayFlags & entry.getKey().getFlag()) == 0) continue;
 +                Matrix4f partMat = overlayPartMats.get(entry.getKey());
++                partMat = applyAnimRotate(entry.getKey(), partMat);
 +                transparentParts.add(new Pair<>(entry.getValue(), partMat));
 +            }
 +
