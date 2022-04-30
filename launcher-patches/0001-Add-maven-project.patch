@@ -1,4 +1,4 @@
-From a3bec61dda66817a88a0582105fbc42c8f41cf76 Mon Sep 17 00:00:00 2001
+From b35615d0257a50e7f1f8e18ccb22b16e6d558627 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 10 Mar 2022 01:37:59 -0600
 Subject: [PATCH] Add maven project
@@ -314,10 +314,10 @@ index aef7cf0..0000000
 -
 diff --git a/pom.xml b/pom.xml
 new file mode 100644
-index 0000000..39d36fd
+index 0000000..b8a1b9a
 --- /dev/null
 +++ b/pom.xml
-@@ -0,0 +1,243 @@
+@@ -0,0 +1,428 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +
 +<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -336,7 +336,20 @@ index 0000000..39d36fd
 +
 +    <properties>
 +        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
++        <lwjgl.version>3.3.1</lwjgl.version>
 +    </properties>
++
++    <dependencyManagement>
++        <dependencies>
++            <dependency>
++                <groupId>org.lwjgl</groupId>
++                <artifactId>lwjgl-bom</artifactId>
++                <version>${lwjgl.version}</version>
++                <scope>import</scope>
++                <type>pom</type>
++            </dependency>
++        </dependencies>
++    </dependencyManagement>
 +
 +    <build>
 +        <plugins>
@@ -452,6 +465,13 @@ index 0000000..39d36fd
 +            <id>central</id>
 +            <url>https://repo1.maven.org/maven2/</url>
 +        </repository>
++        <repository>
++            <id>oss-snapshot</id>
++            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
++            <snapshots>
++                <enabled>true</enabled>
++            </snapshots>
++        </repository>
 +    </repositories>
 +
 +    <dependencies>
@@ -541,7 +561,7 @@ index 0000000..39d36fd
 +        </dependency>
 +
 +        <!--skin editor stuff-->
-+        <dependency>
++        <!--<dependency>
 +            <groupId>org.jogamp.jogl</groupId>
 +            <artifactId>jogl-all-main</artifactId>
 +            <version>2.3.2</version>
@@ -553,13 +573,178 @@ index 0000000..39d36fd
 +            <version>2.3.2</version>
 +            <scope>compile</scope>
 +        </dependency>
++        -->
 +        <dependency>
 +            <groupId>org.joml</groupId>
 +            <artifactId>joml</artifactId>
 +            <version>1.10.4</version>
 +            <scope>compile</scope>
 +        </dependency>
++        <dependency>
++            <groupId>org.lwjglx</groupId>
++            <artifactId>lwjgl3-awt</artifactId>
++            <version>0.1.9-SNAPSHOT</version>
++            <scope>compile</scope>
++        </dependency>
++        <dependency>
++            <groupId>org.lwjgl</groupId>
++            <artifactId>lwjgl</artifactId>
++            <scope>compile</scope>
++        </dependency>
++        <dependency>
++            <groupId>org.lwjgl</groupId>
++            <artifactId>lwjgl-opengl</artifactId>
++            <scope>compile</scope>
++        </dependency>
++        <dependency>
++            <groupId>org.lwjgl</groupId>
++            <artifactId>lwjgl-stb</artifactId>
++            <scope>compile</scope>
++        </dependency>
++        <dependency>
++            <groupId>org.lwjgl</groupId>
++            <artifactId>lwjgl</artifactId>
++            <classifier>${lwjgl.natives}</classifier>
++            <scope>compile</scope>
++        </dependency>
++        <dependency>
++            <groupId>org.lwjgl</groupId>
++            <artifactId>lwjgl-opengl</artifactId>
++            <classifier>${lwjgl.natives}</classifier>
++            <scope>compile</scope>
++        </dependency>
++        <dependency>
++            <groupId>org.lwjgl</groupId>
++            <artifactId>lwjgl-stb</artifactId>
++            <classifier>${lwjgl.natives}</classifier>
++            <scope>compile</scope>
++        </dependency>
 +    </dependencies>
++
++    <profiles>
++        <profile>
++            <id>lwjgl-natives-linux-amd64</id>
++            <activation>
++                <os>
++                    <family>unix</family>
++                    <arch>amd64</arch>
++                </os>
++            </activation>
++            <properties>
++                <lwjgl.natives>natives-linux</lwjgl.natives>
++            </properties>
++        </profile>
++        <profile>
++            <id>lwjgl-natives-linux-aarch64</id>
++            <activation>
++                <os>
++                    <family>unix</family>
++                    <arch>aarch64</arch>
++                </os>
++            </activation>
++            <properties>
++                <lwjgl.natives>natives-linux-arm64</lwjgl.natives>
++            </properties>
++        </profile>
++        <profile>
++            <id>lwjgl-natives-linux-arm</id>
++            <activation>
++                <os>
++                    <family>unix</family>
++                    <arch>arm</arch>
++                </os>
++            </activation>
++            <properties>
++                <lwjgl.natives>natives-linux-arm32</lwjgl.natives>
++            </properties>
++        </profile>
++        <profile>
++            <id>lwjgl-natives-linux-arm32</id>
++            <activation>
++                <os>
++                    <family>unix</family>
++                    <arch>arm32</arch>
++                </os>
++            </activation>
++            <properties>
++                <lwjgl.natives>natives-linux-arm32</lwjgl.natives>
++            </properties>
++        </profile>
++        <profile>
++            <id>lwjgl-natives-macos-x86_64</id>
++            <activation>
++                <os>
++                    <family>mac</family>
++                    <arch>x86_64</arch>
++                </os>
++            </activation>
++            <properties>
++                <lwjgl.natives>natives-macos</lwjgl.natives>
++            </properties>
++            <dependencies>
++                <dependency>
++                    <groupId>org.lwjgl</groupId>
++                    <artifactId>lwjgl-vulkan</artifactId>
++                    <classifier>natives-macos</classifier>
++                </dependency>
++            </dependencies>
++        </profile>
++        <profile>
++            <id>lwjgl-natives-macos-aarch64</id>
++            <activation>
++                <os>
++                    <family>mac</family>
++                    <arch>aarch64</arch>
++                </os>
++            </activation>
++            <properties>
++                <lwjgl.natives>natives-macos-arm64</lwjgl.natives>
++            </properties>
++            <dependencies>
++                <dependency>
++                    <groupId>org.lwjgl</groupId>
++                    <artifactId>lwjgl-vulkan</artifactId>
++                    <classifier>natives-macos-arm64</classifier>
++                </dependency>
++            </dependencies>
++        </profile>
++        <profile>
++            <id>lwjgl-natives-windows-amd64</id>
++            <activation>
++                <os>
++                    <family>windows</family>
++                    <arch>amd64</arch>
++                </os>
++            </activation>
++            <properties>
++                <lwjgl.natives>natives-windows</lwjgl.natives>
++            </properties>
++        </profile>
++        <profile>
++            <id>lwjgl-natives-windows-x86</id>
++            <activation>
++                <os>
++                    <family>windows</family>
++                    <arch>x86</arch>
++                </os>
++            </activation>
++            <properties>
++                <lwjgl.natives>natives-windows-x86</lwjgl.natives>
++            </properties>
++        </profile>
++        <profile>
++            <id>lwjgl-natives-windows-aarch64</id>
++            <activation>
++                <os>
++                    <family>windows</family>
++                    <arch>aarch64</arch>
++                </os>
++            </activation>
++            <properties>
++                <lwjgl.natives>natives-windows-arm64</lwjgl.natives>
++            </properties>
++        </profile>
++    </profiles>
 +</project>
 diff --git a/com/mojang/authlib/Agent.java b/src/main/java/com/mojang/authlib/Agent.java
 similarity index 100%

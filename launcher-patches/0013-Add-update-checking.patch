@@ -1,4 +1,4 @@
-From befde8f92332a9cb91f208a657b34f6bc925a3e7 Mon Sep 17 00:00:00 2001
+From ed8da37dd7fd515941a8d5a97af007e5877cd803 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Wed, 13 Apr 2022 04:56:22 -0500
 Subject: [PATCH] Add update checking
@@ -6,10 +6,28 @@ Subject: [PATCH] Add update checking
 
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/update/LauncherUpdateChecker.java b/src/main/java/dev/figboot/olauncher/launcher/update/LauncherUpdateChecker.java
 new file mode 100644
-index 0000000..e7febd1
+index 0000000..015a565
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/update/LauncherUpdateChecker.java
-@@ -0,0 +1,158 @@
+@@ -0,0 +1,176 @@
++/*
++ * OLauncher
++ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see https://github.com/olauncher/olauncher .
++ */
++
 +package dev.figboot.olauncher.launcher.update;
 +
 +import com.google.gson.Gson;
@@ -170,10 +188,28 @@ index 0000000..e7febd1
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/update/LauncherUpdateInfo.java b/src/main/java/dev/figboot/olauncher/launcher/update/LauncherUpdateInfo.java
 new file mode 100644
-index 0000000..836316b
+index 0000000..abaece8
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/update/LauncherUpdateInfo.java
-@@ -0,0 +1,25 @@
+@@ -0,0 +1,43 @@
++/*
++ * OLauncher
++ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see https://github.com/olauncher/olauncher .
++ */
++
 +package dev.figboot.olauncher.launcher.update;
 +
 +import lombok.Getter;
@@ -201,10 +237,28 @@ index 0000000..836316b
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/update/ReleaseInfo.java b/src/main/java/dev/figboot/olauncher/launcher/update/ReleaseInfo.java
 new file mode 100644
-index 0000000..c0a6ba0
+index 0000000..a0226b5
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/update/ReleaseInfo.java
-@@ -0,0 +1,89 @@
+@@ -0,0 +1,107 @@
++/*
++ * OLauncher
++ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see https://github.com/olauncher/olauncher .
++ */
++
 +package dev.figboot.olauncher.launcher.update;
 +
 +import java.net.URL;
@@ -296,10 +350,28 @@ index 0000000..c0a6ba0
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/update/UpdateAvailableDialog.java b/src/main/java/dev/figboot/olauncher/launcher/update/UpdateAvailableDialog.java
 new file mode 100644
-index 0000000..54d2325
+index 0000000..01b9ad1
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/update/UpdateAvailableDialog.java
-@@ -0,0 +1,182 @@
+@@ -0,0 +1,200 @@
++/*
++ * OLauncher
++ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see https://github.com/olauncher/olauncher .
++ */
++
 +package dev.figboot.olauncher.launcher.update;
 +
 +import com.mojang.launcher.OperatingSystem;
