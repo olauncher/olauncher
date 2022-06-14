@@ -1,0 +1,41 @@
+From 1c6dad1151d50342645d7a38e42a70167bd30e62 Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot@figboot.dev>
+Date: Tue, 14 Jun 2022 04:54:47 -0500
+Subject: [PATCH] Support the 1.19 syntax for natives
+
+
+diff --git a/src/main/java/net/minecraft/launcher/updater/Library.java b/src/main/java/net/minecraft/launcher/updater/Library.java
+index 32814c0..8a42200 100644
+--- a/src/main/java/net/minecraft/launcher/updater/Library.java
++++ b/src/main/java/net/minecraft/launcher/updater/Library.java
+@@ -141,8 +141,11 @@ public class Library {
+         if (this.name == null) {
+             throw new IllegalStateException("Cannot get artifact dir of empty/blank artifact");
+         } else {
+-            String[] var1 = this.name.split(":", 3);
+-            return String.format("%s/%s/%s", var1[0].replaceAll("\\.", "/"), var1[1], var1[2]);
++            // olauncher - handle natives on newer versions
++            String[] var1 = this.name.split(":", 4);
++            return var1.length < 4 ?
++                    String.format("%s/%s/%s", var1[0].replaceAll("\\.", "/"), var1[1], var1[2]) :
++                    String.format("%s/%s-%s/%s", var1[0].replaceAll("\\.", "/"), var1[1], var1[3], var1[2]);
+         }
+     }
+ 
+@@ -162,8 +165,11 @@ public class Library {
+         if (this.name == null) {
+             throw new IllegalStateException("Cannot get artifact filename of empty/blank artifact");
+         } else {
+-            String[] var2 = this.name.split(":", 3);
+-            String var3 = String.format("%s-%s%s.jar", var2[1], var2[2], StringUtils.isEmpty(var1) ? "" : "-" + var1);
++            // olauncher - handle natives on newer versions
++            String[] var2 = this.name.split(":", 4);
++            String var3 = var2.length < 4 ?
++                    String.format("%s-%s%s.jar", var2[1], var2[2], StringUtils.isEmpty(var1) ? "" : "-" + var1) :
++                    String.format("%s-%s%s-%s.jar", var2[1], var2[2], StringUtils.isEmpty(var1) ? "" : "-" + var1, var2[3]);
+             return SUBSTITUTOR.replace(var3);
+         }
+     }
+-- 
+2.35.1
+
