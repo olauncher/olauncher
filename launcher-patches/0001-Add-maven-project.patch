@@ -1,4 +1,4 @@
-From dfe840d704aaab96f8d5d64b5cef8e623bfa42ab Mon Sep 17 00:00:00 2001
+From c7818c0b2c2c6edf18e7138f4b131af57fa885bd Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 10 Mar 2022 01:37:59 -0600
 Subject: [PATCH] Add maven project
@@ -314,10 +314,10 @@ index aef7cf0..0000000
 -
 diff --git a/pom.xml b/pom.xml
 new file mode 100644
-index 0000000..39d36fd
+index 0000000..3c55cf9
 --- /dev/null
 +++ b/pom.xml
-@@ -0,0 +1,243 @@
+@@ -0,0 +1,223 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +
 +<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -332,7 +332,7 @@ index 0000000..39d36fd
 +    </parent>
 +
 +    <artifactId>olauncher</artifactId>
-+    <version>1.7.2_02</version>
++    <version>1.7.2_03</version>
 +
 +    <properties>
 +        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -538,26 +538,6 @@ index 0000000..39d36fd
 +            <artifactId>lombok</artifactId>
 +            <version>1.18.22</version>
 +            <scope>provided</scope>
-+        </dependency>
-+
-+        <!--skin editor stuff-->
-+        <dependency>
-+            <groupId>org.jogamp.jogl</groupId>
-+            <artifactId>jogl-all-main</artifactId>
-+            <version>2.3.2</version>
-+            <scope>compile</scope>
-+        </dependency>
-+        <dependency>
-+            <groupId>org.jogamp.gluegen</groupId>
-+            <artifactId>gluegen-rt-main</artifactId>
-+            <version>2.3.2</version>
-+            <scope>compile</scope>
-+        </dependency>
-+        <dependency>
-+            <groupId>org.joml</groupId>
-+            <artifactId>joml</artifactId>
-+            <version>1.10.4</version>
-+            <scope>compile</scope>
 +        </dependency>
 +    </dependencies>
 +</project>
@@ -1227,4 +1207,3 @@ rename from yggdrasil_session_pubkey.der
 rename to src/main/resources/yggdrasil_session_pubkey.der
 -- 
 2.35.1
-
