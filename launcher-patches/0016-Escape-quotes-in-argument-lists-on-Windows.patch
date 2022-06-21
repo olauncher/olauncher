@@ -1,0 +1,38 @@
+From fc98bcc46c62feb3a6a49dc307d5ed922899cf51 Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot3132@gmail.com>
+Date: Tue, 21 Jun 2022 16:46:46 -0500
+Subject: [PATCH] Escape quotes in argument lists on Windows
+
+
+diff --git a/src/main/java/com/mojang/launcher/game/process/direct/DirectGameProcessFactory.java b/src/main/java/com/mojang/launcher/game/process/direct/DirectGameProcessFactory.java
+index 1e86301..fd0522b 100644
+--- a/src/main/java/com/mojang/launcher/game/process/direct/DirectGameProcessFactory.java
++++ b/src/main/java/com/mojang/launcher/game/process/direct/DirectGameProcessFactory.java
+@@ -1,5 +1,6 @@
+ package com.mojang.launcher.game.process.direct;
+ 
++import com.mojang.launcher.OperatingSystem;
+ import com.mojang.launcher.game.process.GameProcess;
+ import com.mojang.launcher.game.process.GameProcessBuilder;
+ import com.mojang.launcher.game.process.GameProcessFactory;
+@@ -11,7 +12,16 @@ public class DirectGameProcessFactory implements GameProcessFactory {
+     }
+ 
+     public GameProcess startGame(GameProcessBuilder var1) throws IOException {
+-        List var2 = var1.getFullCommands();
++        List<String> var2 = var1.getFullCommands(); // olauncher - add type parameter
++
++        // olauncher start - translate argument list for windows (quotes need escaping for some reason)
++        if (OperatingSystem.getCurrentPlatform() == OperatingSystem.WINDOWS) {
++            for (int i = 0; i < var2.size(); ++i) {
++                var2.set(i, var2.get(i).replace("\"", "\\\""));
++            }
++        }
++        // olauncher end
++
+         return new DirectGameProcess(var2, (new ProcessBuilder(var2)).directory(var1.getDirectory()).redirectErrorStream(true).start(), var1.getSysOutFilter(), var1.getLogProcessor());
+     }
+ }
+-- 
+2.35.1
+

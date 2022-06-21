@@ -1,4 +1,4 @@
-From 27e06c86c507b8de3acc8ec231d131a093db1888 Mon Sep 17 00:00:00 2001
+From ade311fd51338dd75ed2cd915e712e730d49a61e Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Tue, 26 Apr 2022 00:50:05 -0500
 Subject: [PATCH] Add OptiFine cape functions
@@ -97,3 +97,4 @@ index 12a19ff..b265375 100644
      public MCProfileInfo getProfileInfo() {
 -- 
 2.35.1
+

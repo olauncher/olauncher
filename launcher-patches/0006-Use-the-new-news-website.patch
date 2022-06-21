@@ -1,4 +1,4 @@
-From 56ab0fcebe2eecc48f78d338805c0589f445b9a2 Mon Sep 17 00:00:00 2001
+From 4918d1e50315fa8c1da8a498ad418b0048d86dcb Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 24 Mar 2022 00:25:56 -0500
 Subject: [PATCH] Use the new news website
@@ -32,3 +32,4 @@ index 3553a21..711b417 100644
          if (OperatingSystem.getCurrentPlatform() == OperatingSystem.OSX) {
 -- 
 2.35.1
+
