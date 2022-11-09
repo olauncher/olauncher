@@ -1,0 +1,61 @@
+From a27f9a92239fea269b3d7f02328d5e143def6444 Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot3132@gmail.com>
+Date: Wed, 9 Nov 2022 02:59:04 -0600
+Subject: [PATCH] Fix newer versions of forge failing to launch
+
+
+diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
+index bc607d1..4f587b7 100644
+--- a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
++++ b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
+@@ -337,6 +337,9 @@ public class MinecraftGameRunner extends AbstractGameRunner implements GameProce
+             // TODO: clientid as well
+         }
+ 
++        // olauncher - add library directory replacement
++        var6.put("library_directory", new File(minecraftLauncher.getLauncher().getWorkingDirectory(), "libraries"));
++
+         return new StrSubstitutor(var6);
+     }
+ 
+diff --git a/src/main/java/net/minecraft/launcher/updater/Argument.java b/src/main/java/net/minecraft/launcher/updater/Argument.java
+index 528caf8..d5560e6 100644
+--- a/src/main/java/net/minecraft/launcher/updater/Argument.java
++++ b/src/main/java/net/minecraft/launcher/updater/Argument.java
+@@ -33,7 +33,7 @@ public class Argument {
+     }
+ 
+     public boolean appliesToCurrentEnvironment(CompatibilityRule.FeatureMatcher var1) {
+-        if (this.compatibilityRules == null) {
++        if (this.compatibilityRules == null || compatibilityRules.isEmpty()) { // olauncher - empty compatibilityRules means allow it
+             return true;
+         } else {
+             CompatibilityRule.Action var2 = CompatibilityRule.Action.DISALLOW;
+diff --git a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
+index 3f95163..6d83c85 100644
+--- a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
++++ b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
+@@ -74,6 +74,7 @@ public class CompleteMinecraftVersion implements CompleteVersion {
+         this.incompatibilityReason = var1.incompatibilityReason;
+         this.assets = var1.assets;
+         this.jar = var1.jar;
++        this.assetIndex = var1.assetIndex; // olauncher - copy asset index
+         this.downloads = var1.downloads;
+         // olauncher - iterator surgery (raw types are no longer cool)
+         //Iterator var2;
+@@ -320,6 +321,12 @@ public class CompleteMinecraftVersion implements CompleteVersion {
+                 var5.jar = this.jar;
+             }
+ 
++            // olauncher start - copy asset index
++            if (this.assetIndex != null) {
++                var5.assetIndex = assetIndex;
++            }
++            // olauncher end
++
+             if (this.libraries != null) {
+                 ArrayList var6 = Lists.newArrayList();
+                 Iterator var7 = this.libraries.iterator();
+-- 
+2.35.1
+
