@@ -1,11 +1,11 @@
-From a27f9a92239fea269b3d7f02328d5e143def6444 Mon Sep 17 00:00:00 2001
+From ec5c7deebded3c8a7124f555305af1ad749e9bfb Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot3132@gmail.com>
 Date: Wed, 9 Nov 2022 02:59:04 -0600
 Subject: [PATCH] Fix newer versions of forge failing to launch
 
 
 diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
-index bc607d1..4f587b7 100644
+index bc607d1..60b3d41 100644
 --- a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
 +++ b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
 @@ -337,6 +337,9 @@ public class MinecraftGameRunner extends AbstractGameRunner implements GameProce
@@ -13,7 +13,7 @@ index bc607d1..4f587b7 100644
          }
  
 +        // olauncher - add library directory replacement
-+        var6.put("library_directory", new File(minecraftLauncher.getLauncher().getWorkingDirectory(), "libraries"));
++        var6.put("library_directory", new File(minecraftLauncher.getLauncher().getWorkingDirectory(), "libraries").getAbsolutePath());
 +
          return new StrSubstitutor(var6);
      }
