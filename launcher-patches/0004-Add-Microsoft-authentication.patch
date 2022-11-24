@@ -1,4 +1,4 @@
-From 55c2d1f405670b027105a69234248fc96f3f9e4e Mon Sep 17 00:00:00 2001
+From d36da410cda7cfa31df1cd1dc39e41150640ad04 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 17 Mar 2022 04:40:30 -0500
 Subject: [PATCH] Add Microsoft authentication
@@ -558,7 +558,7 @@ index 0000000..de4725c
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 new file mode 100644
-index 0000000..1df535c
+index 0000000..632af6a
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 @@ -0,0 +1,277 @@
@@ -658,11 +658,11 @@ index 0000000..1df535c
 +        String msAuthCode = msLoginRes == null ? null : this.msLoginRes.getCode();
 +        this.msLoginRes = null;
 +
-+        Instant now = Instant.now();
-+        if (mojTokenValid(now)) {
++        Instant later = Instant.now().plus(6, ChronoUnit.HOURS);
++        if (mojTokenValid(later)) {
 +            LOGGER.info("Mojang token valid, fetching profile...");
 +            profileLogIn();
-+        } else if (xblTokenValid(now)) {
++        } else if (xblTokenValid(later)) {
 +            LOGGER.info("XBL token valid, logging in...");
 +            xstsAndMinecraftLogIn(null);
 +            profileLogIn();

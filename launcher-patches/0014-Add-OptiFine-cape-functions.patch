@@ -1,11 +1,11 @@
-From 7c8ad783f0f0b08f3f460460139abb40925bd891 Mon Sep 17 00:00:00 2001
+From 316b7303217f6a91f366a572ba193b3c37634057 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Tue, 26 Apr 2022 00:50:05 -0500
 Subject: [PATCH] Add OptiFine cape functions
 
 
 diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
-index 12a19ff..b265375 100644
+index 923af20..238f301 100644
 --- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 +++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 @@ -37,7 +37,18 @@ import org.apache.commons.lang3.StringUtils;
