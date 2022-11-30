@@ -1,4 +1,4 @@
-From aeb798601c414d479b8401b6ddd17ff36b3ff8ee Mon Sep 17 00:00:00 2001
+From 984a2c572f42363b68b4a43f18c545ad81047d0e Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot3132@gmail.com>
 Date: Tue, 21 Jun 2022 16:46:46 -0500
 Subject: [PATCH] Escape quotes in argument lists on Windows

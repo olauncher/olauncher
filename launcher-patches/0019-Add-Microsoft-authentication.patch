@@ -1,0 +1,167 @@
+From 17c951e785c5bb7cefdc2308bd4451d8dc3d6eb1 Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot@figboot.dev>
+Date: Thu, 17 Mar 2022 04:40:30 -0500
+Subject: [PATCH] Add Microsoft authentication
+
+
+diff --git a/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog2.java b/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog2.java
+new file mode 100644
+index 0000000..97e9988
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog2.java
+@@ -0,0 +1,152 @@
++/*
++ * OLauncher
++ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see https://github.com/olauncher/olauncher .
++ */
++
++package dev.figboot.olauncher.auth.ui;
++
++import com.mojang.authlib.UserAuthentication;
++import com.sun.javafx.webkit.WebConsoleListener;
++import dev.figboot.olauncher.OLauncherConstants;
++import javafx.application.Platform;
++import javafx.embed.swing.JFXPanel;
++import javafx.scene.Group;
++import javafx.scene.Scene;
++import javafx.scene.web.WebEngine;
++import javafx.scene.web.WebView;
++import org.apache.commons.io.IOUtils;
++
++import javax.swing.*;
++import java.awt.*;
++import java.awt.event.ComponentAdapter;
++import java.awt.event.ComponentEvent;
++import java.io.*;
++import java.net.*;
++import java.nio.charset.StandardCharsets;;
++import java.util.UUID;
++
++public class MSLoginDialog2 extends JDialog {
++    private final UserAuthentication auth;
++
++    private WebView webView;
++    private WebEngine engine;
++
++    private final UUID stateId = UUID.randomUUID();
++
++    public MSLoginDialog2(UserAuthentication auth) {
++        this.auth = auth;
++        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
++    }
++
++    public void init() {
++        Platform.runLater(() -> {
++            JFXPanel panel = new JFXPanel();
++            Group group = new Group();
++            Scene scene = new Scene(group);
++
++            webView = new WebView();
++            engine = webView.getEngine();
++            webView.setVisible(true);
++            webView.setContextMenuEnabled(false);
++            webView.getEngine().setUserAgent("OLauncher/1.6.93");
++
++            WebConsoleListener.setDefaultListener(new WebConsoleListener() {
++                @Override
++                public void messageAdded(WebView webView, String s, int i, String s1) {
++                    System.out.println("Console: [" + i + ":" + s1 + "] " + s);
++                }
++            });
++            engine.titleProperty().addListener((observableValue, s, newValue) -> SwingUtilities.invokeLater(() -> setTitle(newValue)));
++            engine.locationProperty().addListener((val, s, newVal) -> {
++                System.out.println(newVal);
++            });
++            engine.getLoadWorker().exceptionProperty().addListener((val, s, newVal) -> {
++                newVal.printStackTrace();
++            });
++
++            group.getChildren().add(webView);
++            group.setVisible(true);
++            panel.setScene(scene);
++
++            SwingUtilities.invokeLater(() -> {
++                setModal(true);
++                setModalityType(ModalityType.APPLICATION_MODAL);
++                setLocationByPlatform(true);
++                setSize(new Dimension(800, 600));
++
++                setLayout(new BorderLayout());
++                add(panel, BorderLayout.CENTER);
++
++                resizeWebView(getContentPane().getSize());
++
++                getContentPane().addComponentListener(new ComponentAdapter() {
++                    @Override
++                    public void componentResized(ComponentEvent e) {
++                        resizeWebView(e.getComponent().getSize());
++                    }
++                });
++
++                //try {
++                    //loadURL("https://html5test.com");
++                    /*loadURL(String.format("https://login.live.com/oauth20_authorize.srf?client_id=%s&response_type=code&redirect_uri=%s&scope=%s&state=%s",
++                            URLEncoder.encode(OLauncherConstants.APP_CLIENT_ID.toString(), "UTF-8"),
++                            URLEncoder.encode(OLauncherConstants.REDIR_URI, "UTF-8"),
++                            URLEncoder.encode(OLauncherConstants.APP_SCOPES, "UTF-8"),
++                            URLEncoder.encode(stateId.toString(), "UTF-8")
++                    ));*/
++                    loadURL(OLauncherConstants.MC_LOGIN_URL);
++                //} catch (UnsupportedEncodingException ex) {
++                //    throw new RuntimeException(ex);
++                //}
++
++                setVisible(true);
++            });
++        });
++    }
++
++    private void resizeWebView(Dimension dim) {
++        Platform.runLater(() -> {
++            webView.setMaxSize(dim.getWidth(), dim.getHeight());
++            webView.setMinSize(dim.getWidth(), dim.getHeight());
++            webView.setPrefSize(dim.getWidth(), dim.getHeight());
++        });
++    }
++
++    private void loadURL(String url) {
++        Thread t = new Thread(() -> {
++            try {
++                URL urlObj = new URL(url);
++                HttpURLConnection conn = (HttpURLConnection)urlObj.openConnection();
++                conn.addRequestProperty("User-Agent", "OLauncher/1.6.93");
++                try (InputStream is = conn.getInputStream()) {
++                    String s = IOUtils.toString(is, StandardCharsets.UTF_8);
++
++                    Platform.runLater(() -> {
++                        engine.setJavaScriptEnabled(true);
++                        engine.loadContent(s.replace("integrity", "integrity_"));
++                    });
++                }
++            } catch (Exception ex) {
++                throw new RuntimeException(ex);
++            }
++        });
++        t.start();
++    }
++
++    static {
++        new JFXPanel();
++    }
++}
+-- 
+2.35.1
+

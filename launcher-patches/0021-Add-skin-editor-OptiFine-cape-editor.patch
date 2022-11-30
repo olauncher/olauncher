@@ -1,11 +1,11 @@
-From 88b4218bfd64823e4a6963ae11ba94a4fe3a2805 Mon Sep 17 00:00:00 2001
+From e1e825e5f6a37a17316bfdcdbefa1b2341a3da7f Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Tue, 26 Apr 2022 01:03:39 -0500
 Subject: [PATCH] Add skin editor + OptiFine cape editor
 
 
 diff --git a/pom.xml b/pom.xml
-index b8a1b9a..cae8c68 100644
+index bebdb18..42eae19 100644
 --- a/pom.xml
 +++ b/pom.xml
 @@ -299,6 +299,44 @@
@@ -95,7 +95,7 @@ index b9a8ab6..0785a71 100644
      public String toString() {
          return "MCProfileInfo{" +
 diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
-index b265375..8421bc0 100644
+index 238f301..0f8ecda 100644
 --- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 +++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 @@ -209,8 +209,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
