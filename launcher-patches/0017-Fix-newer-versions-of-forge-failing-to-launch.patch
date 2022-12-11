@@ -1,4 +1,4 @@
-From a9647a687aaf69be5031c902f989ff2204cd48f2 Mon Sep 17 00:00:00 2001
+From 76eac1ec37ed918e9e200e07b89f45ad93e8cefa Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot3132@gmail.com>
 Date: Wed, 9 Nov 2022 02:59:04 -0600
 Subject: [PATCH] Fix newer versions of forge failing to launch
@@ -32,7 +32,7 @@ index 528caf8..d5560e6 100644
          } else {
              CompatibilityRule.Action var2 = CompatibilityRule.Action.DISALLOW;
 diff --git a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
-index 3f95163..6d83c85 100644
+index acb4ee0..352a9d7 100644
 --- a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
 +++ b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
 @@ -74,6 +74,7 @@ public class CompleteMinecraftVersion implements CompleteVersion {

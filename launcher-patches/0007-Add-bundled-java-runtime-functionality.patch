@@ -1,4 +1,4 @@
-From 29b79c54a9f73674e1e6f514f1807d4c79b1281a Mon Sep 17 00:00:00 2001
+From 4ab675f9a83a9da5bbe19e1a6583a62adeea17c5 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Sat, 26 Mar 2022 15:24:44 -0500
 Subject: [PATCH] Add bundled java runtime functionality
@@ -223,10 +223,10 @@ index 67728f6..e88d992 100644
  }
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/JavaVersionInfo.java b/src/main/java/dev/figboot/olauncher/launcher/JavaVersionInfo.java
 new file mode 100644
-index 0000000..61c8411
+index 0000000..14ddc9a
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/JavaVersionInfo.java
-@@ -0,0 +1,33 @@
+@@ -0,0 +1,41 @@
 +/*
 + * OLauncher
 + * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
@@ -250,6 +250,8 @@ index 0000000..61c8411
 +import lombok.Getter;
 +
 +public class JavaVersionInfo {
++    public static final JavaVersionInfo DEFAULT;
++
 +    @Getter private String component;
 +    @Getter private int majorVersion;
 +
@@ -258,6 +260,12 @@ index 0000000..61c8411
 +    public JavaVersionInfo(JavaVersionInfo other) {
 +        this.component = other.component;
 +        this.majorVersion = other.majorVersion;
++    }
++
++    static {
++        DEFAULT = new JavaVersionInfo();
++        DEFAULT.component = "jre-legacy";
++        DEFAULT.majorVersion = 8;
 +    }
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/JavaRuntimeManager.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/JavaRuntimeManager.java
@@ -1154,10 +1162,10 @@ index 06e506a..4731988 100644
                      SwingUserInterface.LOGGER.info("Termination took too long.");
                  }
 diff --git a/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
-index 74aeaaa..066ecb4 100644
+index a4b4e50..4349e7d 100644
 --- a/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
 +++ b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
-@@ -117,7 +117,7 @@ public class GameLaunchDispatcher implements GameRunnerListener {
+@@ -119,7 +119,7 @@ public class GameLaunchDispatcher implements GameRunnerListener {
  
                  var5.setStatus(GameInstanceStatus.IDLE);
                  var5.addListener(GameLaunchDispatcher.this);
@@ -1256,7 +1264,7 @@ index e510a79..c752284 100644
          }
  
 diff --git a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
-index 9d786d5..3f95163 100644
+index 9d786d5..acb4ee0 100644
 --- a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
 +++ b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
 @@ -25,6 +25,9 @@ import java.util.List;
@@ -1273,7 +1281,7 @@ index 9d786d5..3f95163 100644
      private AssetIndexInfo assetIndex;
      private Map<ArgumentType, List<Argument>> arguments;
  
-+    @Getter private JavaVersionInfo javaVersion; // olauncher - add java version
++    private JavaVersionInfo javaVersion; // olauncher - add java version
 +
      public CompleteMinecraftVersion() {
      }
@@ -1297,6 +1305,17 @@ index 9d786d5..3f95163 100644
              return var5;
          }
      }
+@@ -435,4 +445,10 @@ public class CompleteMinecraftVersion implements CompleteVersion {
+         }
+ 
+     }
++
++    // olauncher start - add java version info getter
++    public JavaVersionInfo getJavaVersion() {
++        return javaVersion == null ? JavaVersionInfo.DEFAULT : javaVersion;
++    }
++    // olauncher end
+ }
 -- 
 2.35.1
 

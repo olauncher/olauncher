@@ -1,0 +1,45 @@
+From a16582ede5f20781edfebac16335893ba9ebcc5b Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot3132@gmail.com>
+Date: Sat, 10 Dec 2022 19:58:24 -0600
+Subject: [PATCH] Add custom release type
+
+
+diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftReleaseType.java b/src/main/java/net/minecraft/launcher/game/MinecraftReleaseType.java
+index 01b10da..df55cae 100644
+--- a/src/main/java/net/minecraft/launcher/game/MinecraftReleaseType.java
++++ b/src/main/java/net/minecraft/launcher/game/MinecraftReleaseType.java
+@@ -7,6 +7,7 @@ import java.util.Map;
+ public enum MinecraftReleaseType implements ReleaseType {
+     SNAPSHOT("snapshot", "Enable experimental development versions (\"snapshots\")"),
+     RELEASE("release", (String)null),
++    CUSTOM("custom", "Enable versions with custom release types"), /* olauncher - add default release type */
+     OLD_BETA("old_beta", "Allow use of old \"Beta\" Minecraft versions (From 2010-2011)"),
+     OLD_ALPHA("old_alpha", "Allow use of old \"Alpha\" Minecraft versions (From 2010)");
+ 
+@@ -42,7 +43,7 @@ public enum MinecraftReleaseType implements ReleaseType {
+     }
+ 
+     public static MinecraftReleaseType getByName(String var0) {
+-        return (MinecraftReleaseType)LOOKUP.get(var0);
++        return (MinecraftReleaseType)LOOKUP.getOrDefault(var0, CUSTOM); /* olauncher - add default release type */
+     }
+ 
+     static {
+diff --git a/src/main/java/net/minecraft/launcher/profile/Profile.java b/src/main/java/net/minecraft/launcher/profile/Profile.java
+index fdd24fc..a88b0b3 100644
+--- a/src/main/java/net/minecraft/launcher/profile/Profile.java
++++ b/src/main/java/net/minecraft/launcher/profile/Profile.java
+@@ -148,7 +148,9 @@ public class Profile implements Comparable<Profile> {
+ 
+     static {
+         DEFAULT_LAUNCHER_VISIBILITY = LauncherVisibilityRule.CLOSE_LAUNCHER;
+-        DEFAULT_RELEASE_TYPES = Sets.newHashSet(new MinecraftReleaseType[]{MinecraftReleaseType.RELEASE});
++
++        // olauncher - make custom release type default
++        DEFAULT_RELEASE_TYPES = Sets.newHashSet(new MinecraftReleaseType[]{MinecraftReleaseType.RELEASE, MinecraftReleaseType.CUSTOM});
+     }
+ 
+     public static class Resolution {
+-- 
+2.35.1
+
