@@ -1,11 +1,11 @@
-From bcd036579a39e2377398501441626c11a18e2b5d Mon Sep 17 00:00:00 2001
+From b4b502ca3237a6cd404b4374d8350a586f287f57 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Tue, 26 Apr 2022 00:50:05 -0500
 Subject: [PATCH] Add OptiFine cape functions
 
 
 diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
-index 923af20..238f301 100644
+index 923af20..6ce08d7 100644
 --- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 +++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 @@ -37,7 +37,18 @@ import org.apache.commons.lang3.StringUtils;
@@ -44,7 +44,7 @@ index 923af20..238f301 100644
 +        try {
 +            refreshOptiFineCape();
 +        } catch (IOException ex) {
-+            throw new AuthenticationException("IO error while loading OptiFine cape");
++            throw new AuthenticationException("IO error while loading OptiFine cape", ex);
 +        }
 +    }
 +
@@ -96,5 +96,5 @@ index 923af20..238f301 100644
  
      public MCProfileInfo getProfileInfo() {
 -- 
-2.35.1
+2.39.0
 

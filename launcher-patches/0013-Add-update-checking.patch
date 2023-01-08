@@ -1,4 +1,4 @@
-From dc5bfd18989301f25df4b021dae3efbe4debdccc Mon Sep 17 00:00:00 2001
+From 25af4239d95ef926f1665f036779a6dfa2ea9fa8 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Wed, 13 Apr 2022 04:56:22 -0500
 Subject: [PATCH] Add update checking
@@ -512,5 +512,5 @@ index 1ed2f8f..a9aeefa 100644
      }
  
 -- 
-2.35.1
+2.39.0
 

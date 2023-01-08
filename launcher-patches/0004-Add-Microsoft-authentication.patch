@@ -1,4 +1,4 @@
-From 1861efcf6552284e95f10245597b36eabac7c41c Mon Sep 17 00:00:00 2001
+From 9e2324546157fdff62305f4584cb222d0874e6c7 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 17 Mar 2022 04:40:30 -0500
 Subject: [PATCH] Add Microsoft authentication
@@ -1784,5 +1784,5 @@ index b1484fa..720caf7 100644
 \ No newline at end of file
 +</Configuration>
 -- 
-2.35.1
+2.39.0
 
