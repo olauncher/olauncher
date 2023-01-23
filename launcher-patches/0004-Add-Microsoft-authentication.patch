@@ -1,4 +1,4 @@
-From 9e2324546157fdff62305f4584cb222d0874e6c7 Mon Sep 17 00:00:00 2001
+From d55a8ce15deda568b14c6939724f262fe8aa839f Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 17 Mar 2022 04:40:30 -0500
 Subject: [PATCH] Add Microsoft authentication
