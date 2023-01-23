@@ -1,0 +1,44 @@
+From edbdafaefcc5fb684e1214232400bba148ff3d23 Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot3132@gmail.com>
+Date: Mon, 23 Jan 2023 10:11:14 -0600
+Subject: [PATCH] Fix resources not downloading
+
+
+diff --git a/src/main/java/net/minecraft/launcher/LauncherConstants.java b/src/main/java/net/minecraft/launcher/LauncherConstants.java
+index 2776ab5..41fc5fc 100644
+--- a/src/main/java/net/minecraft/launcher/LauncherConstants.java
++++ b/src/main/java/net/minecraft/launcher/LauncherConstants.java
+@@ -19,7 +19,7 @@ public class LauncherConstants {
+     public static final int PROFILES_FORMAT = 1;
+     public static final URI URL_REGISTER = constantURI("https://account.mojang.com/register");
+     public static final String URL_JAR_FALLBACK = "https://s3.amazonaws.com/Minecraft.Download/";
+-    public static final String URL_RESOURCE_BASE = "http://resources.download.minecraft.net/";
++    public static final String URL_RESOURCE_BASE = "https://resources.download.minecraft.net/";
+     public static final String URL_LIBRARY_BASE = "https://libraries.minecraft.net/";
+     public static final String URL_BLOG = "https://olauncher.github.io/news";
+     public static final String URL_SUPPORT = "http://help.mojang.com/?ref=launcher";
+diff --git a/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java b/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java
+index de78e0e..30d2fa0 100644
+--- a/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java
++++ b/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java
+@@ -35,6 +35,8 @@ import java.util.Set;
+ import java.util.Map.Entry;
+ import java.util.concurrent.ThreadPoolExecutor;
+ import java.util.concurrent.TimeUnit;
++
++import net.minecraft.launcher.LauncherConstants;
+ import net.minecraft.launcher.game.MinecraftReleaseType;
+ import org.apache.commons.io.FileUtils;
+ import org.apache.commons.io.IOUtils;
+@@ -330,7 +332,7 @@ public class MinecraftVersionManager implements VersionManager {
+                     var20 = new File(var7, var19);
+                 } while(var20.isFile() && FileUtils.sizeOf(var20) == var18.getSize());
+ 
+-                AssetDownloadable var21 = new AssetDownloadable(var1, (String)var17.getValue(), var18, "http://resources.download.minecraft.net/", var7);
++                AssetDownloadable var21 = new AssetDownloadable(var1, (String)var17.getValue(), var18, LauncherConstants.URL_RESOURCE_BASE, var7);
+                 var21.setExpectedSize(var18.getSize());
+                 var4.add(var21);
+             }
+-- 
+2.39.0
+
