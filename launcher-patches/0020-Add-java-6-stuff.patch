@@ -1,0 +1,1619 @@
+From de18fd269f4c04c5474c17ba11eee7038802a2c4 Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot3132@gmail.com>
+Date: Thu, 2 Mar 2023 18:43:59 -0600
+Subject: [PATCH] Add java 6 stuff
+
+
+diff --git a/pom.xml b/pom.xml
+index 523ab74..486bf7a 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -25,8 +25,8 @@
+                 <artifactId>maven-compiler-plugin</artifactId>
+                 <version>3.8.0</version>
+                 <configuration>
+-                    <source>1.8</source>
+-                    <target>1.8</target>
++                    <source>1.6</source>
++                    <target>1.6</target>
+                 </configuration>
+             </plugin>
+             <plugin>
+@@ -85,9 +85,9 @@
+                 </dependencies>
+             </plugin>
+             <plugin>
+-                <groupId>io.github.git-commit-id</groupId>
+-                <artifactId>git-commit-id-maven-plugin</artifactId>
+-                <version>5.0.0</version>
++                <groupId>pl.project13.maven</groupId>
++                <artifactId>git-commit-id-plugin</artifactId>
++                <version>2.1.15</version>
+                 <executions>
+                     <execution>
+                         <id>inner-repo</id>
+@@ -219,5 +219,11 @@
+             <version>1.18.22</version>
+             <scope>provided</scope>
+         </dependency>
++        <dependency> <!-- for java 8 date shenanigans -->
++            <groupId>org.threeten</groupId>
++            <artifactId>threetenbp</artifactId>
++            <version>1.6.5</version>
++            <scope>compile</scope>
++        </dependency>
+     </dependencies>
+ </project>
+diff --git a/src/main/java/com/mojang/launcher/game/runner/AbstractGameRunner.java b/src/main/java/com/mojang/launcher/game/runner/AbstractGameRunner.java
+index d9c609c..c4025f4 100644
+--- a/src/main/java/com/mojang/launcher/game/runner/AbstractGameRunner.java
++++ b/src/main/java/com/mojang/launcher/game/runner/AbstractGameRunner.java
+@@ -9,6 +9,8 @@ import com.mojang.launcher.updater.download.DownloadJob;
+ import com.mojang.launcher.updater.download.DownloadListener;
+ import com.mojang.launcher.updater.download.Downloadable;
+ import com.mojang.launcher.versions.CompleteVersion;
++
++import java.io.File;
+ import java.io.IOException;
+ import java.nio.file.Path;
+ import java.util.ArrayList;
+@@ -31,7 +33,7 @@ public abstract class AbstractGameRunner implements GameRunner, DownloadListener
+     private GameInstanceStatus status;
+     private final List<GameRunnerListener> listeners;
+ 
+-    @Getter(AccessLevel.PROTECTED) private Path bundledRuntimeDir; // olauncher - add bundled runtime directory
++    @Getter(AccessLevel.PROTECTED) private File bundledRuntimeDir; // olauncher - add bundled runtime directory
+ 
+     public AbstractGameRunner() {
+         this.status = GameInstanceStatus.IDLE;
+@@ -143,8 +145,8 @@ public abstract class AbstractGameRunner implements GameRunner, DownloadListener
+ 
+     // olauncher start - java runtime functions
+     private void ensureRuntime() throws IOException {
+-        JavaRuntimeManager jreManager = getLauncher().getJreManager();
+-        String component = version.getJavaVersion().getComponent();
++        final JavaRuntimeManager jreManager = getLauncher().getJreManager();
++        final String component = version.getJavaVersion().getComponent();
+         List<RuntimesManifest.Runtime> runtimes = jreManager.getRuntimes(component);
+ 
+         if (runtimes.size() == 0) {
+@@ -158,7 +160,7 @@ public abstract class AbstractGameRunner implements GameRunner, DownloadListener
+             }
+         }
+ 
+-        RuntimesManifest.Runtime runtime = runtimes.get(0);
++        final RuntimesManifest.Runtime runtime = runtimes.get(0);
+         if (!jreManager.shouldDownloadRuntime(component, runtime)) {
+             bundledRuntimeDir = jreManager.getJavaExecutable(component);
+             return; // the runtime is up-to-date! :)
+diff --git a/src/main/java/com/mojang/launcher/updater/LowerCaseEnumTypeAdapterFactory.java b/src/main/java/com/mojang/launcher/updater/LowerCaseEnumTypeAdapterFactory.java
+index d15c531..26f9e4f 100644
+--- a/src/main/java/com/mojang/launcher/updater/LowerCaseEnumTypeAdapterFactory.java
++++ b/src/main/java/com/mojang/launcher/updater/LowerCaseEnumTypeAdapterFactory.java
+@@ -21,7 +21,7 @@ public class LowerCaseEnumTypeAdapterFactory implements TypeAdapterFactory {
+         if (!var3.isEnum()) {
+             return null;
+         } else {
+-            final HashMap<String, T> var4 = new HashMap<>();
++            final HashMap<String, T> var4 = new HashMap<String, T>();
+             T[] var5 = (T[])var3.getEnumConstants();
+             int var6 = var5.length;
+ 
+diff --git a/src/main/java/com/mojang/util/QueueLogAppender.java b/src/main/java/com/mojang/util/QueueLogAppender.java
+index 8928e0c..0a70846 100644
+--- a/src/main/java/com/mojang/util/QueueLogAppender.java
++++ b/src/main/java/com/mojang/util/QueueLogAppender.java
+@@ -56,7 +56,7 @@ public class QueueLogAppender extends AbstractAppender {
+             QUEUE_LOCK.writeLock().lock();
+             BlockingQueue<String> var6 = QUEUES.get(var4); // olauncher - fix type
+             if (var6 == null) {
+-                var6 = new LinkedBlockingQueue<>(); // olauncher - fix generic
++                var6 = new LinkedBlockingQueue<String>(); // olauncher - fix generic
+                 QUEUES.put(var4, var6);
+             }
+ 
+diff --git a/src/main/java/dev/figboot/olauncher/auth/MSLoginServer.java b/src/main/java/dev/figboot/olauncher/auth/MSLoginServer.java
+index 0728a4d..8b79d93 100644
+--- a/src/main/java/dev/figboot/olauncher/auth/MSLoginServer.java
++++ b/src/main/java/dev/figboot/olauncher/auth/MSLoginServer.java
+@@ -45,12 +45,12 @@ public class MSLoginServer {
+     private final int port;
+ 
+     private final Thread serverThread;
+-    private final Consumer<Response> handleComplete;
++    private final Callback handleComplete;
+ 
+     private final Object handlerSync = new Object();
+     private boolean handlerCalled;
+ 
+-    public MSLoginServer(InetAddress addr, int port, Consumer<Response> handleComplete) throws IOException {
++    public MSLoginServer(InetAddress addr, int port, final Callback handleComplete) throws IOException {
+         handlerCalled = false;
+ 
+         running = false;
+@@ -65,30 +65,32 @@ public class MSLoginServer {
+         sock.setReuseAddress(true);
+         sock.setSoTimeout(500);
+ 
+-        serverThread = new Thread(() -> {
+-            try {
+-                handle();
+-                LOGGER.info("Server thread complete");
+-            } catch (IOException ex) {
+-                LOGGER.warn("I/O error when listening for authentication responses");
+-                LOGGER.warn(ex.getClass().getName() + ": " + ex.getMessage());
+-            } catch (Exception ex) {
+-                LOGGER.error("Error when listening for authentication responses");
+-                ex.printStackTrace();
+-            } finally {
+-                synchronized (handlerSync) {
+-                    if (!handlerCalled) handleComplete.accept(new Response(null, null, null));
+-                    handlerCalled = true;
+-                }
+-
++        serverThread = new Thread() {
++            public void run() {
+                 try {
+-                    if (sock != null) sock.close();
++                    handle();
++                    LOGGER.info("Server thread complete");
+                 } catch (IOException ex) {
+-                    LOGGER.error("Error when closing server socket:");
++                    LOGGER.warn("I/O error when listening for authentication responses");
++                    LOGGER.warn(ex.getClass().getName() + ": " + ex.getMessage());
++                } catch (Exception ex) {
++                    LOGGER.error("Error when listening for authentication responses");
+                     ex.printStackTrace();
++                } finally {
++                    synchronized (handlerSync) {
++                        if (!handlerCalled) handleComplete.accept(new Response(null, null, null));
++                        handlerCalled = true;
++                    }
++
++                    try {
++                        if (sock != null) sock.close();
++                    } catch (IOException ex) {
++                        LOGGER.error("Error when closing server socket:");
++                        ex.printStackTrace();
++                    }
+                 }
+             }
+-        });
++        };
+     }
+ 
+     public void listen() {
+@@ -133,7 +135,8 @@ public class MSLoginServer {
+                 continue;
+             }
+ 
+-            try (InputStream is = client.getInputStream()) {
++            InputStream is = client.getInputStream();
++            try {
+                 BufferedReader br = new BufferedReader(new InputStreamReader(is));
+                 String line;
+                 Matcher matcher;
+@@ -141,8 +144,8 @@ public class MSLoginServer {
+                     if ((matcher = GET_RQ_PATTERN.matcher(line)).matches()) {
+                         String code = matcher.group(1);
+                         LOGGER.info("GET request received (/)");
+-                        client.getOutputStream().write("HTTP/1.1 301 Moved Permanently\r\n".getBytes(StandardCharsets.UTF_8));
+-                        client.getOutputStream().write("Location: /authComplete\r\n\r\n".getBytes(StandardCharsets.UTF_8));
++                        client.getOutputStream().write("HTTP/1.1 301 Moved Permanently\r\n".getBytes("UTF-8"));
++                        client.getOutputStream().write("Location: /authComplete\r\n\r\n".getBytes("UTF-8"));
+ 
+                         synchronized (handlerSync) {
+                             if (!handlerCalled) handleComplete.accept(new Response(code, null, null));
+@@ -156,10 +159,10 @@ public class MSLoginServer {
+                         String errorDesc = URLDecoder.decode(matcher.group(2), "UTF-8");
+ 
+                         String content = "The authorization has been cancelled. You may now close this window.";
+-                        byte[] contentBytes = content.getBytes(StandardCharsets.UTF_8);
+-                        client.getOutputStream().write("HTTP/1.1 200 OK\r\n".getBytes(StandardCharsets.UTF_8));
+-                        client.getOutputStream().write("Content-type: text/plain\r\n".getBytes(StandardCharsets.UTF_8));
+-                        client.getOutputStream().write(("Content-length: " + contentBytes.length + "\r\n\r\n").getBytes(StandardCharsets.UTF_8));
++                        byte[] contentBytes = content.getBytes("UTF-8");
++                        client.getOutputStream().write("HTTP/1.1 200 OK\r\n".getBytes("UTF-8"));
++                        client.getOutputStream().write("Content-type: text/plain\r\n".getBytes("UTF-8"));
++                        client.getOutputStream().write(("Content-length: " + contentBytes.length + "\r\n\r\n").getBytes("UTF-8"));
+                         client.getOutputStream().write(contentBytes);
+ 
+                         synchronized (stateVarLock) {
+@@ -175,10 +178,10 @@ public class MSLoginServer {
+                     } else if ((matcher = AUTH_COMPLETE_PATTERN.matcher(line)).matches()) {
+                         LOGGER.info("GET request received (/authComplete)");
+                         String content = "The code has been received. You may now close this window.";
+-                        byte[] contentBytes = content.getBytes(StandardCharsets.UTF_8);
+-                        client.getOutputStream().write("HTTP/1.1 200 OK\r\n".getBytes(StandardCharsets.UTF_8));
+-                        client.getOutputStream().write("Content-type: text/plain\r\n".getBytes(StandardCharsets.UTF_8));
+-                        client.getOutputStream().write(("Content-length: " + contentBytes.length + "\r\n\r\n").getBytes(StandardCharsets.UTF_8));
++                        byte[] contentBytes = content.getBytes("UTF-8");
++                        client.getOutputStream().write("HTTP/1.1 200 OK\r\n".getBytes("UTF-8"));
++                        client.getOutputStream().write("Content-type: text/plain\r\n".getBytes("UTF-8"));
++                        client.getOutputStream().write(("Content-length: " + contentBytes.length + "\r\n\r\n").getBytes("UTF-8"));
+                         client.getOutputStream().write(contentBytes);
+ 
+                         synchronized (stateVarLock) {
+@@ -192,9 +195,11 @@ public class MSLoginServer {
+ 
+                         break;
+                     } else {
+-                        client.getOutputStream().write("HTTP/1.1 404 Not Found\r\n\r\n".getBytes(StandardCharsets.UTF_8));
++                        client.getOutputStream().write("HTTP/1.1 404 Not Found\r\n\r\n".getBytes("UTF-8"));
+                     }
+                 }
++            } finally {
++                if (is != null) is.close();
+             }
+         }
+     }
+@@ -227,4 +232,8 @@ public class MSLoginServer {
+                     '}';
+         }
+     }
++
++    public interface Callback {
++        void accept(MSLoginServer.Response response);
++    }
+ }
+diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java
+index de4725c..b87560b 100644
+--- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java
++++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java
+@@ -27,13 +27,13 @@ import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
+ import dev.figboot.olauncher.auth.responses.MSResponse;
+ import dev.figboot.olauncher.util.BetterUUIDTypeAdapter;
+ import dev.figboot.olauncher.util.InstantTypeAdapter;
++import org.threeten.bp.Instant;
+ 
+ import java.io.IOException;
+ import java.io.UnsupportedEncodingException;
+ import java.net.Proxy;
+ import java.net.URL;
+ import java.net.URLEncoder;
+-import java.time.Instant;
+ import java.util.UUID;
+ 
+ public class MicrosoftAuthenticationService extends YggdrasilAuthenticationService {
+diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
+index 6ce08d7..3c6c4b6 100644
+--- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
++++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
+@@ -33,9 +33,12 @@ import dev.figboot.olauncher.auth.responses.MinecraftXboxLoginResponse;
+ import dev.figboot.olauncher.auth.responses.XSTSAuthResponse;
+ import dev.figboot.olauncher.auth.responses.XboxLiveAuthResponse;
+ import lombok.Getter;
++import org.apache.commons.codec.binary.Base64;
+ import org.apache.commons.lang3.StringUtils;
+ import org.apache.logging.log4j.LogManager;
+ import org.apache.logging.log4j.Logger;
++import org.threeten.bp.Instant;
++import org.threeten.bp.temporal.ChronoUnit;
+ 
+ import javax.imageio.ImageIO;
+ import java.awt.image.BufferedImage;
+@@ -43,15 +46,9 @@ import java.io.IOException;
+ import java.io.InputStream;
+ import java.io.UnsupportedEncodingException;
+ import java.math.BigInteger;
+-import java.net.HttpURLConnection;
+-import java.net.MalformedURLException;
+-import java.net.URL;
+-import java.net.URLEncoder;
++import java.net.*;
+ import java.nio.charset.StandardCharsets;
+ import java.security.SecureRandom;
+-import java.time.Instant;
+-import java.time.temporal.ChronoUnit;
+-import java.util.Base64;
+ import java.util.Map;
+ 
+ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -202,9 +199,13 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+ 
+         // Extract xuid from mojToken (JWT)
+ 
+-        JsonElement elem = JsonParser.parseString(new String(Base64.getUrlDecoder().decode(mojToken.split("\\.")[1].getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8));
+-        JsonObject root = elem.getAsJsonObject();
+-        this.xuid = root.get("xuid").getAsString();
++        try {
++            byte[] bytes = Base64.decodeBase64(URLDecoder.decode(mojToken.split("\\.")[1], "UTF-8"));
++            JsonElement elem = JsonParser.parseString(new String(bytes, "UTF-8"));
++            JsonObject root = elem.getAsJsonObject();
++            this.xuid = root.get("xuid").getAsString();
++        } catch (UnsupportedEncodingException ignored) {
++        }
+     }
+ 
+     private void profileLogIn() throws AuthenticationException {
+@@ -245,8 +246,11 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+             return;
+         }
+ 
+-        try (InputStream is = conn.getInputStream()) {
++        InputStream is = conn.getInputStream();
++        try {
+             ofCape = ImageIO.read(is);
++        } finally {
++            if (is != null) is.close();
+         }
+     }
+ 
+diff --git a/src/main/java/dev/figboot/olauncher/auth/responses/XboxLiveAuthResponse.java b/src/main/java/dev/figboot/olauncher/auth/responses/XboxLiveAuthResponse.java
+index 3fd4d79..c626572 100644
+--- a/src/main/java/dev/figboot/olauncher/auth/responses/XboxLiveAuthResponse.java
++++ b/src/main/java/dev/figboot/olauncher/auth/responses/XboxLiveAuthResponse.java
+@@ -18,7 +18,8 @@
+ 
+ package dev.figboot.olauncher.auth.responses;
+ 
+-import java.time.Instant;
++import org.threeten.bp.Instant;
++
+ import java.util.List;
+ 
+ public class XboxLiveAuthResponse extends MSResponse {
+diff --git a/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog.java b/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog.java
+index 83bd084..9b066a1 100644
+--- a/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog.java
++++ b/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog.java
+@@ -28,6 +28,7 @@ import javax.swing.*;
+ import java.awt.*;
+ import java.awt.datatransfer.StringSelection;
+ import java.awt.event.ActionEvent;
++import java.awt.event.ActionListener;
+ import java.awt.event.WindowAdapter;
+ import java.awt.event.WindowEvent;
+ import java.io.IOException;
+@@ -45,9 +46,10 @@ public class MSLoginDialog extends JDialog {
+     private final String link;
+ 
+     private MSLoginServer loginServer;
+-    private final Consumer<MSLoginServer.Response> callback;
++    private final MSLoginServer.Callback serverResponseHandler = new ServerResponseHandler();
++    private final MSLoginServer.Callback callback;
+ 
+-    public MSLoginDialog(Consumer<MSLoginServer.Response> callback) {
++    public MSLoginDialog(MSLoginServer.Callback callback) {
+         this.callback = callback;
+ 
+         lblInfo = new JLabel("Waiting for webpage response...");
+@@ -56,8 +58,19 @@ public class MSLoginDialog extends JDialog {
+ 
+         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+ 
+-        btnCancel.addActionListener(this::btnCancelClick);
+-        btnCopy.addActionListener(this::btnCopyLink);
++        btnCancel.addActionListener(new ActionListener() {
++            @Override
++            public void actionPerformed(ActionEvent e) {
++                btnCancelClick(e);
++            }
++        });
++
++        btnCopy.addActionListener(new ActionListener() {
++            @Override
++            public void actionPerformed(ActionEvent e) {
++                btnCopyLink(e);
++            }
++        });
+ 
+         addWindowListener(new WindowAdapter() {
+             @Override
+@@ -77,7 +90,7 @@ public class MSLoginDialog extends JDialog {
+         });
+ 
+         try {
+-            loginServer = new MSLoginServer(InetAddress.getByName("127.0.0.1"), OLauncherConstants.REDIR_URI_PORT, this::handleComplete);
++            loginServer = new MSLoginServer(InetAddress.getByName("127.0.0.1"), OLauncherConstants.REDIR_URI_PORT, serverResponseHandler);
+             loginServer.listen();
+             OperatingSystem.openLink(URI.create(link = String.format("https://login.live.com/oauth20_authorize.srf?client_id=%s&response_type=code&redirect_uri=%s&scope=%s",
+                     URLEncoder.encode(OLauncherConstants.APP_CLIENT_ID.toString(), "UTF-8"),
+@@ -130,11 +143,21 @@ public class MSLoginDialog extends JDialog {
+         Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(link), null);
+     }
+ 
+-    private void handleComplete(MSLoginServer.Response response) {
+-        LOGGER.debug("Code get! " + response);
+-        SwingUtilities.invokeLater(() -> {
+-            dispose();
+-            callback.accept(response);
+-        });
++    private void handleComplete(final MSLoginServer.Response response) {
++
++    }
++
++    private class ServerResponseHandler implements MSLoginServer.Callback {
++        @Override
++        public void accept(final MSLoginServer.Response response) {
++            LOGGER.debug("Code get! " + response);
++            SwingUtilities.invokeLater(new Runnable() {
++                @Override
++                public void run() {
++                    dispose();
++                    callback.accept(response);
++                }
++            });
++        }
+     }
+ }
+diff --git a/src/main/java/dev/figboot/olauncher/java6/Java6Util.java b/src/main/java/dev/figboot/olauncher/java6/Java6Util.java
+new file mode 100644
+index 0000000..c94dc6c
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/java6/Java6Util.java
+@@ -0,0 +1,35 @@
++package dev.figboot.olauncher.java6;
++
++import java.io.File;
++
++public final class Java6Util {
++    public static final class FS {
++        public static boolean deleteTree(File root) {
++            return deleteTree0(root, 50);
++        }
++
++        private static boolean deleteTree0(File root, int depth) {
++            if (depth <= 0) throw new IllegalArgumentException("Maximum recursion depth exceeded while deleting directory tree.");
++            if (root.isDirectory()) {
++                File[] files = root.listFiles();
++                if (files == null) return false;
++                for (File f : files) {
++                    deleteTree0(f, depth - 1);
++                }
++            }
++            return root.delete();
++        }
++
++        private FS() { }
++    }
++
++    public static final class Objects {
++        public static void requireNonNull(Object o, String message) throws NullPointerException {
++            if (o == null) throw new NullPointerException(message);
++        }
++
++        private Objects() { }
++    }
++
++    private Java6Util() { }
++}
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/LauncherVersion.java b/src/main/java/dev/figboot/olauncher/launcher/LauncherVersion.java
+index 100c193..1d6d6fc 100644
+--- a/src/main/java/dev/figboot/olauncher/launcher/LauncherVersion.java
++++ b/src/main/java/dev/figboot/olauncher/launcher/LauncherVersion.java
+@@ -18,6 +18,7 @@
+ 
+ package dev.figboot.olauncher.launcher;
+ 
++import dev.figboot.olauncher.java6.Java6Util;
+ import lombok.Getter;
+ import lombok.SneakyThrows;
+ 
+@@ -44,12 +45,17 @@ public final class LauncherVersion {
+     private static LauncherVersion loadVersion() {
+         Properties innerProps = new Properties();
+         Properties outerProps = new Properties();
+-        try (InputStream innerIS = LauncherVersion.class.getResourceAsStream("/ver/git-inner.properties");
+-             InputStream outerIS = LauncherVersion.class.getResourceAsStream("/ver/git-outer.properties")) {
+-            Objects.requireNonNull(innerIS, "The /ver/git-inner.properties resource was not found. Version information will be missing.");
+-            Objects.requireNonNull(outerIS, "The /ver/git-outer.properties resource was not found. Version information will be missing.");
++
++        InputStream innerIS = LauncherVersion.class.getResourceAsStream("/ver/git-inner.properties");
++        InputStream outerIS = LauncherVersion.class.getResourceAsStream("/ver/git-outer.properties");
++        try {
++            Java6Util.Objects.requireNonNull(innerIS, "The /ver/git-inner.properties resource was not found. Version information will be missing.");
++            Java6Util.Objects.requireNonNull(outerIS, "The /ver/git-outer.properties resource was not found. Version information will be missing.");
+             innerProps.load(innerIS);
+             outerProps.load(outerIS);
++        } finally {
++            if (innerIS != null) innerIS.close();
++            if (outerIS != null) outerIS.close();
+         }
+ 
+         return new LauncherVersion(innerProps, outerProps);
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/JavaRuntimeManager.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/JavaRuntimeManager.java
+index cfb06a0..2c879be 100644
+--- a/src/main/java/dev/figboot/olauncher/launcher/runtime/JavaRuntimeManager.java
++++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/JavaRuntimeManager.java
+@@ -26,6 +26,7 @@ import com.mojang.launcher.OperatingSystem;
+ import com.mojang.launcher.updater.ExceptionalThreadPoolExecutor;
+ import com.mojang.launcher.updater.download.DownloadJob;
+ import com.mojang.launcher.updater.download.Downloadable;
++import dev.figboot.olauncher.java6.Java6Util;
+ import dev.figboot.olauncher.launcher.runtime.download.RuntimeFileDownloadable;
+ import dev.figboot.olauncher.launcher.runtime.file.RuntimeFile;
+ import dev.figboot.olauncher.launcher.runtime.file.RuntimeFileFile;
+@@ -36,14 +37,9 @@ import dev.figboot.olauncher.util.runtime.RuntimeFileDeserializer;
+ import lombok.Getter;
+ import org.apache.logging.log4j.LogManager;
+ import org.apache.logging.log4j.Logger;
++import org.threeten.bp.Instant;
+ 
+-import java.io.BufferedReader;
+-import java.io.DataInputStream;
+-import java.io.DataOutputStream;
+-import java.io.File;
+-import java.io.IOException;
+-import java.io.InputStreamReader;
+-import java.io.Reader;
++import java.io.*;
+ import java.math.BigInteger;
+ import java.net.HttpURLConnection;
+ import java.net.Proxy;
+@@ -53,7 +49,6 @@ import java.nio.file.Path;
+ import java.security.DigestInputStream;
+ import java.security.MessageDigest;
+ import java.security.NoSuchAlgorithmException;
+-import java.time.Instant;
+ import java.util.*;
+ import java.util.concurrent.ThreadPoolExecutor;
+ import java.util.concurrent.TimeUnit;
+@@ -67,8 +62,8 @@ public class JavaRuntimeManager {
+     private final URL manifestUrl;
+     private final Proxy proxy;
+ 
+-    private final Path runtimesDirectory;
+-    private final Path platformDirectory;
++    private final File runtimesDirectory;
++    private final File platformDirectory;
+     private final Gson gson;
+ 
+     private final String jrePlatformName;
+@@ -80,14 +75,14 @@ public class JavaRuntimeManager {
+         this.manifestUrl = manifestUrl;
+         this.proxy = proxy;
+ 
+-        runtimesDirectory = workDir.toPath().resolve("olruntime");
++        runtimesDirectory = new File(workDir, "olruntime");
+         gson = new GsonBuilder()
+                 .registerTypeAdapter(Instant.class, new InstantTypeAdapter())
+                 .registerTypeAdapter(RuntimeFile.class, new RuntimeFileDeserializer())
+                 .create();
+ 
+         jrePlatformName = findPlatformName(System.getProperty("os.arch").contains("64")); // FIXME: make accurate
+-        platformDirectory = runtimesDirectory.resolve(jrePlatformName);
++        platformDirectory = new File(runtimesDirectory, jrePlatformName);
+         executorService = new ExceptionalThreadPoolExecutor(4, 8, 30L, TimeUnit.SECONDS);
+     }
+ 
+@@ -121,45 +116,48 @@ public class JavaRuntimeManager {
+     }
+ 
+     public boolean shouldDownloadRuntime(String component, RuntimesManifest.Runtime runtime) throws IOException {
+-        Path componentFolder = platformDirectory.resolve(component);
++        File componentFolder = new File(platformDirectory, component);
+ 
+-        if (!Files.isDirectory(componentFolder)) {
++        if (!componentFolder.isDirectory()) {
+             return true;
+         }
+ 
+-        Path descPath = componentFolder.resolve(".version");
+-        if (Files.notExists(descPath)) return true;
++        File descPath = new File(componentFolder, ".version");
++        if (!descPath.exists()) return true;
+ 
+         Instant updateTime;
+         String version;
+ 
+-        try (DataInputStream dis = new DataInputStream(Files.newInputStream(descPath))) {
++        DataInputStream dis = new DataInputStream(new FileInputStream(descPath));
++        try {
+             updateTime = Instant.ofEpochMilli(dis.readLong());
+             version = dis.readUTF();
++        } finally {
++            dis.close();
+         }
+ 
+         return runtime.getVersion().getReleased().isAfter(updateTime) || !runtime.getVersion().getName().equals(version);
+     }
+ 
+-    public Path getJavaExecutable(String component) {
+-        Path runtimeDir = platformDirectory.resolve(component).resolve("runtime");
++    public File getJavaExecutable(String component) {
++        File runtimeDir = new File(platformDirectory, component + File.separator + "runtime");
+         OperatingSystem os = OperatingSystem.getCurrentPlatform();
+         if (component.equals("minecraft-java-exe")) {
+-            return runtimeDir.resolve("MinecraftJava.exe");
++            return new File(runtimeDir, "MinecraftJava.exe");
+         } else if (os == OperatingSystem.WINDOWS) {
+-            return runtimeDir.resolve("bin").resolve("javaw.exe");
++            return new File(runtimeDir, "bin" + File.separator + "javaw.exe");
+         } else if (os == OperatingSystem.OSX) {
+-            return runtimeDir.resolve("jre.bundle").resolve("Contents").resolve("Home").resolve("bin").resolve("java");
++            return new File(runtimeDir, "jre.bundle" + File.separator + "Contents" + File.separator + "Home" + File.separator + "bin" + File.separator + "java");
+         } else { // LINUX
+-            return runtimeDir.resolve("bin").resolve("java");
++            return new File(runtimeDir, "bin" + File.separator + "java");
+         }
+     }
+ 
+     public void deleteRuntime(String component) throws IOException {
+-        Path componentDir = platformDirectory.resolve(component);
++        File componentDir = new File(platformDirectory, component);
+ 
+-        if (Files.isDirectory(componentDir))
+-            Files.walkFileTree(componentDir, DeletingFileVisitor.get());
++        if (componentDir.isDirectory())
++            if (!Java6Util.FS.deleteTree(componentDir)) throw new IOException("Error deleting file tree.");
+     }
+ 
+     public RuntimeFileList downloadFileList(String component, RuntimesManifest.Runtime runtime) throws IOException {
+@@ -174,8 +172,11 @@ public class JavaRuntimeManager {
+         }
+ 
+         RuntimeFileList files;
+-        try (Reader reader = new BufferedReader(new InputStreamReader(new DigestInputStream(conn.getInputStream(), digest)))) {
++        Reader reader = new BufferedReader(new InputStreamReader(new DigestInputStream(conn.getInputStream(), digest)));
++        try {
+             files = gson.fromJson(reader, RuntimeFileList.class);
++        } finally {
++            reader.close();
+         }
+ 
+         String hash = String.format("%1$040x", new BigInteger(1, digest.digest()));
+@@ -185,43 +186,47 @@ public class JavaRuntimeManager {
+     }
+ 
+     public void preDownloadRuntime(String component, RuntimesManifest.Runtime runtime, RuntimeFileList files) throws IOException {
+-        Path componentDir = platformDirectory.resolve(component);
+-        Path runtimeRootDir = componentDir.resolve("runtime");
++        File componentDir = new File(platformDirectory, component);
++        File runtimeRootDir = new File(componentDir, "runtime");
+ 
+         for (Map.Entry<String, RuntimeFile> entry : files.getFiles().entrySet()) {
+             if (entry.getValue() instanceof RuntimeFileFile) continue;
+-            entry.getValue().create(runtimeRootDir.resolve(entry.getKey()));
++            entry.getValue().create(new File(runtimeRootDir, entry.getKey()));
+         }
+     }
+ 
+     public void postDownloadRuntime(String component, RuntimesManifest.Runtime runtime) throws IOException {
+-        Path componentFolder = platformDirectory.resolve(component);
+-        Path objectsFolder = componentFolder.resolve("objects");
++        File componentFolder = new File(platformDirectory, component);
++        File objectsFolder = new File(componentFolder, "objects");
+ 
+         // Write .version
+-        Path descPath = componentFolder.resolve(".version");
+-        if (Files.notExists(descPath)) {
+-            try (DataOutputStream dos = new DataOutputStream(Files.newOutputStream(descPath))) {
++        File descPath = new File(componentFolder, ".version");
++        if (!descPath.exists()) {
++            DataOutputStream dos = new DataOutputStream(new FileOutputStream(descPath));
++
++            try {
+                 dos.writeLong(runtime.getVersion().getReleased().toEpochMilli());
+                 dos.writeUTF(runtime.getVersion().getName());
++            } finally {
++                dos.close();
+             }
+         }
+ 
+         // Delete compressed objects
+-        if (Files.isDirectory(objectsFolder)) {
+-            Files.walkFileTree(objectsFolder, DeletingFileVisitor.get());
++        if (objectsFolder.isDirectory()) {
++            Java6Util.FS.deleteTree(objectsFolder);
+         }
+     }
+ 
+     public DownloadJob downloadRuntime(DownloadJob job, String component, RuntimeFileList fileList) {
+         RuntimeFileFile file;
+-        Path componentFolder = platformDirectory.resolve(component);
+-        Path runtimeRoot = componentFolder.resolve("runtime"), objectsRoot = componentFolder.resolve("objects"), path;
+-        List<Downloadable> downloadables = new LinkedList<>();
++        File componentFolder = new File(platformDirectory, component);
++        File runtimeRoot = new File(componentFolder, "runtime"), objectsRoot = new File(componentFolder, "objects"), path;
++        List<Downloadable> downloadables = new LinkedList<Downloadable>();
+         for (Map.Entry<String, RuntimeFile> entry : fileList.getFiles().entrySet()) {
+             if (!(entry.getValue() instanceof RuntimeFileFile)) continue;
+             file = (RuntimeFileFile)entry.getValue();
+-            path = runtimeRoot.resolve(entry.getKey());
++            path = new File(runtimeRoot, entry.getKey());
+             if (file.getRaw() == null) {
+                 LOGGER.warn(entry.getKey() + " AAAAAAAAa");
+             }
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/RuntimesManifest.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/RuntimesManifest.java
+index a0bc907..1933c58 100644
+--- a/src/main/java/dev/figboot/olauncher/launcher/runtime/RuntimesManifest.java
++++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/RuntimesManifest.java
+@@ -20,8 +20,7 @@ package dev.figboot.olauncher.launcher.runtime;
+ 
+ import lombok.Getter;
+ import net.minecraft.launcher.updater.DownloadInfo;
+-
+-import java.time.Instant;
++import org.threeten.bp.Instant;
+ 
+ public final class RuntimesManifest {
+     private RuntimesManifest() { }
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/download/RuntimeFileDownloadable.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/download/RuntimeFileDownloadable.java
+index b14a8e7..77a5313 100644
+--- a/src/main/java/dev/figboot/olauncher/launcher/runtime/download/RuntimeFileDownloadable.java
++++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/download/RuntimeFileDownloadable.java
+@@ -26,9 +26,7 @@ import org.apache.commons.compress.compressors.lzma.LZMACompressorInputStream;
+ import org.apache.logging.log4j.LogManager;
+ import org.apache.logging.log4j.Logger;
+ 
+-import java.io.IOException;
+-import java.io.InputStream;
+-import java.io.OutputStream;
++import java.io.*;
+ import java.math.BigInteger;
+ import java.net.HttpURLConnection;
+ import java.net.Proxy;
+@@ -48,11 +46,11 @@ public class RuntimeFileDownloadable extends Downloadable {
+ 
+     private final String name;
+     private final RuntimeFileFile file;
+-    private final Path objectLoc, finalLoc;
++    private final File objectLoc, finalLoc;
+     private Status status;
+ 
+-    public RuntimeFileDownloadable(Proxy proxy, String name, Path objectsDir, Path finalLoc, RuntimeFileFile file) {
+-        super(proxy, file.getRaw().getUrl(), finalLoc.toFile(), false);
++    public RuntimeFileDownloadable(Proxy proxy, String name, File objectsDir, File finalLoc, RuntimeFileFile file) {
++        super(proxy, file.getRaw().getUrl(), finalLoc, false);
+         this.name = name;
+         objectLoc = file.getLzma() != null ? resolvePathFromHash(objectsDir, file.getLzma().getSha1()) : null;
+         this.finalLoc = finalLoc;
+@@ -60,37 +58,37 @@ public class RuntimeFileDownloadable extends Downloadable {
+         status = Status.DOWNLOADING;
+     }
+ 
+-    private Path resolvePathFromHash(Path p, String hash) {
+-        return p.resolve(hash.substring(0, 2)).resolve(hash);
++    private File resolvePathFromHash(File p, String hash) {
++        return new File(p, hash.substring(0, 2) + File.separator + hash);
+     }
+ 
+     @Override
+     public String download() throws IOException {
+         ++this.numAttempts;
+ 
+-        ensureFileWritable(finalLoc);
+-        if (objectLoc != null) ensureFileWritable(objectLoc);
++        ensureFileWritable0(finalLoc);
++        if (objectLoc != null) ensureFileWritable0(objectLoc);
+ 
+-        if (Files.isRegularFile(finalLoc)) {
+-            long size = Files.size(finalLoc);
++        if (finalLoc.isFile()) {
++            long size = finalLoc.length();
+             if (size == file.getRaw().getSize()) {
+                 setExecutable(finalLoc);
+                 return "Have local file and it's the correct size. Assuming it's okay!";
+             }
+ 
+             LOGGER.warn("Have local file, but it has the wrong size: {} expected, got {}", new Object[]{file.getRaw().getSize(), size});
+-            Files.delete(finalLoc);
++            if (!finalLoc.delete()) throw new IOException("Failed to delete java runtime file.");
+             status = Status.DOWNLOADING;
+         }
+ 
+-        if (objectLoc != null && Files.isRegularFile(objectLoc)) {
+-            String hash = getDigest(objectLoc, "SHA-1", 40);
++        if (objectLoc != null && objectLoc.isFile()) {
++            String hash = getDigest0(objectLoc, "SHA-1", 40);
+             if (hash.equalsIgnoreCase(file.getLzma().getSha1())) {
+                 return decompress();
+             }
+ 
+             LOGGER.warn("Have local compressed file, but it has the wrong hash: {} expected, got {}", new Object[]{file.getLzma().getSha1(), hash});
+-            Files.delete(objectLoc);
++            if (!objectLoc.delete()) throw new IOException("Failed to delete the object.");
+         }
+ 
+         if (objectLoc != null) { // download compressed :)
+@@ -100,7 +98,7 @@ public class RuntimeFileDownloadable extends Downloadable {
+                 return decompress();
+             }
+ 
+-            Files.delete(objectLoc);
++            objectLoc.delete();
+             throw new RuntimeException(String.format("Hash does not match for downloaded compressed file. %s expected, got %s", file.getLzma().getSha1(), hash));
+         } else { // download raw :(
+             String hash = actuallyDownload(file.getRaw().getUrl(), finalLoc);
+@@ -110,7 +108,7 @@ public class RuntimeFileDownloadable extends Downloadable {
+                 return "File downloaded and hash matched.";
+             }
+ 
+-            Files.delete(finalLoc);
++            finalLoc.delete();
+             throw new RuntimeException(String.format("Hash does not match for downloaded file. %s expected, got %s", file.getRaw().getSha1(), hash));
+         }
+     }
+@@ -120,7 +118,7 @@ public class RuntimeFileDownloadable extends Downloadable {
+         return status.name + " " + name;
+     }
+ 
+-    private String actuallyDownload(URL url, Path target) throws IOException {
++    private String actuallyDownload(URL url, File target) throws IOException {
+         HttpURLConnection conn = makeConnection(url);
+         int res = conn.getResponseCode();
+         if (res / 100 != 2) {
+@@ -129,22 +127,27 @@ public class RuntimeFileDownloadable extends Downloadable {
+ 
+         updateExpectedSize(conn);
+         String hash;
+-        try (InputStream is = new MonitoringInputStream(conn.getInputStream(), getMonitor());
+-             OutputStream os = Files.newOutputStream(target)) {
+-            hash = copyAndDigest(is, os, "SHA-1", 40);
++        InputStream is = new MonitoringInputStream(conn.getInputStream(), getMonitor());
++        try {
++            OutputStream os = new FileOutputStream(target);
++            try {
++                hash = copyAndDigest(is, os, "SHA-1", 40);
++            } finally {
++                os.close();
++            }
++        } finally {
++            is.close();
+         }
+         return hash;
+     }
+ 
+-    private void setExecutable(Path path) throws IOException {
++    private void setExecutable(File path) throws IOException {
+         if (!file.isExecutable()) return;
+ 
+         try {
+-            Set<PosixFilePermission> permission = new HashSet<>(Files.getPosixFilePermissions(path));
+-            permission.add(PosixFilePermission.OWNER_EXECUTE);
+-            permission.add(PosixFilePermission.GROUP_EXECUTE);
+-            permission.add(PosixFilePermission.OTHERS_EXECUTE);
+-            Files.setPosixFilePermissions(path, permission);
++            if (!path.setExecutable(true)) {
++                throw new IOException("Failed to set " + path.toString() + " executable.");
++            }
+         } catch (UnsupportedOperationException ex) {
+             LOGGER.info("Not setting " + path.toString() + " executable, the filesystem does not support it.");
+         }
+@@ -154,9 +157,16 @@ public class RuntimeFileDownloadable extends Downloadable {
+         status = Status.DECOMPRESSING;
+ 
+         String hash;
+-        try (OutputStream os = Files.newOutputStream(finalLoc);
+-                InputStream is = new LZMACompressorInputStream(Files.newInputStream(objectLoc))) {
+-            hash = copyAndDigest(is, os, "SHA-1", 40);
++        OutputStream os = new FileOutputStream(finalLoc);
++        try {
++            InputStream is = new LZMACompressorInputStream(new FileInputStream(objectLoc));
++            try {
++                hash = copyAndDigest(is, os, "SHA-1", 40);
++            } finally {
++                is.close();
++            }
++        } finally {
++            os.close();
+         }
+ 
+         status = Status.DOWNLOADING;
+@@ -164,24 +174,24 @@ public class RuntimeFileDownloadable extends Downloadable {
+             setExecutable(finalLoc);
+             return "Decompressed file and hash matched";
+         } else {
+-            Files.delete(finalLoc);
++            finalLoc.delete();
+             throw new RuntimeException(String.format("Decompressed file hash did not match! %s expected, got %s", file.getRaw().getSha1(), hash));
+         }
+     }
+ 
+-    private void ensureFileWritable(Path path) throws IOException {
+-        Path parent = path.getParent();
+-        if (parent != null && !Files.isDirectory(parent)) {
++    private void ensureFileWritable0(File path) throws IOException {
++        File parent = path.getParentFile();
++        if (parent != null && !parent.isDirectory()) {
+             LOGGER.info("Making directory " + parent);
+-            Files.createDirectories(parent);
++            if (!parent.mkdirs()) throw new IOException("Error creating parent directory.");
+         }
+ 
+-        if (Files.isRegularFile(path) && !Files.isWritable(path)) {
++        if (path.isFile() && !path.canWrite()) {
+             throw new RuntimeException("Do not have write permissions for " + path + " - aborting!");
+         }
+     }
+ 
+-    private String getDigest(Path path, String digest, int padChars) throws IOException {
++    private String getDigest0(File path, String digest, int padChars) throws IOException {
+         MessageDigest md;
+         try {
+             md = MessageDigest.getInstance(digest);
+@@ -189,12 +199,15 @@ public class RuntimeFileDownloadable extends Downloadable {
+             throw new RuntimeException(ex);
+         }
+ 
+-        try (InputStream is = new DigestInputStream(Files.newInputStream(path), md)) {
++        InputStream is = new DigestInputStream(new FileInputStream(path), md);
++        try {
+             byte[] buf = new byte[65536];
+             int numread;
+             do {
+                 numread = is.read(buf);
+             } while (numread > 0);
++        } finally {
++            is.close();
+         }
+ 
+         return String.format("%1$0" + padChars + "x", new BigInteger(1, md.digest()));
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFile.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFile.java
+index 1d4fdae..4a2b7ca 100644
+--- a/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFile.java
++++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFile.java
+@@ -18,9 +18,10 @@
+ 
+ package dev.figboot.olauncher.launcher.runtime.file;
+ 
++import java.io.File;
+ import java.io.IOException;
+ import java.nio.file.Path;
+ 
+ public interface RuntimeFile {
+-    void create(Path path) throws IOException;
++    boolean create(File path);
+ }
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileDirectory.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileDirectory.java
+index 756a5c7..d36b53a 100644
+--- a/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileDirectory.java
++++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileDirectory.java
+@@ -18,13 +18,14 @@
+ 
+ package dev.figboot.olauncher.launcher.runtime.file;
+ 
++import java.io.File;
+ import java.io.IOException;
+ import java.nio.file.Files;
+ import java.nio.file.Path;
+ 
+ public class RuntimeFileDirectory implements RuntimeFile {
+     @Override
+-    public void create(Path path) throws IOException {
+-        Files.createDirectories(path);
++    public boolean create(File path) {
++        return path.mkdirs();
+     }
+ }
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileFile.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileFile.java
+index 2145f49..d76e731 100644
+--- a/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileFile.java
++++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileFile.java
+@@ -21,6 +21,7 @@ package dev.figboot.olauncher.launcher.runtime.file;
+ import lombok.Getter;
+ import net.minecraft.launcher.updater.DownloadInfo;
+ 
++import java.io.File;
+ import java.io.IOException;
+ import java.nio.file.Path;
+ import java.util.Map;
+@@ -30,7 +31,7 @@ public class RuntimeFileFile implements RuntimeFile {
+     @Getter private Map<String, DownloadInfo> downloads;
+ 
+     @Override
+-    public void create(Path path) throws IOException {
++    public boolean create(File path) {
+         throw new UnsupportedOperationException("The file must be downloaded");
+     }
+ 
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileLink.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileLink.java
+index 880ad87..11a609b 100644
+--- a/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileLink.java
++++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileLink.java
+@@ -20,7 +20,7 @@ package dev.figboot.olauncher.launcher.runtime.file;
+ 
+ import lombok.Getter;
+ 
+-import java.io.IOException;
++import java.io.*;
+ import java.nio.file.Files;
+ import java.nio.file.Path;
+ import java.nio.file.Paths;
+@@ -29,7 +29,19 @@ public class RuntimeFileLink implements RuntimeFile {
+     @Getter private String target;
+ 
+     @Override
+-    public void create(Path path) throws IOException {
+-        Files.createSymbolicLink(path, Paths.get(target));
++    public boolean create(File path) { /* you can't create symlinks in 1.6 */
++        try {
++            Writer w = new OutputStreamWriter(new FileOutputStream(path));
++
++            try {
++                w.write(target);
++            } finally {
++                w.close();
++            }
++        } catch (IOException ex) {
++            ex.printStackTrace();
++            return false;
++        }
++        return true;
+     }
+ }
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/update/LauncherUpdateChecker.java b/src/main/java/dev/figboot/olauncher/launcher/update/LauncherUpdateChecker.java
+index e7febd1..5de5461 100644
+--- a/src/main/java/dev/figboot/olauncher/launcher/update/LauncherUpdateChecker.java
++++ b/src/main/java/dev/figboot/olauncher/launcher/update/LauncherUpdateChecker.java
+@@ -7,20 +7,16 @@ import dev.figboot.olauncher.util.InstantTypeAdapter;
+ import net.minecraft.launcher.Launcher;
+ import org.apache.logging.log4j.LogManager;
+ import org.apache.logging.log4j.Logger;
++import org.threeten.bp.Instant;
++import org.threeten.bp.temporal.ChronoUnit;
++import org.threeten.bp.temporal.TemporalUnit;
+ 
+-import java.io.BufferedReader;
+-import java.io.IOException;
+-import java.io.InputStreamReader;
+-import java.io.Reader;
+-import java.io.Writer;
++import java.io.*;
+ import java.net.HttpURLConnection;
+ import java.net.MalformedURLException;
+ import java.net.URL;
+ import java.nio.file.Files;
+ import java.nio.file.Path;
+-import java.time.Instant;
+-import java.time.temporal.ChronoUnit;
+-import java.time.temporal.TemporalUnit;
+ import java.util.LinkedList;
+ import java.util.List;
+ 
+@@ -43,24 +39,31 @@ public class LauncherUpdateChecker {
+     }
+ 
+     public void loadInfo() throws IOException {
+-        Path workDir = Launcher.getCurrentInstance().getLauncher().getWorkingDirectory().toPath();
+-        Path infoFile = workDir.resolve(INFO_FILE_NAME);
+-        if (!Files.isRegularFile(infoFile)) {
++        File workDir = Launcher.getCurrentInstance().getLauncher().getWorkingDirectory();
++        File infoFile = new File(workDir, INFO_FILE_NAME);
++        if (!infoFile.isFile()) {
+             info = LauncherUpdateInfo.defaults();
+             saveInfo();
+             return;
+         }
+ 
+-        try (Reader r = Files.newBufferedReader(infoFile)) {
++        Reader r = new BufferedReader(new InputStreamReader(new FileInputStream(infoFile)));
++        try {
+             info = gson.fromJson(r, LauncherUpdateInfo.class);
++        } finally {
++            r.close();
+         }
+     }
+ 
+     public void saveInfo() throws IOException {
+-        Path workDir = Launcher.getCurrentInstance().getLauncher().getWorkingDirectory().toPath();
+-        Path infoFile = workDir.resolve(INFO_FILE_NAME);
+-        try (Writer w = Files.newBufferedWriter(infoFile)) {
++        File workDir = Launcher.getCurrentInstance().getLauncher().getWorkingDirectory();
++        File infoFile = new File(workDir, INFO_FILE_NAME);
++
++        BufferedWriter w = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(infoFile)));
++        try {
+             w.write(gson.toJson(info, LauncherUpdateInfo.class));
++        } finally {
++            w.close();
+         }
+     }
+ 
+@@ -81,8 +84,8 @@ public class LauncherUpdateChecker {
+         }
+ 
+         if (!System.getProperty("dev.figboot.olauncher.LauncherUpdateChecker.updateTest", "false").equalsIgnoreCase("true")
+-            && (LauncherVersion.getInstance().isDevVersion()
+-            || LauncherVersion.getInstance().isDirty())) {
++                && (LauncherVersion.getInstance().isDevVersion()
++                || LauncherVersion.getInstance().isDirty())) {
+             LOGGER.info("Not checking for updates because this is a development version or the working tree is dirty.");
+             return;
+         }
+@@ -91,19 +94,21 @@ public class LauncherUpdateChecker {
+         Instant now = Instant.now();
+         if (checkTime.isAfter(now) && info.getLatestRelease() != null) {
+             LOGGER.info("It is not time to query releases yet. Wait another {} minutes.",
+-                    new Object[]{ChronoUnit.MINUTES.between(now, checkTime)});
++                    new Object[]{checkTime.until(now, ChronoUnit.MINUTES)});
+ 
+             onReleaseResponse();
+             return;
+         }
+ 
+-        Thread checker = new Thread(() -> {
+-            try {
+-                queryReleases();
+-            } catch (IOException ex) {
+-                LOGGER.error("Error querying latest release", ex);
++        Thread checker = new Thread() {
++            public void run() {
++                try {
++                    queryReleases();
++                } catch (IOException ex) {
++                    LOGGER.error("Error querying latest release", ex);
++                }
+             }
+-        });
++        };
+ 
+         LOGGER.info("Querying latest release...");
+         checker.setDaemon(true);
+@@ -124,12 +129,15 @@ public class LauncherUpdateChecker {
+             return;
+         }
+ 
+-        try (Reader r = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
++        BufferedReader r = new BufferedReader(new InputStreamReader(conn.getInputStream()));
++        try {
+             release = gson.fromJson(r, ReleaseInfo.class);
+ 
+             info.setLastCheck(Instant.now());
+             info.setLatestRelease(release);
+             saveInfo();
++        } finally {
++            r.close();
+         }
+         onReleaseResponse();
+     }
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/update/LauncherUpdateInfo.java b/src/main/java/dev/figboot/olauncher/launcher/update/LauncherUpdateInfo.java
+index 836316b..fc6051f 100644
+--- a/src/main/java/dev/figboot/olauncher/launcher/update/LauncherUpdateInfo.java
++++ b/src/main/java/dev/figboot/olauncher/launcher/update/LauncherUpdateInfo.java
+@@ -2,8 +2,8 @@ package dev.figboot.olauncher.launcher.update;
+ 
+ import lombok.Getter;
+ import lombok.Setter;
++import org.threeten.bp.Instant;
+ 
+-import java.time.Instant;
+ import java.util.Collections;
+ import java.util.LinkedList;
+ import java.util.List;
+@@ -17,7 +17,7 @@ public class LauncherUpdateInfo {
+     public static LauncherUpdateInfo defaults() {
+         LauncherUpdateInfo info = new LauncherUpdateInfo();
+         info.lastCheck = Instant.MIN;
+-        info.ignoreVersions = new LinkedList<>();
++        info.ignoreVersions = new LinkedList<Long>();
+         info.disabled = false;
+         info.latestRelease = null;
+         return info;
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/update/ReleaseInfo.java b/src/main/java/dev/figboot/olauncher/launcher/update/ReleaseInfo.java
+index c0a6ba0..17a61cc 100644
+--- a/src/main/java/dev/figboot/olauncher/launcher/update/ReleaseInfo.java
++++ b/src/main/java/dev/figboot/olauncher/launcher/update/ReleaseInfo.java
+@@ -1,7 +1,8 @@
+ package dev.figboot.olauncher.launcher.update;
+ 
++import org.threeten.bp.Instant;
++
+ import java.net.URL;
+-import java.time.Instant;
+ import java.util.Collections;
+ import java.util.List;
+ 
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/update/UpdateAvailableDialog.java b/src/main/java/dev/figboot/olauncher/launcher/update/UpdateAvailableDialog.java
+index 54d2325..9caa1dc 100644
+--- a/src/main/java/dev/figboot/olauncher/launcher/update/UpdateAvailableDialog.java
++++ b/src/main/java/dev/figboot/olauncher/launcher/update/UpdateAvailableDialog.java
+@@ -4,14 +4,15 @@ import com.mojang.launcher.OperatingSystem;
+ import dev.figboot.olauncher.launcher.LauncherVersion;
+ import org.apache.logging.log4j.LogManager;
+ import org.apache.logging.log4j.Logger;
++import org.threeten.bp.Instant;
+ 
+ import javax.swing.*;
+ import javax.swing.border.EmptyBorder;
+ import java.awt.*;
+ import java.awt.event.ActionEvent;
++import java.awt.event.ActionListener;
+ import java.io.IOException;
+ import java.net.URISyntaxException;
+-import java.time.Instant;
+ 
+ public class UpdateAvailableDialog extends JDialog {
+     private static final Logger LOGGER = LogManager.getLogger();
+@@ -20,7 +21,7 @@ public class UpdateAvailableDialog extends JDialog {
+     private final ReleaseInfo release;
+     private JScrollPane infoScrollPane;
+ 
+-    private JComboBox<String> cbxOptionChoose;
++    private JComboBox cbxOptionChoose;
+     private JButton btnConfirm;
+ 
+     private final Font headerFont = new Font(Font.SANS_SERIF, Font.BOLD, 24);
+@@ -31,7 +32,12 @@ public class UpdateAvailableDialog extends JDialog {
+         this.checker = checker;
+         this.release = release;
+ 
+-        SwingUtilities.invokeLater(this::initUI);
++        SwingUtilities.invokeLater(new Runnable() {
++            @Override
++            public void run() {
++                UpdateAvailableDialog.this.initUI();
++            }
++        });
+     }
+ 
+     private int gridy = 1;
+@@ -91,13 +97,23 @@ public class UpdateAvailableDialog extends JDialog {
+ 
+         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+         buttonPanel.setBorder(new EmptyBorder(0, 0, 5, 0));
+-        cbxOptionChoose = new JComboBox<>(new String[]{"Download this version", "Go to release page", "Remind me later", "Ignore this update", "Stop checking for updates"});
++        cbxOptionChoose = new JComboBox(new String[]{"Download this version", "Go to release page", "Remind me later", "Ignore this update", "Stop checking for updates"});
+         cbxOptionChoose.setSelectedIndex(asset == null ? 1 : 0);
+-        cbxOptionChoose.addActionListener(this::comboBoxOptionChoose);
++        cbxOptionChoose.addActionListener(new ActionListener() {
++            @Override
++            public void actionPerformed(ActionEvent evt) {
++                UpdateAvailableDialog.this.comboBoxOptionChoose(evt);
++            }
++        });
+         buttonPanel.add(cbxOptionChoose);
+ 
+         btnConfirm = new JButton("Confirm");
+-        btnConfirm.addActionListener(this::confirmClicked);
++        btnConfirm.addActionListener(new ActionListener() {
++            @Override
++            public void actionPerformed(ActionEvent evt) {
++                UpdateAvailableDialog.this.confirmClicked(evt);
++            }
++        });
+         buttonPanel.add(btnConfirm);
+ 
+         add(buttonPanel, BorderLayout.PAGE_END);
+diff --git a/src/main/java/dev/figboot/olauncher/util/DeletingFileVisitor.java b/src/main/java/dev/figboot/olauncher/util/DeletingFileVisitor.java
+index c35c40d..9431fc7 100644
+--- a/src/main/java/dev/figboot/olauncher/util/DeletingFileVisitor.java
++++ b/src/main/java/dev/figboot/olauncher/util/DeletingFileVisitor.java
+@@ -18,42 +18,6 @@
+ 
+ package dev.figboot.olauncher.util;
+ 
+-import java.io.IOException;
+-import java.nio.file.FileVisitResult;
+-import java.nio.file.FileVisitor;
+-import java.nio.file.Files;
+-import java.nio.file.Path;
+-import java.nio.file.attribute.BasicFileAttributes;
+-
+-public class DeletingFileVisitor implements FileVisitor<Path> {
+-    private static final DeletingFileVisitor INSTANCE = new DeletingFileVisitor();
+-
+-    public static DeletingFileVisitor get() {
+-        return INSTANCE;
+-    }
+-
+-    private DeletingFileVisitor() { }
+-
+-    @Override
+-    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+-        return FileVisitResult.CONTINUE;
+-    }
+-
+-    @Override
+-    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+-        Files.delete(file);
+-        return FileVisitResult.CONTINUE;
+-    }
+-
+-    @Override
+-    public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+-        throw exc;
+-    }
+-
+-    @Override
+-    public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+-        if (exc != null) throw exc;
+-        Files.delete(dir);
+-        return FileVisitResult.CONTINUE;
+-    }
++public class DeletingFileVisitor {
++    /* Use Java6Util */
+ }
+diff --git a/src/main/java/dev/figboot/olauncher/util/InstantTypeAdapter.java b/src/main/java/dev/figboot/olauncher/util/InstantTypeAdapter.java
+index 6077386..2e6b518 100644
+--- a/src/main/java/dev/figboot/olauncher/util/InstantTypeAdapter.java
++++ b/src/main/java/dev/figboot/olauncher/util/InstantTypeAdapter.java
+@@ -21,9 +21,9 @@ package dev.figboot.olauncher.util;
+ import com.google.gson.TypeAdapter;
+ import com.google.gson.stream.JsonReader;
+ import com.google.gson.stream.JsonWriter;
++import org.threeten.bp.Instant;
+ 
+ import java.io.IOException;
+-import java.time.Instant;
+ 
+ public class InstantTypeAdapter extends TypeAdapter<Instant> {
+     @Override
+diff --git a/src/main/java/dev/figboot/olauncher/util/runtime/RuntimeFileDeserializer.java b/src/main/java/dev/figboot/olauncher/util/runtime/RuntimeFileDeserializer.java
+index 3499f3d..ea5efb5 100644
+--- a/src/main/java/dev/figboot/olauncher/util/runtime/RuntimeFileDeserializer.java
++++ b/src/main/java/dev/figboot/olauncher/util/runtime/RuntimeFileDeserializer.java
+@@ -32,13 +32,12 @@ public class RuntimeFileDeserializer implements JsonDeserializer<RuntimeFile> {
+         JsonObject obj = json.getAsJsonObject();
+         String type = obj.get("type").getAsString();
+ 
+-        switch (type) {
+-            case "file":
+-                return context.deserialize(obj, RuntimeFileFile.class);
+-            case "directory":
+-                return context.deserialize(obj, RuntimeFileDirectory.class);
+-            case "link":
+-                return context.deserialize(obj, RuntimeFileLink.class);
++        if (type.equals("file")) {
++            return context.deserialize(obj, RuntimeFileFile.class);
++        } else if (type.equals("directory")) {
++            return context.deserialize(obj, RuntimeFileDirectory.class);
++        } else if (type.equals("link")) {
++            return context.deserialize(obj, RuntimeFileLink.class);
+         }
+ 
+         throw new JsonParseException("Unknown file type '" + type + "'");
+diff --git a/src/main/java/net/minecraft/launcher/Launcher.java b/src/main/java/net/minecraft/launcher/Launcher.java
+index a9aeefa..5ae903c 100644
+--- a/src/main/java/net/minecraft/launcher/Launcher.java
++++ b/src/main/java/net/minecraft/launcher/Launcher.java
+@@ -189,11 +189,14 @@ public class Launcher {
+ 
+     // olauncher start - refresh java runtime function
+     public void refreshJavaRuntimes() {
+-        getLauncher().getJreManager().getExecutorService().submit(() -> {
+-            try {
+-                getLauncher().getJreManager().reloadRuntimes();
+-            } catch (Throwable t) {
+-                Launcher.LOGGER.error("Unexpected exception refreshing java runtime list", t);
++        getLauncher().getJreManager().getExecutorService().submit(new Runnable() {
++            @Override
++            public void run() {
++                try {
++                    Launcher.this.getLauncher().getJreManager().reloadRuntimes();
++                } catch (Throwable t) {
++                    Launcher.LOGGER.error("Unexpected exception refreshing java runtime list", t);
++                }
+             }
+         });
+     }
+diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
+index 60b3d41..a75b6fc 100644
+--- a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
++++ b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
+@@ -162,9 +162,9 @@ public class MinecraftGameRunner extends AbstractGameRunner implements GameProce
+ 
+             // olauncher start - pick the java path
+             String javaPath = this.selectedProfile.getJavaPath();
+-            Path bundledDir = getBundledRuntimeDir();
++            File bundledDir = getBundledRuntimeDir();
+             if (javaPath == null || bundledDir != null) {
+-                javaPath = bundledDir.toAbsolutePath().toString();
++                javaPath = bundledDir.getAbsolutePath();
+             }
+             // olauncher end
+ 
+@@ -173,6 +173,11 @@ public class MinecraftGameRunner extends AbstractGameRunner implements GameProce
+                 public boolean apply(String var1) {
+                     return var1.contains("#@!@#");
+                 }
++
++                @Override
++                public boolean test(String input) {
++                    return apply(input);
++                }
+             });
+             var4.directory(var2);
+             var4.withLogProcessor(this.minecraftLauncher.getUserInterface().showGameOutputTab(this));
+diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftReleaseType.java b/src/main/java/net/minecraft/launcher/game/MinecraftReleaseType.java
+index df55cae..31b62c5 100644
+--- a/src/main/java/net/minecraft/launcher/game/MinecraftReleaseType.java
++++ b/src/main/java/net/minecraft/launcher/game/MinecraftReleaseType.java
+@@ -43,7 +43,8 @@ public enum MinecraftReleaseType implements ReleaseType {
+     }
+ 
+     public static MinecraftReleaseType getByName(String var0) {
+-        return (MinecraftReleaseType)LOOKUP.getOrDefault(var0, CUSTOM); /* olauncher - add default release type */
++        MinecraftReleaseType t = LOOKUP.get(var0); /* olauncher - add default release type */
++        return t != null ? t : CUSTOM;
+     }
+ 
+     static {
+diff --git a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
+index 31f1846..19a3789 100644
+--- a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
++++ b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
+@@ -43,6 +43,8 @@ public class LogInForm extends JPanel implements ActionListener {
+     private final JPanel userDropdownPanel = new JPanel();
+     private final UserAuthentication authentication;
+ 
++    private final MSLoginHandler loginHandler = new MSLoginHandler();
++
+     public LogInForm(LogInPopup var1) {
+         this.popup = var1;
+         this.authentication = var1.getMinecraftLauncher().getProfileManager().getAuthDatabase().getAuthenticationService().createUserAuthentication(Agent.MINECRAFT);
+@@ -218,20 +220,26 @@ public class LogInForm extends JPanel implements ActionListener {
+ 
+     // olauncher - add and handle login button
+     public void openMSLogin() {
+-        SwingUtilities.invokeLater(() -> {
+-            new MSLoginDialog(this::handleMSLogin);
++        SwingUtilities.invokeLater(new Runnable() {
++            @Override
++            public void run() {
++                new MSLoginDialog(loginHandler);
++            }
+         });
+     }
+ 
+-    public void handleMSLogin(MSLoginServer.Response response) {
+-        if (response == null) {
+-            this.popup.getErrorForm().displayError(new AuthenticationException("The authentication code is null"), "The authentication request was cancelled.");
+-            return;
+-        }
++    private class MSLoginHandler implements MSLoginServer.Callback {
++        @Override
++        public void accept(MSLoginServer.Response response) {
++            if (response == null) {
++                LogInForm.this.popup.getErrorForm().displayError(new AuthenticationException("The authentication code is null"), "The authentication request was cancelled.");
++                return;
++            }
+ 
+-        if (authentication instanceof MicrosoftUserAuthentication) {
+-            ((MicrosoftUserAuthentication)authentication).setLoginResponse(response);
+-            tryLogIn();
++            if (authentication instanceof MicrosoftUserAuthentication) {
++                ((MicrosoftUserAuthentication)authentication).setLoginResponse(response);
++                tryLogIn();
++            }
+         }
+     }
+ }
+diff --git a/src/main/java/net/minecraft/launcher/ui/tabs/WebsiteTab.java b/src/main/java/net/minecraft/launcher/ui/tabs/WebsiteTab.java
+index ebf0a73..9bd7f7d 100644
+--- a/src/main/java/net/minecraft/launcher/ui/tabs/WebsiteTab.java
++++ b/src/main/java/net/minecraft/launcher/ui/tabs/WebsiteTab.java
+@@ -34,7 +34,7 @@ public class WebsiteTab extends JPanel {
+     }
+ 
+     private Browser selectBrowser() {
+-        if (this.hasJFX()) {
++        /*if (this.hasJFX()) {
+             LOGGER.info("JFX is already initialized");
+             return new JFXBrowser();
+         } else {
+@@ -54,7 +54,8 @@ public class WebsiteTab extends JPanel {
+                 LOGGER.debug("JFX was not found at {}", new Object[]{var1});
+                 return new LegacySwingBrowser();
+             }
+-        }
++        }*/
++        return new LegacySwingBrowser();
+     }
+ 
+     public void setPage(String var1) {
+diff --git a/src/main/java/net/minecraft/launcher/ui/tabs/website/JFXBrowser.java b/src/main/java/net/minecraft/launcher/ui/tabs/website/JFXBrowser.java
+index 1d14455..86d6f50 100644
+--- a/src/main/java/net/minecraft/launcher/ui/tabs/website/JFXBrowser.java
++++ b/src/main/java/net/minecraft/launcher/ui/tabs/website/JFXBrowser.java
+@@ -1,31 +1,8 @@
+ package net.minecraft.launcher.ui.tabs.website;
+ 
+-import com.mojang.launcher.OperatingSystem;
+-import java.awt.Component;
+-import java.awt.Dimension;
+-import java.net.URI;
+-import javafx.application.Platform;
+-import javafx.beans.value.ChangeListener;
+-import javafx.beans.value.ObservableValue;
+-import javafx.concurrent.Worker.State;
+-import javafx.embed.swing.JFXPanel;
+-import javafx.scene.Group;
+-import javafx.scene.Scene;
+-import javafx.scene.web.WebEngine;
+-import javafx.scene.web.WebView;
+-import org.apache.commons.lang3.StringUtils;
+-import org.apache.logging.log4j.LogManager;
+-import org.apache.logging.log4j.Logger;
+-import org.w3c.dom.Document;
+-import org.w3c.dom.Element;
+-import org.w3c.dom.Node;
+-import org.w3c.dom.NodeList;
+-import org.w3c.dom.events.Event;
+-import org.w3c.dom.events.EventListener;
+-import org.w3c.dom.events.EventTarget;
+-
+-public class JFXBrowser implements Browser {
+-    private static final Logger LOGGER = LogManager.getLogger();
++/* STUB: java 1.6 doesn't support JFX */
++public class JFXBrowser /*implements Browser*/ {
++    /*private static final Logger LOGGER = LogManager.getLogger();
+     private final Object lock = new Object();
+     private final JFXPanel fxPanel = new JFXPanel();
+     private String urlToBrowseTo;
+@@ -128,5 +105,5 @@ public class JFXBrowser implements Browser {
+             }
+ 
+         }
+-    }
++    }*/
+ }
+diff --git a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
+index 352a9d7..e3ddff0 100644
+--- a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
++++ b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
+@@ -96,7 +96,7 @@ public class CompleteMinecraftVersion implements CompleteVersion {
+ 
+             while(argumentIter.hasNext()) {
+                 Entry<ArgumentType, List<Argument>> var4 = argumentIter.next();
+-                this.arguments.put(var4.getKey(), new ArrayList<>(var4.getValue()));
++                this.arguments.put(var4.getKey(), new ArrayList<Argument>(var4.getValue()));
+             }
+         }
+ 
+@@ -279,7 +279,7 @@ public class CompleteMinecraftVersion implements CompleteVersion {
+     }
+ 
+     public CompleteMinecraftVersion resolve(MinecraftVersionManager var1) throws IOException {
+-        return this.resolve(var1, Sets.newHashSet());
++        return this.resolve(var1, Sets.<String>newHashSet());
+     }
+ 
+     protected CompleteMinecraftVersion resolve(MinecraftVersionManager var1, Set<String> var2) throws IOException {
+@@ -351,7 +351,7 @@ public class CompleteMinecraftVersion implements CompleteVersion {
+             Iterator<Entry<ArgumentType, List<Argument>>> var9;
+             if (this.arguments != null) {
+                 if (var5.arguments == null) {
+-                    var5.arguments = new EnumMap<>(ArgumentType.class);
++                    var5.arguments = new EnumMap<ArgumentType, List<Argument>>(ArgumentType.class);
+                 }
+ 
+                 Entry<ArgumentType, List<Argument>> var10;
+@@ -360,7 +360,7 @@ public class CompleteMinecraftVersion implements CompleteVersion {
+                     var10 = var9.next();
+                     var12 = var5.arguments.get(var10.getKey());
+                     if (var12 == null) {
+-                        var12 = new ArrayList<>();
++                        var12 = new ArrayList<Argument>();
+                         var5.arguments.put(var10.getKey(), var12);
+                     }
+                 }
+diff --git a/src/main/java/net/minecraft/launcher/updater/Library.java b/src/main/java/net/minecraft/launcher/updater/Library.java
+index 8a42200..9dd693a 100644
+--- a/src/main/java/net/minecraft/launcher/updater/Library.java
++++ b/src/main/java/net/minecraft/launcher/updater/Library.java
+@@ -54,7 +54,7 @@ public class Library {
+         // olauncher - more iterator surgery
+         Iterator<CompatibilityRule> ruleIter;
+         if (var1.rules != null) {
+-            this.rules = new ArrayList<>();
++            this.rules = new ArrayList<CompatibilityRule>();
+             ruleIter = var1.rules.iterator();
+ 
+             while(ruleIter.hasNext()) {
+@@ -65,7 +65,7 @@ public class Library {
+ 
+         Iterator<Entry<OperatingSystem, String>> nativeIter;
+         if (var1.natives != null) {
+-            this.natives = new LinkedHashMap<>();
++            this.natives = new LinkedHashMap<OperatingSystem, String>();
+             nativeIter = var1.getNatives().entrySet().iterator();
+ 
+             while(nativeIter.hasNext()) {
+diff --git a/src/main/java/net/minecraft/launcher/updater/LibraryDownloadInfo.java b/src/main/java/net/minecraft/launcher/updater/LibraryDownloadInfo.java
+index 4e7612f..1f6ca11 100644
+--- a/src/main/java/net/minecraft/launcher/updater/LibraryDownloadInfo.java
++++ b/src/main/java/net/minecraft/launcher/updater/LibraryDownloadInfo.java
+@@ -15,7 +15,7 @@ public class LibraryDownloadInfo {
+     public LibraryDownloadInfo(LibraryDownloadInfo var1) {
+         this.artifact = var1.artifact;
+         if (var1.classifiers != null) {
+-            this.classifiers = new LinkedHashMap<>();
++            this.classifiers = new LinkedHashMap<String, DownloadInfo>();
+             // olauncher - iterator surgery
+             Iterator<Entry<String, DownloadInfo>> var2 = var1.classifiers.entrySet().iterator();
+ 
+-- 
+2.32.0.windows.1
+

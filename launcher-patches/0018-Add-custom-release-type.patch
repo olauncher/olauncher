@@ -1,4 +1,4 @@
-From 02b120ccb7a383ab838bd36b550e03a01894e111 Mon Sep 17 00:00:00 2001
+From 2d181aa4123801a4f348a5d973d6a8cd5423cf2b Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot3132@gmail.com>
 Date: Sat, 10 Dec 2022 19:58:24 -0600
 Subject: [PATCH] Add custom release type
@@ -41,5 +41,5 @@ index fdd24fc..a88b0b3 100644
  
      public static class Resolution {
 -- 
-2.39.0
+2.32.0.windows.1
 

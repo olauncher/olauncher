@@ -1,4 +1,4 @@
-From 257fbc84c2d81c7c5cb148b6106017fd1acce456 Mon Sep 17 00:00:00 2001
+From 917d98ec4b713d05e32417004f449f3c9b1ff0f2 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Wed, 13 Apr 2022 04:56:22 -0500
 Subject: [PATCH] Add update checking
@@ -512,5 +512,5 @@ index 1ed2f8f..a9aeefa 100644
      }
  
 -- 
-2.39.0
+2.32.0.windows.1
 

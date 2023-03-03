@@ -1,4 +1,4 @@
-From a3814c541a1b640ff9b8ab53584b47071854ffc5 Mon Sep 17 00:00:00 2001
+From c4300addc846f9283e9b73f828953e121ad81bb1 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 7 Apr 2022 05:25:03 -0500
 Subject: [PATCH] Minecraft Launcher -> OLauncher
@@ -40,5 +40,5 @@ index 4731988..11fcea0 100644
  
      public JFrame getFrame() {
 -- 
-2.39.0
+2.32.0.windows.1
 

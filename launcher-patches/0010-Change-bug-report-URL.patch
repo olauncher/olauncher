@@ -1,4 +1,4 @@
-From 8a8210bb3b9c5b8b51b98f46c7ac9eb806e85993 Mon Sep 17 00:00:00 2001
+From f1082eff752fcf9d29e65f29f33b1f1a3ef1556f Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 7 Apr 2022 04:10:54 -0500
 Subject: [PATCH] Change bug report URL
@@ -18,5 +18,5 @@ index cd37a5b..d9c609c 100644
                  }
              }
 -- 
-2.39.0
+2.32.0.windows.1
 
