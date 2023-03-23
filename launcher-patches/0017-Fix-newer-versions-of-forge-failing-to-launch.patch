@@ -1,4 +1,4 @@
-From 1ab4fa5c3e024663be7946fdcfc7d2671c3fee5b Mon Sep 17 00:00:00 2001
+From 0d09f197006307cbfd52c38506af0c9845404d84 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot3132@gmail.com>
 Date: Wed, 9 Nov 2022 02:59:04 -0600
 Subject: [PATCH] Fix newer versions of forge failing to launch
@@ -57,5 +57,5 @@ index acb4ee0..352a9d7 100644
                  ArrayList var6 = Lists.newArrayList();
                  Iterator var7 = this.libraries.iterator();
 -- 
-2.39.0
+2.39.2
 
