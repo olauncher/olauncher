@@ -1,4 +1,4 @@
-From 5219c3c751c7172ef6ec65a68943e3a8e6fdd81d Mon Sep 17 00:00:00 2001
+From e3c5f98762b96a55b37ad1f1b02a3851a2040e10 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Mon, 11 Apr 2022 02:52:40 -0500
 Subject: [PATCH] Add version information
@@ -6,10 +6,10 @@ Subject: [PATCH] Add version information
 
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/LauncherVersion.java b/src/main/java/dev/figboot/olauncher/launcher/LauncherVersion.java
 new file mode 100644
-index 0000000..100c193
+index 0000000..6112721
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/LauncherVersion.java
-@@ -0,0 +1,112 @@
+@@ -0,0 +1,125 @@
 +/*
 + * OLauncher
 + * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
@@ -32,6 +32,8 @@ index 0000000..100c193
 +
 +import lombok.Getter;
 +import lombok.SneakyThrows;
++import org.apache.logging.log4j.LogManager;
++import org.apache.logging.log4j.Logger;
 +
 +import java.io.InputStream;
 +import java.util.Objects;
@@ -88,6 +90,14 @@ index 0000000..100c193
 +        commitId = outer.getProperty("git.commit.id.abbrev");
 +    }
 +
++    private LauncherVersion() {
++        tag = "???";
++        tagSan = "???";
++        devVersion = true;
++        dirty = false;
++        commitId = "???";
++    }
++
 +    @Override
 +    public String toString() {
 +        if (toStringCache != null) return toStringCache;
@@ -111,12 +121,15 @@ index 0000000..100c193
 +        return toStringCache = sb.toString();
 +    }
 +
++    private static final Logger LOGGER = LogManager.getLogger();
++
 +    static {
 +        LauncherVersion ver = null;
 +        try {
 +            ver = loadVersion();
 +        } catch (Exception t) {
-+            new RuntimeException("Error loading version information", t).printStackTrace();
++            LOGGER.warn("Failed to load launcher version.", t);
++            ver = new LauncherVersion();
 +        } finally {
 +            INSTANCE = ver;
 +        }
