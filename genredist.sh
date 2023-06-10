@@ -22,9 +22,8 @@ cd "$workdir/redist"
 
 if [ ! -e "jbsdiff" ]; then
   echo jbsdiff not found! Downloading...
-  git clone https://github.com/malensek/jbsdiff.git
 
-  if [ "$?" != "0" ]; then
+  if ! git clone https://github.com/malensek/jbsdiff.git; then
     echo "Error cloning jbsdiff repository"
     exit 1
   fi
@@ -55,8 +54,7 @@ if [ ! -e "$autooldir/target" ]; then
 fi
 
 echo "Generating patch..."
-java -jar "jbsdiff/target/jbsdiff-1.0.jar" diff "../launcher.jar" "$basedir/olauncher/target/olauncher-${OLAUNCHER_VERSION}.jar" "launcher.patch"
-if [ "$?" != "0" ] || [ ! -e "launcher.patch" ]; then
+if ! java -jar "jbsdiff/target/jbsdiff-1.0.jar" diff "../launcher.jar" "$basedir/olauncher/target/olauncher-${OLAUNCHER_VERSION}.jar" "launcher.patch" || [ ! -e "launcher.patch" ]; then
   echo "Error creating patch"
   exit 1
 fi

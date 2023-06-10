@@ -6,9 +6,9 @@ applyPatches() {
     from=$1
     to=$2
 
-    git clone $1 $2
-    pushd $2
-    git remote add upstream ../$from
+    git clone "$1" "$2"
+    pushd "$2"
+    git remote add upstream "../$from"
     git fetch upstream
     git reset --hard upstream/master
     git am --abort > /dev/null 2>&1

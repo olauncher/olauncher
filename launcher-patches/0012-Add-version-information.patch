@@ -1,4 +1,4 @@
-From e3c5f98762b96a55b37ad1f1b02a3851a2040e10 Mon Sep 17 00:00:00 2001
+From c742e4b5e6da1689182978b2b5d4baaa93c1129d Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Mon, 11 Apr 2022 02:52:40 -0500
 Subject: [PATCH] Add version information
@@ -180,7 +180,7 @@ index cc91b34..fff6d93 100644
  
          try {
 diff --git a/src/main/java/net/minecraft/launcher/SwingUserInterface.java b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
-index 11fcea0..a00d3dc 100644
+index 7cbae64..524c1f7 100644
 --- a/src/main/java/net/minecraft/launcher/SwingUserInterface.java
 +++ b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
 @@ -26,6 +26,8 @@ import javax.swing.JOptionPane;

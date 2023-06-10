@@ -1,4 +1,4 @@
-From e30a0b7186d93deb07c9194201a4a2d5e9576506 Mon Sep 17 00:00:00 2001
+From 0c39b0d9ae4f259e92d4d659d1f4d6da45bfb37a Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 7 Apr 2022 05:25:03 -0500
 Subject: [PATCH] Minecraft Launcher -> OLauncher
@@ -18,7 +18,7 @@ index 3da8cfb..cc91b34 100644
  
          try {
 diff --git a/src/main/java/net/minecraft/launcher/SwingUserInterface.java b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
-index 4731988..11fcea0 100644
+index 12b5f87..7cbae64 100644
 --- a/src/main/java/net/minecraft/launcher/SwingUserInterface.java
 +++ b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
 @@ -93,7 +93,7 @@ public class SwingUserInterface implements MinecraftUserInterface {

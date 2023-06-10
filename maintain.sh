@@ -25,7 +25,7 @@ getNewJavaRuntimeManifest() {
 
   echo "Searching for launcher manifest in the binary..."
   launchmanifestloc=$(strings -10 "$mclauncherloc" | grep "https://launchermeta\\.mojang\\.com/v1/products/launcher/.*/linux\\.json")
-  if [ "$?" != "0" ] || [ -e $launchmanifestloc ]; then
+  if [ "$?" != "0" ] || [ -e "$launchmanifestloc" ]; then
     echo "Unable to find the manifest in the launcher binary."
     return 1
   fi
@@ -40,7 +40,7 @@ getNewJavaRuntimeManifest() {
 
   echo "Parsing manifest to find the launcher-core manifest location..."
   launchercoremanifestloc=$(cat "$jrework/launcher.json" | jq -Mcr '.["launcher-core"][0]["manifest"]["url"]')
-  if [ "$?" != "0" ] || [ -e $launchercoremanifestloc ]; then
+  if [ "$?" != "0" ] || [ -e "$launchercoremanifestloc" ]; then
     echo "Unable to parse manifest."
     exit 1
   fi
@@ -55,11 +55,11 @@ getNewJavaRuntimeManifest() {
 
   echo "Parsing manifest to find liblauncher.so location..."
   liblaunchercompressed="1"
-  liblauncherloc=$(cat "$jrework/launcher-core.json" | jq -Mcr '.["files"]["liblauncher.so"]["downloads"]["lzma"]["url"]')
+  liblauncherloc=$(jq -Mcr '.["files"]["liblauncher.so"]["downloads"]["lzma"]["url"]' < "$jrework/launcher-core.json")
   if [ "$?" != "0" ] || [ "$liblauncherloc" == "null" ] || [ "$forcenolzma" == "1" ]; then
     echo "Unable to find lzma location or nolzma specified, resorting to raw location..."
     liblaunchercompressed="0"
-    liblauncherloc=$(cat "$jrework/launcher-core.json" | jq -Mcr '.["files"]["liblauncher.so"]["downloads"]["raw"]["url"]')
+    liblauncherloc=$(jq -Mcr '.["files"]["liblauncher.so"]["downloads"]["raw"]["url"]' < "$jrework/launcher-core.json")
     if [ "$?" != "0" ] || [ "$liblauncherloc" == "null" ]; then
       echo "Unable to find raw liblauncher location."
       return 1
@@ -95,7 +95,7 @@ getNewJavaRuntimeManifest() {
 
   echo "Scanning liblauncher.so for java-runtime manifest..."
   jremanifestloc=$(strings -10 "$jrework/liblauncher.so" | grep "https://launchermeta\\.mojang\\.com/v1/products/java-runtime/.*\\.json")
-  if [ "$?" != "0" ] || [ -e $jremanifestloc ]; then
+  if [ "$?" != "0" ] || [ -e "$jremanifestloc" ]; then
     echo "Unable to find java-runtime manifest location."
     return 1
   fi
@@ -109,7 +109,7 @@ getNewJavaRuntimeManifest() {
 command=$1
 case $command in
 getJREManifest)
-  getNewJavaRuntimeManifest ${@:2}
+  getNewJavaRuntimeManifest "${@:2}"
   exit $?
   ;;
 *)

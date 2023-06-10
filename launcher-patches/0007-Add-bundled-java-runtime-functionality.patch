@@ -1,4 +1,4 @@
-From 8938466f06834e72afd578a57d1ec0721f9a5087 Mon Sep 17 00:00:00 2001
+From 7a5eba6f6843070e33c112f37f85fbd0a612c528 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Sat, 26 Mar 2022 15:24:44 -0500
 Subject: [PATCH] Add bundled java runtime functionality
@@ -1145,7 +1145,7 @@ index a9a6ee3..1ed2f8f 100644
          this.getLauncher().getVersionManager().getExecutorService().submit(new Runnable() {
              public void run() {
 diff --git a/src/main/java/net/minecraft/launcher/SwingUserInterface.java b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
-index 06e506a..4731988 100644
+index 06e506a..12b5f87 100644
 --- a/src/main/java/net/minecraft/launcher/SwingUserInterface.java
 +++ b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
 @@ -103,10 +103,12 @@ public class SwingUserInterface implements MinecraftUserInterface {
@@ -1157,7 +1157,7 @@ index 06e506a..4731988 100644
  
                  try {
                      SwingUserInterface.this.minecraftLauncher.getLauncher().getVersionManager().getExecutorService().awaitTermination(10L, TimeUnit.SECONDS);
-+                    SwingUserInterface.this.minecraftLauncher.getLauncher().getVersionManager().getExecutorService().awaitTermination(10L, TimeUnit.SECONDS); // olauncher - wait for jreManager executor to stop
++                    SwingUserInterface.this.minecraftLauncher.getLauncher().getJreManager().getExecutorService().awaitTermination(10L, TimeUnit.SECONDS); // olauncher - wait for jreManager executor to stop
                  } catch (InterruptedException var3) {
                      SwingUserInterface.LOGGER.info("Termination took too long.");
                  }
