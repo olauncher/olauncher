@@ -1,0 +1,118 @@
+From 4735a8339e7619f692f8a3c30142bfb22c18678f Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot@figboot.dev>
+Date: Mon, 3 Jul 2023 15:51:42 -0500
+Subject: [PATCH] Allow launching old versions
+
+Some versions use resources/ for sounds n stuff
+
+diff --git a/src/main/java/com/mojang/launcher/updater/download/assets/AssetIndex.java b/src/main/java/com/mojang/launcher/updater/download/assets/AssetIndex.java
+index 188db4f..81c48d2 100644
+--- a/src/main/java/com/mojang/launcher/updater/download/assets/AssetIndex.java
++++ b/src/main/java/com/mojang/launcher/updater/download/assets/AssetIndex.java
+@@ -11,6 +11,7 @@ public class AssetIndex {
+     public static final String DEFAULT_ASSET_NAME = "legacy";
+     private Map<String, AssetIndex.AssetObject> objects = new LinkedHashMap();
+     private boolean virtual;
++    private boolean map_to_resources; // olauncher - old
+ 
+     public AssetIndex() {
+     }
+@@ -35,6 +36,12 @@ public class AssetIndex {
+         return this.virtual;
+     }
+ 
++    // olauncher start - old
++    public boolean mapToResources() {
++        return map_to_resources;
++    }
++    // olauncher end
++
+     public class AssetObject {
+         private String hash;
+         private long size;
+diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
+index 60b3d41..0fda0ab 100644
+--- a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
++++ b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
+@@ -23,19 +23,16 @@ import com.mojang.launcher.updater.download.Downloadable;
+ import com.mojang.launcher.updater.download.assets.AssetIndex;
+ import com.mojang.launcher.versions.ExtractRules;
+ import com.mojang.util.UUIDTypeAdapter;
+-import java.io.BufferedInputStream;
+-import java.io.BufferedOutputStream;
+-import java.io.BufferedReader;
+-import java.io.File;
+-import java.io.FileInputStream;
+-import java.io.FileOutputStream;
+-import java.io.IOException;
+-import java.io.InputStreamReader;
++
++import java.io.*;
++import java.math.BigInteger;
+ import java.net.InetSocketAddress;
+ import java.net.PasswordAuthentication;
+ import java.net.Proxy;
+ import java.nio.file.Files;
+ import java.nio.file.Path;
++import java.security.MessageDigest;
++import java.security.NoSuchAlgorithmException;
+ import java.util.Collection;
+ import java.util.Date;
+ import java.util.Enumeration;
+@@ -249,15 +246,49 @@ public class MinecraftGameRunner extends AbstractGameRunner implements GameProce
+             return var6;
+         } else {
+             AssetIndex var7 = (AssetIndex)this.gson.fromJson(FileUtils.readFileToString(var5, Charsets.UTF_8), AssetIndex.class);
+-            if (var7.isVirtual()) {
++            // olauncher start - handle mapping to resources/
++            if (var7.mapToResources()) {
++                var6 = new File(selectedProfile.getGameDir(), "resources");
++            }
++
++            if (var7.isVirtual() || var7.mapToResources()) {
++                // olauncher end
+                 LOGGER.info("Reconstructing virtual assets folder at " + var6);
+-                Iterator var8 = var7.getFileMap().entrySet().iterator();
++                Iterator<Entry<String, AssetIndex.AssetObject>> var8 = var7.getFileMap().entrySet().iterator();
++
++                byte[] buf = new byte[4096];
++                MessageDigest digest;
++
++                try {
++                    digest = MessageDigest.getInstance("SHA1");
++                } catch (NoSuchAlgorithmException ex) {
++                    throw new RuntimeException(ex);
++                }
+ 
+                 while(var8.hasNext()) {
+-                    Entry var9 = (Entry)var8.next();
++                    Entry<String, AssetIndex.AssetObject> var9 = var8.next();
+                     File var10 = new File(var6, (String)var9.getKey());
+                     File var11 = new File(new File(var3, ((AssetIndex.AssetObject)var9.getValue()).getHash().substring(0, 2)), ((AssetIndex.AssetObject)var9.getValue()).getHash());
+-                    if (!var10.isFile()) {
++
++                    // olauncher
++                    boolean copy = true;
++                    if (var10.isFile()) {
++                        copy = false;
++                        digest.reset();
++                        try (InputStream is = new FileInputStream(var10)) {
++                            int nread;
++                            while ((nread = is.read(buf)) > 0) {
++                                digest.update(buf, 0, nread);
++                            }
++                        }
++
++                        String hash = String.format("%040x", new BigInteger(1, digest.digest()));
++
++                        if (!hash.equalsIgnoreCase(var9.getValue().getHash())) copy = true;
++                    }
++
++                    if (copy) {
++                        LOGGER.info("Copying asset for virtual or resource-mapped: " + var10);
+                         FileUtils.copyFile(var11, var10, false);
+                     }
+                 }
+-- 
+2.40.1
+

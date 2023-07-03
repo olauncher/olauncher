@@ -40,5 +40,5 @@ index 524c1f7..528aa6c 100644
          this.frame.setDefaultCloseOperation(2);
          this.frame.addWindowListener(new WindowAdapter() {
 -- 
-2.39.2
+2.40.1
 
