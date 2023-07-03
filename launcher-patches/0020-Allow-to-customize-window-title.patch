@@ -1,4 +1,4 @@
-From 5f9bb27a980efd2899a6bf993e464bf5f05ca5ea Mon Sep 17 00:00:00 2001
+From cf46b94529c0849d6d9dee376495212b1cfc678b Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot3132@gmail.com>
 Date: Sat, 10 Jun 2023 16:05:54 -0500
 Subject: [PATCH] Allow to customize window title
