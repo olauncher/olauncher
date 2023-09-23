@@ -1,0 +1,22 @@
+From 1e606ba3e6e255af37b667bd30fd7dab2d1699f9 Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot@figboot.dev>
+Date: Sat, 23 Sep 2023 18:31:23 -0500
+Subject: [PATCH] Allow changing the news URL with a property
+
+
+diff --git a/src/main/java/net/minecraft/launcher/LauncherConstants.java b/src/main/java/net/minecraft/launcher/LauncherConstants.java
+index 41fc5fc..b2267d5 100644
+--- a/src/main/java/net/minecraft/launcher/LauncherConstants.java
++++ b/src/main/java/net/minecraft/launcher/LauncherConstants.java
+@@ -21,7 +21,7 @@ public class LauncherConstants {
+     public static final String URL_JAR_FALLBACK = "https://s3.amazonaws.com/Minecraft.Download/";
+     public static final String URL_RESOURCE_BASE = "https://resources.download.minecraft.net/";
+     public static final String URL_LIBRARY_BASE = "https://libraries.minecraft.net/";
+-    public static final String URL_BLOG = "https://olauncher.github.io/news";
++    public static final String URL_BLOG = System.getProperty("dev.figboot.olauncher.URLNews", "https://olauncher.github.io/news");
+     public static final String URL_SUPPORT = "http://help.mojang.com/?ref=launcher";
+     public static final String URL_STATUS_CHECKER = "http://status.mojang.com/check";
+     public static final int UNVERSIONED_BOOTSTRAP_VERSION = 0;
+-- 
+2.40.1
+
