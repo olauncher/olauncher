@@ -1,0 +1,48 @@
+From 19e7bbbbffc6b2b01532c0d95e501a04a36fa284 Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot@figboot.dev>
+Date: Sat, 14 Oct 2023 18:03:22 -0500
+Subject: [PATCH] Properly migrate profiles from new launcher
+
+
+diff --git a/src/main/java/net/minecraft/launcher/profile/ProfileManager.java b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
+index a29c749..bb7d8a0 100644
+--- a/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
++++ b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
+@@ -34,6 +34,8 @@ import dev.figboot.olauncher.auth.MicrosoftAuthenticationService;
+ import net.minecraft.launcher.Launcher;
+ import net.minecraft.launcher.LauncherConstants;
+ import org.apache.commons.io.FileUtils;
++import org.apache.logging.log4j.LogManager;
++import org.apache.logging.log4j.Logger;
+ 
+ public class ProfileManager {
+     public static final String DEFAULT_PROFILE_NAME = "(Default)";
+@@ -48,6 +50,8 @@ public class ProfileManager {
+     private String selectedUser;
+     private AuthenticationDatabase authDatabase;
+ 
++    private static final Logger LOGGER = LogManager.getLogger();
++
+     public ProfileManager(Launcher var1) {
+         this.launcher = var1;
+         this.profileFile = new File(var1.getLauncher().getWorkingDirectory(), "launcher_profiles.json");
+@@ -99,6 +103,16 @@ public class ProfileManager {
+             }
+ 
+             ProfileManager.RawProfileList var4 = (ProfileManager.RawProfileList)this.gson.fromJson(var1, ProfileManager.RawProfileList.class);
++
++            // OLauncher start - migrate launcher profiles properly
++            for (Map.Entry<String, Profile> entry : var4.profiles.entrySet()) {
++                if (!entry.getValue().getName().equals(entry.getKey())) {
++                    LOGGER.info("Migrating profile " + entry.getKey() + " from new launcher.");
++                    entry.getValue().setName(entry.getKey());
++                }
++            }
++            // OLauncher end
++
+             this.profiles.putAll(var4.profiles);
+             this.selectedProfile = var4.selectedProfile;
+             this.selectedUser = var4.selectedUser;
+-- 
+2.40.1
+
