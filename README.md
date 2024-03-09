@@ -6,9 +6,6 @@ The old launcher we all know and love with the quality-of-life features of the n
 2. Download the `olauncher-xxx-redist.jar` file
 3. Run it
 
-### But the launcher is broken :(
-Have you used the new launcher in this .minecraft directory? If so, switch .minecraft directories or delete/rename the `launcher_profiles.json` file. You will have to recreate your minecraft profiles, as the new `launcher_profiles.json` format is incompatible with this version.
-
 ## Features
 - Microsoft authentication
 - Bundled JVMs
@@ -21,7 +18,6 @@ Have you used the new launcher in this .minecraft directory? If so, switch .mine
 - Add skin/cape management
 
 ### Minor TODOs
-- Replace Mojang's Hopper service with our own
 - Support demo users (if they have a Microsoft account but no Minecraft profile)
 - Use `version_manifest_v2`
 

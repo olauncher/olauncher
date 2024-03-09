@@ -1,0 +1,415 @@
+From 920bd2fd048417d66f6ebb18f77924885eb25379 Mon Sep 17 00:00:00 2001
+From: exrodev <exr0yt@gmail.com>
+Date: Sat, 9 Mar 2024 18:32:00 +1030
+Subject: [PATCH] Work around for not recieving profile
+
+
+diff --git a/src/main/java/com/mojang/authlib/HttpAuthenticationService.java b/src/main/java/com/mojang/authlib/HttpAuthenticationService.java
+index 78db037..2f430d1 100644
+--- a/src/main/java/com/mojang/authlib/HttpAuthenticationService.java
++++ b/src/main/java/com/mojang/authlib/HttpAuthenticationService.java
+@@ -147,6 +147,49 @@ public abstract class HttpAuthenticationService extends BaseAuthenticationServic
+         return var6;
+     }
+ 
++    // OLauncher start - delete request
++    public String performDeleteRequest(URL url, String bearer) throws IOException {
++        Validate.notNull(url);
++        HttpURLConnection connection = this.createUrlConnection(url);
++        if (bearer != null) connection.setRequestProperty("Authorization", "Bearer " + bearer);
++        LOGGER.debug("Reading data from " + url);
++        connection.setDoOutput(true);
++        connection.setRequestMethod("DELETE");
++
++        InputStream var3 = null;
++
++        String var6;
++        try {
++            String var5;
++            try {
++                var3 = connection.getInputStream();
++                String var4 = IOUtils.toString(var3, Charsets.UTF_8);
++                LOGGER.debug("Successful read, server response was " + connection.getResponseCode());
++                LOGGER.debug("Response: " + var4);
++                var5 = var4;
++                return var5;
++            } catch (IOException var10) {
++                IOUtils.closeQuietly(var3);
++                var3 = connection.getErrorStream();
++                if (var3 == null) {
++                    LOGGER.debug("Request failed", var10);
++                    throw var10;
++                }
++
++                LOGGER.debug("Reading error page from " + url);
++                var5 = IOUtils.toString(var3, Charsets.UTF_8);
++                LOGGER.debug("Successful read, server response was " + connection.getResponseCode());
++                LOGGER.debug("Response: " + var5);
++                var6 = var5;
++            }
++        } finally {
++            IOUtils.closeQuietly(var3);
++        }
++
++        return var6;
++    }
++    // OLauncher end
++
+     public static URL constantURL(String var0) {
+         try {
+             return new URL(var0);
+diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java
+index de4725c..cb3b5a0 100644
+--- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java
++++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java
+@@ -42,6 +42,7 @@ public class MicrosoftAuthenticationService extends YggdrasilAuthenticationServi
+     public static final URL ROUTE_XBOXLIVE_XSTS = constantURL("https://xsts.auth.xboxlive.com/xsts/authorize");
+     public static final URL ROUTE_MINECRAFT_XBOX_LOGIN = constantURL("https://api.minecraftservices.com/authentication/login_with_xbox");
+     public static final URL ROUTE_MINECRAFT_PROFILE = constantURL("https://api.minecraftservices.com/minecraft/profile");
++    public static final URL ROUTE_MINECRAFT_PROFILE_SKINS_ACTIVE = constantURL("https://api.minecraftservices.com/minecraft/profile/skins/active");
+ 
+     private final Gson gson;
+ 
+@@ -94,6 +95,15 @@ public class MicrosoftAuthenticationService extends YggdrasilAuthenticationServi
+         }
+     }
+ 
++    protected <T> T deleteAuthenticated(URL url, String token, Class<T> clazz) throws AuthenticationException {
++        try {
++            String res = performDeleteRequest(url, token);
++            return gson.fromJson(res, clazz);
++        } catch (IOException ex) {
++            throw new AuthenticationException("Cannot connect to server", ex);
++        }
++    }
++
+     protected static class FormURLEncodedBuilder {
+         private final StringBuilder data;
+         private boolean firstParam = true;
+diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
+index f8e17b4..a1fc568 100644
+--- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
++++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
+@@ -32,16 +32,20 @@ import dev.figboot.olauncher.auth.responses.MSTokenAuthResponse;
+ import dev.figboot.olauncher.auth.responses.MinecraftXboxLoginResponse;
+ import dev.figboot.olauncher.auth.responses.XSTSAuthResponse;
+ import dev.figboot.olauncher.auth.responses.XboxLiveAuthResponse;
++import dev.figboot.olauncher.auth.ui.GameProfileFixDialog;
++import dev.figboot.olauncher.auth.ui.MSLoginDialog;
+ import lombok.Getter;
+ import org.apache.commons.lang3.StringUtils;
+ import org.apache.logging.log4j.LogManager;
+ import org.apache.logging.log4j.Logger;
+ 
+ import javax.imageio.ImageIO;
++import javax.swing.*;
+ import java.awt.image.BufferedImage;
+ import java.io.IOException;
+ import java.io.InputStream;
+ import java.io.UnsupportedEncodingException;
++import java.lang.reflect.InvocationTargetException;
+ import java.math.BigInteger;
+ import java.net.HttpURLConnection;
+ import java.net.MalformedURLException;
+@@ -212,6 +216,19 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+         profileInfo = getAuthenticationService().getAuthenticated(MicrosoftAuthenticationService.ROUTE_MINECRAFT_PROFILE,
+                 mojToken, MCProfileInfo.class);
+ 
++        while (profileInfo.getId() == null) {
++            // User profile just returns 404 (who knows why)
++            // I believe that it may be an issue with the Mojang API
++            // - exro
++            try {
++                SwingUtilities.invokeAndWait(GameProfileFixDialog::new);
++            } catch (InterruptedException | InvocationTargetException e) {
++                throw new RuntimeException(e);
++            }
++            profileInfo = getAuthenticationService().getAuthenticated(MicrosoftAuthenticationService.ROUTE_MINECRAFT_PROFILE,
++                    mojToken, MCProfileInfo.class);
++        }
++
+         GameProfile profile = new GameProfile(profileInfo.getId(), profileInfo.getName());
+         profile = sessionService.fillProfileProperties(profile, false);
+ 
+diff --git a/src/main/java/dev/figboot/olauncher/auth/ui/GameProfileFixDialog.java b/src/main/java/dev/figboot/olauncher/auth/ui/GameProfileFixDialog.java
+new file mode 100644
+index 0000000..55f3f31
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/auth/ui/GameProfileFixDialog.java
+@@ -0,0 +1,87 @@
++package dev.figboot.olauncher.auth.ui;
++
++import com.mojang.launcher.OperatingSystem;
++import dev.figboot.olauncher.OLauncherConstants;
++import org.apache.logging.log4j.LogManager;
++import org.apache.logging.log4j.Logger;
++
++import javax.swing.*;
++import java.awt.*;
++import java.awt.datatransfer.StringSelection;
++import java.awt.event.ActionEvent;
++import java.awt.event.WindowAdapter;
++import java.awt.event.WindowEvent;
++import java.net.URI;
++import java.net.URLEncoder;
++
++public class GameProfileFixDialog extends JDialog {
++    private static final Logger LOGGER = LogManager.getLogger();
++    private final String link = "https://www.minecraft.net/en-us/msaprofile/mygames/editskin";
++    private final JLabel lblText1;
++    private final JLabel lblText2;
++    private final JButton btnOpen;
++    private final JButton btnCopy;
++    private final JButton btnRetry;
++
++    public GameProfileFixDialog() {
++        lblText1 = new JLabel("There was an error loading your profile.");
++        lblText2 = new JLabel("You can (maybe) fix this by opening the edit skin page on the Minecraft website, then retry.");
++        btnOpen = new JButton("Open Link");
++        btnCopy = new JButton("Copy Link");
++        btnRetry = new JButton("Retry");
++
++        btnCopy.addActionListener(this::btnCopyLinkClick);
++        btnOpen.addActionListener(this::btnOpenLinkClick);
++        btnRetry.addActionListener(this::btnRetryClick);
++
++        setModal(true);
++        setModalityType(ModalityType.APPLICATION_MODAL);
++
++        addWindowListener(new WindowAdapter() {
++            @Override
++            public void windowClosing(WindowEvent e) {
++                dispose();
++            }
++        });
++
++        initInterface();
++    }
++
++    private void initInterface() {
++        setLayout(new BorderLayout());
++
++        JPanel pnlText1 = new JPanel();
++        pnlText1.setLayout(new FlowLayout(FlowLayout.CENTER));
++        pnlText1.add(lblText1);
++        add(pnlText1, BorderLayout.PAGE_START);
++
++        JPanel pnlText2 = new JPanel();
++        pnlText2.setLayout(new FlowLayout(FlowLayout.CENTER));
++        pnlText2.add(lblText2, BorderLayout.CENTER);
++        add(pnlText2);
++
++        JPanel pnlButtons = new JPanel();
++        pnlButtons.setLayout(new FlowLayout(FlowLayout.CENTER));
++        pnlButtons.add(btnOpen);
++        pnlButtons.add(btnCopy);
++        pnlButtons.add(btnRetry);
++        add(pnlButtons, BorderLayout.PAGE_END);
++
++        pack();
++        setLocationRelativeTo(this);
++        setVisible(true);
++    }
++
++    private void btnCopyLinkClick(ActionEvent evt) {
++        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(link), null);
++    }
++    private void btnOpenLinkClick(ActionEvent evt) {
++        OperatingSystem.openLink(URI.create(link));
++    }
++
++    private void btnRetryClick(ActionEvent evt) {
++        Object src = evt.getSource();
++        if (src instanceof Component) ((Component)src).setEnabled(false);
++        dispose();
++    }
++}
+diff --git a/src/main/java/net/minecraft/launcher/Main.java b/src/main/java/net/minecraft/launcher/Main.java
+index 6668dd0..a7bb077 100644
+--- a/src/main/java/net/minecraft/launcher/Main.java
++++ b/src/main/java/net/minecraft/launcher/Main.java
+@@ -34,6 +34,7 @@ public class Main {
+     }
+ 
+     private static void startLauncher(String[] var0) {
++        System.setProperty("sun.java2d.d3d", "false"); // possible fix for https://github.com/olauncher/olauncher/issues/12
+         OptionParser var1 = new OptionParser();
+         var1.allowsUnrecognizedOptions();
+         var1.accepts("winTen");
+diff --git a/src/main/java/net/minecraft/launcher/ui/tabs/CrashReportTab.java b/src/main/java/net/minecraft/launcher/ui/tabs/CrashReportTab.java
+index 701f313..b6c4444 100644
+--- a/src/main/java/net/minecraft/launcher/ui/tabs/CrashReportTab.java
++++ b/src/main/java/net/minecraft/launcher/ui/tabs/CrashReportTab.java
+@@ -53,45 +53,46 @@ public class CrashReportTab extends JPanel {
+         this.isModded = !var4.contains("Is Modded: Probably not") && !var4.contains("Is Modded: Unknown");
+         this.setLayout(new BorderLayout());
+         this.createInterface();
+-        if (var1.getProfileManager().getSelectedProfile().getUseHopperCrashService()) {
+-            var1.getLauncher().getVersionManager().getExecutorService().submit(new Runnable() {
+-                public void run() {
+-                    try {
+-                        HashMap var1x = new HashMap();
+-                        var1x.put("launcher.version", LauncherConstants.getVersionName());
+-                        var1x.put("launcher.title", var1.getUserInterface().getTitle());
+-                        var1x.put("bootstrap.version", String.valueOf(var1.getBootstrapVersion()));
+-                        CrashReportTab.this.hopperServiceResponse = HopperService.submitReport(var1.getLauncher().getProxy(), var4, "Minecraft", var2.getId(), var1x);
+-                        CrashReportTab.LOGGER.info("Reported crash to Mojang (ID " + CrashReportTab.this.hopperServiceResponse.getReport().getId() + ")");
+-                        if (CrashReportTab.this.hopperServiceResponse.getProblem() != null) {
+-                            CrashReportTab.this.showKnownProblemPopup();
+-                        } else if (CrashReportTab.this.hopperServiceResponse.getReport().canBePublished()) {
+-                            CrashReportTab.this.showPublishReportPrompt();
+-                        }
+-                    } catch (IOException var2x) {
+-                        CrashReportTab.LOGGER.error("Couldn't report crash to Mojang", var2x);
+-                    }
+-
+-                }
+-            });
+-        }
++//        if (var1.getProfileManager().getSelectedProfile().getUseHopperCrashService()) {
++//            var1.getLauncher().getVersionManager().getExecutorService().submit(new Runnable() {
++//                public void run() {
++//                    try {
++//                        HashMap var1x = new HashMap();
++//                        var1x.put("launcher.version", LauncherConstants.getVersionName());
++//                        var1x.put("launcher.title", var1.getUserInterface().getTitle());
++//                        var1x.put("bootstrap.version", String.valueOf(var1.getBootstrapVersion()));
++//                        CrashReportTab.this.hopperServiceResponse = HopperService.submitReport(var1.getLauncher().getProxy(), var4, "Minecraft", var2.getId(), var1x);
++//                        CrashReportTab.LOGGER.info("Reported crash to Mojang (ID " + CrashReportTab.this.hopperServiceResponse.getReport().getId() + ")");
++//                        if (CrashReportTab.this.hopperServiceResponse.getProblem() != null) {
++//                            CrashReportTab.this.showKnownProblemPopup();
++//                        }
++//                        else if (CrashReportTab.this.hopperServiceResponse.getReport().canBePublished()) {
++//                            CrashReportTab.this.showPublishReportPrompt();
++//                        }
++//                    } catch (IOException var2x) {
++//                        CrashReportTab.LOGGER.error("Couldn't report crash to Mojang", var2x);
++//                    }
++//
++//                }
++//            });
++//        }
+ 
+     }
+ 
+-    private void showPublishReportPrompt() {
+-        String[] var1 = new String[]{"Publish Crash Report", "Cancel"};
+-        JLabel var2 = new JLabel();
+-        var2.setText("<html><p>Sorry, but it looks like the game crashed and we don't know why.</p><p>Would you mind publishing this report so that " + (this.isModded ? "the mod authors" : "Mojang") + " can fix it?</p></html>");
+-        int var3 = JOptionPane.showOptionDialog(this, var2, "Uhoh, something went wrong!", 0, 1, (Icon)null, var1, var1[0]);
+-        if (var3 == 0) {
+-            try {
+-                PublishResponse var4 = HopperService.publishReport(this.minecraftLauncher.getLauncher().getProxy(), this.hopperServiceResponse.getReport());
+-            } catch (IOException var5) {
+-                LOGGER.error("Couldn't publish report " + this.hopperServiceResponse.getReport().getId(), var5);
+-            }
+-        }
+-
+-    }
++//    private void showPublishReportPrompt() {
++//        String[] var1 = new String[]{"Publish Crash Report", "Cancel"};
++//        JLabel var2 = new JLabel();
++//        var2.setText("<html><p>Sorry, but it looks like the game crashed and we don't know why.</p><p>Would you mind publishing this report so that " + (this.isModded ? "the mod authors" : "Mojang") + " can fix it?</p></html>");
++//        int var3 = JOptionPane.showOptionDialog(this, var2, "Uhoh, something went wrong!", 0, 1, (Icon)null, var1, var1[0]);
++//        if (var3 == 0) {
++//            try {
++//                PublishResponse var4 = HopperService.publishReport(this.minecraftLauncher.getLauncher().getProxy(), this.hopperServiceResponse.getReport());
++//            } catch (IOException var5) {
++//                LOGGER.error("Couldn't publish report " + this.hopperServiceResponse.getReport().getId(), var5);
++//            }
++//        }
++//
++//    }
+ 
+     private void showKnownProblemPopup() {
+         if (this.hopperServiceResponse.getProblem().getUrl() == null) {
+@@ -120,14 +121,16 @@ public class CrashReportTab extends JPanel {
+     private class CrashInfoPane extends JPanel implements ActionListener {
+         public static final String INFO_NORMAL = "<html><div style='width: 100%'><p><b>Uhoh, it looks like the game has crashed! Sorry for the inconvenience :(</b></p><p>Using magic and love, we've managed to gather some details about the crash and we will investigate this as soon as we can.</p><p>You can see the full report below.</p></div></html>";
+         public static final String INFO_MODDED = "<html><div style='width: 100%'><p><b>Uhoh, it looks like the game has crashed! Sorry for the inconvenience :(</b></p><p>We think your game may be modded, and as such we can't accept this crash report.</p><p>However, if you do indeed use mods, please send this to the mod authors to take a look at!</p></div></html>";
+-        private final JButton submitButton = new JButton("Report to Mojang");
++//        private final JButton submitButton = new JButton("Report to Mojang");
+         private final JButton openFileButton = new JButton("Open report file");
+ 
++        // olauncher - remove submit report
+         protected CrashInfoPane(Launcher var2) {
+-            this.submitButton.addActionListener(this);
++//            this.submitButton.addActionListener(this);
+             this.openFileButton.addActionListener(this);
+         }
+ 
++        // olauncher - remove submit report
+         protected void createInterface() {
+             this.setLayout(new GridBagLayout());
+             GridBagConstraints var1 = new GridBagConstraints();
+@@ -135,7 +138,7 @@ public class CrashReportTab extends JPanel {
+             var1.fill = 2;
+             var1.insets = new Insets(2, 2, 2, 2);
+             var1.gridx = 1;
+-            this.add(this.submitButton, var1);
++//            this.add(this.submitButton, var1);
+             var1.gridy = 1;
+             this.add(this.openFileButton, var1);
+             var1.gridx = 0;
+@@ -144,33 +147,35 @@ public class CrashReportTab extends JPanel {
+             var1.weighty = 1.0D;
+             var1.gridheight = 2;
+             this.add(new JLabel(CrashReportTab.this.isModded ? "<html><div style='width: 100%'><p><b>Uhoh, it looks like the game has crashed! Sorry for the inconvenience :(</b></p><p>We think your game may be modded, and as such we can't accept this crash report.</p><p>However, if you do indeed use mods, please send this to the mod authors to take a look at!</p></div></html>" : "<html><div style='width: 100%'><p><b>Uhoh, it looks like the game has crashed! Sorry for the inconvenience :(</b></p><p>Using magic and love, we've managed to gather some details about the crash and we will investigate this as soon as we can.</p><p>You can see the full report below.</p></div></html>"), var1);
+-            if (CrashReportTab.this.isModded) {
+-                this.submitButton.setEnabled(false);
+-            }
++//            if (CrashReportTab.this.isModded) {
++//                this.submitButton.setEnabled(false);
++//            }
+ 
+         }
+ 
++        // olauncher - remove submit report
+         public void actionPerformed(ActionEvent var1) {
+-            if (var1.getSource() == this.submitButton) {
+-                if (CrashReportTab.this.hopperServiceResponse != null) {
+-                    if (CrashReportTab.this.hopperServiceResponse.getProblem() != null) {
+-                        CrashReportTab.this.showKnownProblemPopup();
+-                    } else if (CrashReportTab.this.hopperServiceResponse.getReport().canBePublished()) {
+-                        CrashReportTab.this.showPublishReportPrompt();
+-                    }
+-                } else {
+-                    try {
+-                        HashMap var2 = new HashMap();
+-                        var2.put("pid", 10400);
+-                        var2.put("issuetype", 1);
+-                        var2.put("description", "Put the summary of the bug you're having here\n\n*What I expected to happen was...:*\nDescribe what you thought should happen here\n\n*What actually happened was...:*\nDescribe what happened here\n\n*Steps to Reproduce:*\n1. Put a step by step guide on how to trigger the bug here\n2. ...\n3. ...");
+-                        var2.put("environment", this.buildEnvironmentInfo());
+-                        OperatingSystem.openLink(URI.create("https://bugs.mojang.com/secure/CreateIssueDetails!init.jspa?" + Http.buildQuery(var2)));
+-                    } catch (Throwable var3) {
+-                        CrashReportTab.LOGGER.error("Couldn't open bugtracker", var3);
+-                    }
+-                }
+-            } else if (var1.getSource() == this.openFileButton) {
++//            if (var1.getSource() == this.submitButton) {
++//                if (CrashReportTab.this.hopperServiceResponse != null) {
++//                    if (CrashReportTab.this.hopperServiceResponse.getProblem() != null) {
++//                        CrashReportTab.this.showKnownProblemPopup();
++//                    } else if (CrashReportTab.this.hopperServiceResponse.getReport().canBePublished()) {
++//                        CrashReportTab.this.showPublishReportPrompt();
++//                    }
++//                } else {
++//                    try {
++//                        HashMap var2 = new HashMap();
++//                        var2.put("pid", 10400);
++//                        var2.put("issuetype", 1);
++//                        var2.put("description", "Put the summary of the bug you're having here\n\n*What I expected to happen was...:*\nDescribe what you thought should happen here\n\n*What actually happened was...:*\nDescribe what happened here\n\n*Steps to Reproduce:*\n1. Put a step by step guide on how to trigger the bug here\n2. ...\n3. ...");
++//                        var2.put("environment", this.buildEnvironmentInfo());
++//                        OperatingSystem.openLink(URI.create("https://bugs.mojang.com/secure/CreateIssueDetails!init.jspa?" + Http.buildQuery(var2)));
++//                    } catch (Throwable var3) {
++//                        CrashReportTab.LOGGER.error("Couldn't open bugtracker", var3);
++//                    }
++//                }
++//            }
++            if (var1.getSource() == this.openFileButton) {
+                 OperatingSystem.openLink(CrashReportTab.this.reportFile.toURI());
+             }
+ 
+-- 
+2.39.2
+
