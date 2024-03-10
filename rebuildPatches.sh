@@ -5,7 +5,6 @@ basedir=$(pwd)
 cleanupPatches() {
   pushd "$1"
   for patch in *.patch; do
-    echo "$patch"
     gitver=$(tail -n 2 "$patch" | grep -ve "^$" | tail -n 1)
     diffs=$(git diff --staged "$patch" | grep -E "^(\+|\-)" | grep -Ev "(From [a-z0-9]{32,}|\-\-\- a|\+\+\+ b|.index)")
 

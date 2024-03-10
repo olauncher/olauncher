@@ -19,7 +19,6 @@ The old launcher we all know and love with the quality-of-life features of the n
 
 ### Minor TODOs
 - Support demo users (if they have a Microsoft account but no Minecraft profile)
-- Use `version_manifest_v2`
 
 ## How to build from source
 The commands must be run in the following order to build from source:

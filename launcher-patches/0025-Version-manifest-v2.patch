@@ -1,0 +1,292 @@
+From 98eaeda18a76dbe8a7978df4eb0c2cafc97b50d4 Mon Sep 17 00:00:00 2001
+From: exrodev <exr0yt@gmail.com>
+Date: Sun, 10 Mar 2024 15:30:41 +1030
+Subject: [PATCH] Version manifest v2
+
+
+diff --git a/src/main/java/com/mojang/launcher/versions/CompleteVersion.java b/src/main/java/com/mojang/launcher/versions/CompleteVersion.java
+index c05c7f7..73d80ad 100644
+--- a/src/main/java/com/mojang/launcher/versions/CompleteVersion.java
++++ b/src/main/java/com/mojang/launcher/versions/CompleteVersion.java
+@@ -13,6 +13,12 @@ public interface CompleteVersion extends Version {
+ 
+     Date getReleaseTime();
+ 
++    // olauncher start - version manifest v2
++    String getSha1();
++
++    int getComplianceLevel();
++    // olauncher end
++
+     int getMinimumLauncherVersion();
+ 
+     boolean appliesToCurrentEnvironment();
+diff --git a/src/main/java/com/mojang/launcher/versions/Version.java b/src/main/java/com/mojang/launcher/versions/Version.java
+index 4900107..12c09ea 100644
+--- a/src/main/java/com/mojang/launcher/versions/Version.java
++++ b/src/main/java/com/mojang/launcher/versions/Version.java
+@@ -10,4 +10,10 @@ public interface Version {
+     Date getUpdatedTime();
+ 
+     Date getReleaseTime();
++
++    // olauncher start - version manifest v2
++    String getSha1();
++
++    int getComplianceLevel();
++    // olauncher end
+ }
+diff --git a/src/main/java/net/minecraft/launcher/LauncherConstants.java b/src/main/java/net/minecraft/launcher/LauncherConstants.java
+index b2267d5..6754e1c 100644
+--- a/src/main/java/net/minecraft/launcher/LauncherConstants.java
++++ b/src/main/java/net/minecraft/launcher/LauncherConstants.java
+@@ -108,7 +108,7 @@ public class LauncherConstants {
+ 
+         public LauncherProperties() {
+             this.environment = LauncherConstants.LauncherEnvironment.PRODUCTION;
+-            this.versionManifest = LauncherConstants.constantURL("https://launchermeta.mojang.com/mc/game/version_manifest.json");
++            this.versionManifest = LauncherConstants.constantURL("https://launchermeta.mojang.com/mc/game/version_manifest_v2.json"); // olauncher - version manifest v2
+         }
+ 
+         public LauncherConstants.LauncherEnvironment getEnvironment() {
+diff --git a/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileInfoPanel.java b/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileInfoPanel.java
+index f7221bf..8318f47 100644
+--- a/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileInfoPanel.java
++++ b/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileInfoPanel.java
+@@ -27,7 +27,7 @@ public class ProfileInfoPanel extends JPanel {
+     private final JCheckBox resolutionCustom = new JCheckBox("Resolution:");
+     private final JTextField resolutionWidth = new JTextField();
+     private final JTextField resolutionHeight = new JTextField();
+-    private final JCheckBox useHopper = new JCheckBox("Automatically ask Mojang for assistance with fixing crashes");
++//    private final JCheckBox useHopper = new JCheckBox("Automatically ask Mojang for assistance with fixing crashes");
+     private final JCheckBox launcherVisibilityCustom = new JCheckBox("Launcher Visibility:");
+     private final JComboBox launcherVisibilityOption = new JComboBox();
+ 
+@@ -76,7 +76,7 @@ public class ProfileInfoPanel extends JPanel {
+         var1.fill = 2;
+         var1.weightx = 1.0D;
+         var1.gridwidth = 0;
+-        this.add(this.useHopper, var1);
++//        this.add(this.useHopper, var1);
+         var1.gridwidth = 1;
+         var1.weightx = 0.0D;
+         var1.fill = 0;
+@@ -119,7 +119,7 @@ public class ProfileInfoPanel extends JPanel {
+         this.resolutionWidth.setText(String.valueOf(var2.getWidth()));
+         this.resolutionHeight.setText(String.valueOf(var2.getHeight()));
+         this.updateResolutionState();
+-        this.useHopper.setSelected(this.editor.getProfile().getUseHopperCrashService());
++//        this.useHopper.setSelected(this.editor.getProfile().getUseHopperCrashService());
+         LauncherVisibilityRule var3 = this.editor.getProfile().getLauncherVisibilityOnGameClose();
+         if (var3 != null) {
+             this.launcherVisibilityCustom.setSelected(true);
+@@ -184,11 +184,11 @@ public class ProfileInfoPanel extends JPanel {
+         };
+         this.resolutionWidth.getDocument().addDocumentListener(var1);
+         this.resolutionHeight.getDocument().addDocumentListener(var1);
+-        this.useHopper.addItemListener(new ItemListener() {
+-            public void itemStateChanged(ItemEvent var1) {
+-                ProfileInfoPanel.this.updateHopper();
+-            }
+-        });
++//        this.useHopper.addItemListener(new ItemListener() {
++//            public void itemStateChanged(ItemEvent var1) {
++//                ProfileInfoPanel.this.updateHopper();
++//            }
++//        });
+         this.launcherVisibilityCustom.addItemListener(new ItemListener() {
+             public void itemStateChanged(ItemEvent var1) {
+                 ProfileInfoPanel.this.updateLauncherVisibilityState();
+@@ -223,12 +223,12 @@ public class ProfileInfoPanel extends JPanel {
+ 
+     private void updateHopper() {
+         Profile var1 = this.editor.getProfile();
+-        if (this.useHopper.isSelected()) {
+-            var1.setUseHopperCrashService(true);
+-        } else {
+-            var1.setUseHopperCrashService(false);
+-        }
+-
++//        if (this.useHopper.isSelected()) {
++//            var1.setUseHopperCrashService(true);
++//        } else {
++//            var1.setUseHopperCrashService(false);
++//        }
++        var1.setUseHopperCrashService(false);
+     }
+ 
+     private void updateProfileName() {
+diff --git a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
+index d0e6fc1..7df3cd1 100644
+--- a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
++++ b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
+@@ -42,6 +42,10 @@ public class CompleteMinecraftVersion implements CompleteVersion {
+     private String id;
+     private Date time;
+     private Date releaseTime;
++    // olauncher start - version manifest v2
++    private String sha1;
++    private int complianceLevel;
++    // olauncher end
+     private ReleaseType type;
+     private String minecraftArguments;
+     private List<Library> libraries;
+@@ -68,6 +72,10 @@ public class CompleteMinecraftVersion implements CompleteVersion {
+         this.time = var1.time;
+         this.releaseTime = var1.releaseTime;
+         this.type = var1.type;
++        // olauncher start - version manifest v2
++        this.sha1 = var1.sha1;
++        this.complianceLevel = var1.complianceLevel;
++        // olauncher end
+         this.minecraftArguments = var1.minecraftArguments;
+         this.mainClass = var1.mainClass;
+         this.minimumLauncherVersion = var1.minimumLauncherVersion;
+@@ -131,6 +139,14 @@ public class CompleteMinecraftVersion implements CompleteVersion {
+         return this.releaseTime;
+     }
+ 
++    public String getSha1() {
++        return this.sha1;
++    }
++
++    public int getComplianceLevel() {
++        return this.complianceLevel;
++    }
++
+     public List<Library> getLibraries() {
+         return this.libraries;
+     }
+@@ -229,8 +245,31 @@ public class CompleteMinecraftVersion implements CompleteVersion {
+         return var5;
+     }
+ 
++    @Override
+     public String toString() {
+-        return "CompleteVersion{id='" + this.id + '\'' + ", updatedTime=" + this.time + ", releasedTime=" + this.time + ", type=" + this.type + ", libraries=" + this.libraries + ", mainClass='" + this.mainClass + '\'' + ", jar='" + this.jar + '\'' + ", minimumLauncherVersion=" + this.minimumLauncherVersion + '}';
++        return "CompleteMinecraftVersion{" +
++                "inheritsFrom='" + inheritsFrom + '\'' +
++                ", id='" + id + '\'' +
++                ", time=" + time +
++                ", releaseTime=" + releaseTime +
++                ", sha1='" + sha1 + '\'' +
++                ", complianceLevel=" + complianceLevel +
++                ", type=" + type +
++                ", minecraftArguments='" + minecraftArguments + '\'' +
++                ", libraries=" + libraries +
++                ", mainClass='" + mainClass + '\'' +
++                ", minimumLauncherVersion=" + minimumLauncherVersion +
++                ", incompatibilityReason='" + incompatibilityReason + '\'' +
++                ", assets='" + assets + '\'' +
++                ", compatibilityRules=" + compatibilityRules +
++                ", jar='" + jar + '\'' +
++                ", savableVersion=" + savableVersion +
++                ", synced=" + synced +
++                ", downloads=" + downloads +
++                ", assetIndex=" + assetIndex +
++                ", arguments=" + arguments +
++                ", javaVersion=" + javaVersion +
++                '}';
+     }
+ 
+     public String getMinecraftArguments() {
+diff --git a/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java b/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java
+index 30d2fa0..a8801e6 100644
+--- a/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java
++++ b/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java
+@@ -72,6 +72,10 @@ public class MinecraftVersionManager implements VersionManager {
+             this.localVersionList.refreshVersions();
+             LOGGER.info("Refreshing remote version list...");
+             this.remoteVersionList.refreshVersions();
++
++            // olauncher start - verify integrity
++
++            // olauncher end
+         } catch (IOException var7) {
+             synchronized(this.refreshLock) {
+                 this.isRefreshing = false;
+diff --git a/src/main/java/net/minecraft/launcher/updater/PartialVersion.java b/src/main/java/net/minecraft/launcher/updater/PartialVersion.java
+index 777763f..ced4623 100644
+--- a/src/main/java/net/minecraft/launcher/updater/PartialVersion.java
++++ b/src/main/java/net/minecraft/launcher/updater/PartialVersion.java
+@@ -11,11 +11,15 @@ public class PartialVersion implements Version {
+     private Date releaseTime;
+     private MinecraftReleaseType type;
+     private URL url;
++    // olauncher start - version manifest v2
++    private String sha1;
++    private int complianceLevel;
++    // olauncher end
+ 
+     public PartialVersion() {
+     }
+ 
+-    public PartialVersion(String var1, Date var2, Date var3, MinecraftReleaseType var4, URL var5) {
++    public PartialVersion(String var1, Date var2, Date var3, MinecraftReleaseType var4, URL var5, String sha1, int complianceLevel) {
+         if (var1 != null && var1.length() != 0) {
+             if (var2 == null) {
+                 throw new IllegalArgumentException("Release time cannot be null");
+@@ -23,12 +27,16 @@ public class PartialVersion implements Version {
+                 throw new IllegalArgumentException("Update time cannot be null");
+             } else if (var4 == null) {
+                 throw new IllegalArgumentException("Release type cannot be null");
++            } else if (sha1 == null || sha1.isEmpty()) { // olauncher start - version manifest v2
++                throw new IllegalArgumentException("SHA1 cannot be null or empty");
+             } else {
+                 this.id = var1;
+                 this.releaseTime = var2;
+                 this.time = var3;
+                 this.type = var4;
+                 this.url = var5;
++                this.sha1 = sha1;
++                this.complianceLevel = complianceLevel;
+             }
+         } else {
+             throw new IllegalArgumentException("ID cannot be null or empty");
+@@ -59,6 +67,16 @@ public class PartialVersion implements Version {
+         return this.releaseTime;
+     }
+ 
++    // olauncher start - version manifest v2
++    public String getSha1() {
++        return this.sha1;
++    }
++
++    public int getComplianceLevel() {
++        return this.complianceLevel;
++    }
++    // olauncher end
++
+     public void setReleaseTime(Date var1) {
+         if (var1 == null) {
+             throw new IllegalArgumentException("Time cannot be null");
+@@ -83,7 +101,16 @@ public class PartialVersion implements Version {
+         this.url = var1;
+     }
+ 
++    @Override
+     public String toString() {
+-        return "PartialVersion{id='" + this.id + '\'' + ", updateTime=" + this.time + ", releaseTime=" + this.releaseTime + ", type=" + this.type + ", url=" + this.url + '}';
++        return "PartialVersion{" +
++                "id='" + id + '\'' +
++                ", time=" + time +
++                ", releaseTime=" + releaseTime +
++                ", type=" + type +
++                ", url=" + url +
++                ", sha1='" + sha1 + '\'' +
++                ", complianceLevel=" + complianceLevel +
++                '}';
+     }
+ }
+diff --git a/src/main/resources/launcher_properties.json b/src/main/resources/launcher_properties.json
+index 05095f8..10013b0 100644
+--- a/src/main/resources/launcher_properties.json
++++ b/src/main/resources/launcher_properties.json
+@@ -1 +1 @@
+-{"environment":"production","versionManifest":"https://launchermeta.mojang.com/mc/game/version_manifest.json"}
+\ No newline at end of file
++{"environment":"production","versionManifest":"https://launchermeta.mojang.com/mc/game/version_manifest_v2.json"}
+\ No newline at end of file
+-- 
+2.39.2
+
