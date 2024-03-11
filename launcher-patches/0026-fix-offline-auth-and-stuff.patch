@@ -1,0 +1,326 @@
+From 94dd0406636a3d0308330aedff1b7d2a4034e549 Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot@figboot.dev>
+Date: Sun, 10 Mar 2024 19:51:40 -0500
+Subject: [PATCH] fix offline auth and stuff
+
+
+diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
+index a1fc568..b6c71f6 100644
+--- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
++++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
+@@ -33,7 +33,6 @@ import dev.figboot.olauncher.auth.responses.MinecraftXboxLoginResponse;
+ import dev.figboot.olauncher.auth.responses.XSTSAuthResponse;
+ import dev.figboot.olauncher.auth.responses.XboxLiveAuthResponse;
+ import dev.figboot.olauncher.auth.ui.GameProfileFixDialog;
+-import dev.figboot.olauncher.auth.ui.MSLoginDialog;
+ import lombok.Getter;
+ import org.apache.commons.lang3.StringUtils;
+ import org.apache.logging.log4j.LogManager;
+@@ -54,9 +53,11 @@ import java.net.URLEncoder;
+ import java.nio.charset.StandardCharsets;
+ import java.security.SecureRandom;
+ import java.time.Instant;
++import java.time.format.DateTimeParseException;
+ import java.time.temporal.ChronoUnit;
+ import java.util.Base64;
+ import java.util.Map;
++import java.util.UUID;
+ 
+ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+     private static final Logger LOGGER = LogManager.getLogger();
+@@ -70,9 +71,9 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+     private String xblToken;
+     private Instant xblTokenExpire;
+     private String mojToken;
+-    @Getter private String xuid;
++    @Getter private UUID xuid;
+     private Instant mojTokenExpire;
+-    private boolean loggedIn;
++    private boolean online;
+ 
+     private MSLoginServer.Response msLoginRes;
+ 
+@@ -85,9 +86,9 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+         this.agent = agent;
+         profiles = null;
+ 
+-        msRefreshToken = "";
+-        mojToken = "";
+-        loggedIn = false;
++        msRefreshToken = null;
++        mojToken = null;
++        online = false;
+ 
+         msLoginRes = null;
+ 
+@@ -96,12 +97,11 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+ 
+     @Override
+     public boolean canLogIn() {
+-        return !canPlayOnline();
+-    }
++        Instant later = Instant.now().plus(6, ChronoUnit.HOURS);
+ 
+-    @Override
+-    public boolean isLoggedIn() {
+-        return super.isLoggedIn() && loggedIn;
++        return !canPlayOnline() && (StringUtils.isNotBlank(msRefreshToken)
++                || (StringUtils.isNotBlank(xblToken) && xblTokenValid(later))
++                || (StringUtils.isNotBlank(mojToken) && xblTokenValid(later)));
+     }
+ 
+     @Override
+@@ -188,30 +188,40 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+     }
+ 
+     private void xstsAndMinecraftLogIn(String userHash) throws AuthenticationException {
+-        LOGGER.debug("Acquiring XSTS token...");
++        LOGGER.debug("Acquiring Minecraft XSTS token...");
+         XSTSAuthResponse xstsAuthRes = getAuthenticationService().post(MicrosoftAuthenticationService.ROUTE_XBOXLIVE_XSTS,
+-                new XSTSAuthRequest(xblToken),
++                new XSTSAuthRequest(xblToken, XSTSAuthRequest.RP_MINECRAFT),
+                 XSTSAuthResponse.class);
+ 
+         if (userHash != null && !userHash.equals(xstsAuthRes.getUserHash())) {
+             throw new AuthenticationException("The user hash has changed?");
+         }
+ 
++        findXUID();
++
+         LOGGER.debug("Logging into Minecraft...");
+         MinecraftXboxLoginResponse mcLoginRes = getAuthenticationService().post(MicrosoftAuthenticationService.ROUTE_MINECRAFT_XBOX_LOGIN,
+                 new MinecraftXboxLoginRequest(xstsAuthRes.getUserHash(), xstsAuthRes.getToken(), true),
+                 MinecraftXboxLoginResponse.class);
+         this.mojToken = mcLoginRes.getAccessToken();
+         this.mojTokenExpire = Instant.now().plus(mcLoginRes.getExpiresIn(), ChronoUnit.SECONDS);
++    }
+ 
+-        // Extract xuid from mojToken (JWT)
++    private void findXUID() throws AuthenticationException {
++        LOGGER.debug("Acquiring XUID...");
++        XSTSAuthResponse xstsAuthRes = getAuthenticationService().post(MicrosoftAuthenticationService.ROUTE_XBOXLIVE_XSTS,
++                new XSTSAuthRequest(xblToken, XSTSAuthRequest.RP_XBL),
++                XSTSAuthResponse.class);
+ 
+-        JsonElement elem = JsonParser.parseString(new String(Base64.getUrlDecoder().decode(mojToken.split("\\.")[1].getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8));
+-        JsonObject root = elem.getAsJsonObject();
+-        this.xuid = root.get("xuid").getAsString();
++        String xuidStr = xstsAuthRes.getXID();
++        if (xuidStr == null) throw new AuthenticationException("XUID could not be found");
++
++        this.xuid = xuidFromString(xstsAuthRes.getXID());
+     }
+ 
+     private void profileLogIn() throws AuthenticationException {
++        if (this.xuid == null) findXUID();
++
+         LOGGER.debug("Getting your user profile...");
+         profileInfo = getAuthenticationService().getAuthenticated(MicrosoftAuthenticationService.ROUTE_MINECRAFT_PROFILE,
+                 mojToken, MCProfileInfo.class);
+@@ -232,7 +242,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+         GameProfile profile = new GameProfile(profileInfo.getId(), profileInfo.getName());
+         profile = sessionService.fillProfileProperties(profile, false);
+ 
+-        loggedIn = true;
++        online = true;
+         setUserid(profileInfo.getId().toString().replace("-", ""));
+         profiles = new GameProfile[]{profile};
+         setSelectedProfile(profile);
+@@ -303,9 +313,9 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+ 
+         msRefreshToken = null;
+         mojToken = null;
+-        loggedIn = false;
+         //msAuthCode = null;
+         profileInfo = null;
++        online = false;
+     }
+ 
+     private boolean mojTokenValid(Instant now) {
+@@ -324,9 +334,14 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+         msLoginRes = code;
+     }
+ 
++    @Override
++    public boolean isLoggedIn() {
++        return StringUtils.isNotBlank(mojToken);
++    }
++
+     @Override
+     public boolean canPlayOnline() {
+-        return isLoggedIn() && getSelectedProfile() != null && StringUtils.isNotBlank(mojToken) && mojTokenValid(Instant.now());
++        return isLoggedIn() && getSelectedProfile() != null && StringUtils.isNotBlank(mojToken) && mojTokenValid(Instant.now()) && online;
+     }
+ 
+     @Override
+@@ -339,15 +354,43 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+         throw new AuthenticationException("Switching game profiles is not supported");
+     }
+ 
++    private static UUID xuidFromString(String xuidStr) {
++        return new UUID(0, Long.parseUnsignedLong(xuidStr));
++    }
++
+     @Override
+     public void loadFromStorage(Map<String, Object> var1) {
+         super.loadFromStorage(var1);
+         msRefreshToken = (String)var1.get("refreshToken");
+         xblToken = (String)var1.get("xboxLiveToken");
+-        xblTokenExpire = Instant.parse((String)var1.get("xboxLiveTokenExpire"));
+-        xuid = (String)var1.get("xuid");
++
++        try {
++            xblTokenExpire = Instant.parse((String)var1.get("xboxLiveTokenExpire"));
++        } catch (DateTimeParseException ex) {
++            xblToken = null;
++            xblTokenExpire = null;
++        }
++
++        if (var1.containsKey("xuid")) {
++            xuid = xuidFromString("xuid");
++        } else if (var1.containsKey("xuid2")) {
++            try {
++                xuid = UUID.fromString((String)var1.get("xuid2"));
++            } catch (IllegalArgumentException ex) {
++                xuid = null;
++            }
++        } else {
++            xuid = null;
++        }
++
+         mojToken = (String)var1.get("mojToken");
+-        mojTokenExpire = Instant.parse((String)var1.get("mojTokenExpire"));
++
++        try {
++            mojTokenExpire = Instant.parse((String)var1.get("mojTokenExpire"));
++        } catch (DateTimeParseException ex) {
++            mojTokenExpire = null;
++            mojToken = null;
++        }
+     }
+ 
+     @Override
+@@ -356,7 +399,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+         map.put("refreshToken", msRefreshToken);
+         map.put("xboxLiveToken", xblToken);
+         map.put("xboxLiveTokenExpire", xblTokenExpire.toString());
+-        map.put("xuid", xuid);
++        map.put("xuid2", xuid.toString());
+         map.put("mojToken", mojToken);
+         map.put("mojTokenExpire", mojTokenExpire.toString());
+         return map;
+diff --git a/src/main/java/dev/figboot/olauncher/auth/requests/XSTSAuthRequest.java b/src/main/java/dev/figboot/olauncher/auth/requests/XSTSAuthRequest.java
+index 73cd161..f3a429b 100644
+--- a/src/main/java/dev/figboot/olauncher/auth/requests/XSTSAuthRequest.java
++++ b/src/main/java/dev/figboot/olauncher/auth/requests/XSTSAuthRequest.java
+@@ -26,9 +26,12 @@ public class XSTSAuthRequest {
+     private final String RelyingParty;
+     private final String TokenType;
+ 
+-    public XSTSAuthRequest(String xblToken) {
++    public static final String RP_MINECRAFT = "rp://api.minecraftservices.com/";
++    public static final String RP_XBL = "http://xboxlive.com";
++
++    public XSTSAuthRequest(String xblToken, String relyingParty) {
+         Properties = new TagProperties(xblToken);
+-        RelyingParty = "rp://api.minecraftservices.com/";
++        RelyingParty = relyingParty;
+         TokenType = "JWT";
+     }
+ 
+diff --git a/src/main/java/dev/figboot/olauncher/auth/responses/XSTSAuthResponse.java b/src/main/java/dev/figboot/olauncher/auth/responses/XSTSAuthResponse.java
+index 3a959db..3d1afb8 100644
+--- a/src/main/java/dev/figboot/olauncher/auth/responses/XSTSAuthResponse.java
++++ b/src/main/java/dev/figboot/olauncher/auth/responses/XSTSAuthResponse.java
+@@ -29,14 +29,25 @@ public class XSTSAuthResponse extends MSResponse {
+     }
+ 
+     public String getUserHash() {
+-        return DisplayClaims.xui.get(0).uhs;
++        for (TagDisplayClaims.TagDisplayClaim claim : DisplayClaims.xui) {
++            if (claim.uhs != null) return claim.uhs;
++        }
++        return null;
++    }
++
++    public String getXID() {
++        for (TagDisplayClaims.TagDisplayClaim claim : DisplayClaims.xui) {
++            if (claim.xid != null) return claim.xid;
++        }
++        return null;
+     }
+ 
+     public static class TagDisplayClaims {
+-        private List<TagUserHashContainer> xui;
++        private List<TagDisplayClaim> xui;
+ 
+-        public static class TagUserHashContainer {
++        public static class TagDisplayClaim {
+             private String uhs;
++            private String xid;
+         }
+     }
+ }
+diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
+index 0fda0ab..6436333 100644
+--- a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
++++ b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
+@@ -364,7 +364,7 @@ public class MinecraftGameRunner extends AbstractGameRunner implements GameProce
+ 
+         // olauncher - add MSA options
+         if (var5 instanceof MicrosoftUserAuthentication) {
+-            var6.put("auth_xuid", ((MicrosoftUserAuthentication)var5).getXuid());
++            var6.put("auth_xuid", ((MicrosoftUserAuthentication)var5).getXuid().toString());
+             // TODO: clientid as well
+         }
+ 
+diff --git a/src/main/java/net/minecraft/launcher/updater/Argument.java b/src/main/java/net/minecraft/launcher/updater/Argument.java
+index d5560e6..fb4ae8c 100644
+--- a/src/main/java/net/minecraft/launcher/updater/Argument.java
++++ b/src/main/java/net/minecraft/launcher/updater/Argument.java
+@@ -11,6 +11,8 @@ import java.lang.reflect.Type;
+ import java.util.ArrayList;
+ import java.util.Iterator;
+ import java.util.List;
++
++import com.mojang.launcher.versions.CompleteVersion;
+ import net.minecraft.launcher.CompatibilityRule;
+ import org.apache.commons.lang3.text.StrSubstitutor;
+ 
+@@ -55,6 +57,12 @@ public class Argument {
+         public Serializer() {
+         }
+ 
++        private static void deserializeRules(List<CompatibilityRule> dest, JsonArray arr, JsonDeserializationContext ctx) throws JsonParseException {
++            for (JsonElement elem : arr) {
++                dest.add(ctx.deserialize(elem, CompatibilityRule.class));
++            }
++        }
++
+         public Argument deserialize(JsonElement var1, Type var2, JsonDeserializationContext var3) throws JsonParseException {
+             if (var1.isJsonPrimitive()) {
+                 return new Argument(new String[]{var1.getAsString()}, (List)null);
+@@ -77,13 +85,19 @@ public class Argument {
+ 
+                 ArrayList var11 = new ArrayList();
+                 if (var4.has("rules")) {
++                    if (true) {
++                        deserializeRules(var11, var4.getAsJsonArray("rules"), var3);
++                    } else { // olauncher: kill this code (it is dumb)
+                     JsonArray var12 = var4.getAsJsonArray("rules");
+                     Iterator var9 = var12.iterator();
+ 
+-                    while(var9.hasNext()) {
++                    while (var9.hasNext()) {
+                         JsonElement var10 = (JsonElement)var9.next();
+                         var11.add((CompatibilityRule)var3.deserialize(var10, CompatibilityRule.class));
+                     }
++                    }
++                } else if (var4.has("compatibilityRules")) {
++                    deserializeRules(var11, var4.getAsJsonArray("compatibilityRules"), var3);
+                 }
+ 
+                 return new Argument(var6, var11);
+-- 
+2.43.0
+
