@@ -1,0 +1,376 @@
+From 73a0b685ad4c5fd0d68ee05e56ad3fa2aea900cb Mon Sep 17 00:00:00 2001
+From: Befell <54691311+DevBefell@users.noreply.github.com>
+Date: Wed, 27 Mar 2024 16:15:31 -0700
+Subject: [PATCH] proper fix for migrating profiles and same name profiles.
+
+
+diff --git a/src/main/java/dev/figboot/olauncher/util/UUIDGenerator.java b/src/main/java/dev/figboot/olauncher/util/UUIDGenerator.java
+new file mode 100644
+index 0000000..376965c
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/util/UUIDGenerator.java
+@@ -0,0 +1,9 @@
++package dev.figboot.olauncher.util;
++
++import java.util.UUID;
++
++public class UUIDGenerator {
++    public static String generate(){
++        return UUID.randomUUID().toString().replace("-", "");
++    }
++}
+diff --git a/src/main/java/net/minecraft/launcher/SwingUserInterface.java b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
+index 528aa6c..2f20259 100644
+--- a/src/main/java/net/minecraft/launcher/SwingUserInterface.java
++++ b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
+@@ -17,6 +17,7 @@ import java.net.URI;
+ import java.net.URISyntaxException;
+ import java.util.Timer;
+ import java.util.TimerTask;
++import java.util.UUID;
+ import java.util.concurrent.TimeUnit;
+ import javax.imageio.ImageIO;
+ import javax.swing.BorderFactory;
+@@ -28,6 +29,7 @@ import javax.swing.SwingUtilities;
+ import javax.swing.UIManager;
+ 
+ import dev.figboot.olauncher.launcher.LauncherVersion;
++import dev.figboot.olauncher.util.UUIDGenerator;
+ import net.minecraft.launcher.game.MinecraftGameRunner;
+ import net.minecraft.launcher.profile.Profile;
+ import net.minecraft.launcher.profile.ProfileManager;
+@@ -187,20 +189,15 @@ public class SwingUserInterface implements MinecraftUserInterface {
+                 UserAuthentication var2x = var1.getAuthDatabase().getByUUID(var1x);
+                 var1.setSelectedUser(var1x);
+                 if (var2.getName().equals("(Default)") && var2x.getSelectedProfile() != null) {
+-                    String var3 = var2x.getSelectedProfile().getName();
+-                    String var4 = var2x.getSelectedProfile().getName();
+-
+-                    StringBuilder var10000;
+-                    for(int var5 = 1; var1.getProfiles().containsKey(var4); var4 = var10000.append(var5).toString()) {
+-                        var10000 = (new StringBuilder()).append(var3).append(" ");
+-                        ++var5;
+-                    }
+-
++                    // olauncher - fixup the default generated profile
+                     Profile var6 = new Profile(var2);
+-                    var6.setName(var4);
+-                    var1.getProfiles().put(var4, var6);
++                    String profileUUID = UUIDGenerator.generate();
++                    var6.setName(var2x.getSelectedProfile().getName());
++                    var6.setLastVersionId("latest-release");
++                    var1.getProfiles().put(profileUUID, var6);
+                     var1.getProfiles().remove("(Default)");
+-                    var1.setSelectedProfile(var4);
++                    var1.setSelectedProfile(profileUUID);
++                    // olauncher - end
+                 }
+ 
+                 try {
+diff --git a/src/main/java/net/minecraft/launcher/profile/Profile.java b/src/main/java/net/minecraft/launcher/profile/Profile.java
+index a88b0b3..9141d27 100644
+--- a/src/main/java/net/minecraft/launcher/profile/Profile.java
++++ b/src/main/java/net/minecraft/launcher/profile/Profile.java
+@@ -16,6 +16,7 @@ public class Profile implements Comparable<Profile> {
+     public static final Profile.Resolution DEFAULT_RESOLUTION = new Profile.Resolution(854, 480);
+     public static final LauncherVisibilityRule DEFAULT_LAUNCHER_VISIBILITY;
+     public static final Set<MinecraftReleaseType> DEFAULT_RELEASE_TYPES;
++    private transient String uniqueName;
+     private String name;
+     private File gameDir;
+     private String lastVersionId;
+@@ -31,6 +32,7 @@ public class Profile implements Comparable<Profile> {
+     }
+ 
+     public Profile(Profile var1) {
++        this.uniqueName = var1.uniqueName; // olauncher - includes unique name
+         this.name = var1.name;
+         this.gameDir = var1.gameDir;
+         this.playerUUID = var1.playerUUID;
+@@ -142,8 +144,16 @@ public class Profile implements Comparable<Profile> {
+         this.launcherVisibilityOnGameClose = var1;
+     }
+ 
++    public String getUniqueName() {
++        return uniqueName;
++    }
++
++    public void setUniqueName(String uniqueName) {
++        this.uniqueName = uniqueName;
++    }
++
+     public int compareTo(Profile var1) {
+-        return var1 == null ? -1 : this.getName().compareTo(var1.getName());
++        return var1 == null ? -1 : this.getUniqueName().compareTo(var1.getUniqueName());
+     }
+ 
+     static {
+diff --git a/src/main/java/net/minecraft/launcher/profile/ProfileManager.java b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
+index bb7d8a0..70fb5f8 100644
+--- a/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
++++ b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
+@@ -67,7 +67,7 @@ public class ProfileManager {
+     }
+ 
+     public void saveProfiles() throws IOException {
+-        ProfileManager.RawProfileList var1 = new ProfileManager.RawProfileList(this.profiles, this.getSelectedProfile().getName(), this.selectedUser, this.launcher.getClientToken(), this.authDatabase);
++        ProfileManager.RawProfileList var1 = new ProfileManager.RawProfileList(this.profiles, this.getSelectedProfile().getUniqueName(), this.selectedUser, this.launcher.getClientToken(), this.authDatabase);
+         FileUtils.writeStringToFile(this.profileFile, this.gson.toJson(var1));
+     }
+ 
+@@ -105,15 +105,28 @@ public class ProfileManager {
+             ProfileManager.RawProfileList var4 = (ProfileManager.RawProfileList)this.gson.fromJson(var1, ProfileManager.RawProfileList.class);
+ 
+             // OLauncher start - migrate launcher profiles properly
++            Map<String, Profile> migratedProfiles;
++            migratedProfiles = new HashMap<>();
+             for (Map.Entry<String, Profile> entry : var4.profiles.entrySet()) {
+-                if (!entry.getValue().getName().equals(entry.getKey())) {
+-                    LOGGER.info("Migrating profile " + entry.getKey() + " from new launcher.");
+-                    entry.getValue().setName(entry.getKey());
++                entry.getValue().setUniqueName(entry.getKey());
++                String name = entry.getValue().getName();
++                if (name.isEmpty()) {
++                    // Fallback use last version ID
++                    name = entry.getValue().getLastVersionId();
++                    if (name.equals("latest-release")) {
++                        name = "Latest Version";
++                    }
++                    LOGGER.info("Using Version ID as name for " + name);
++                    entry.getValue().setName(name);
+                 }
++                LOGGER.info("Migrating profile " + name + " from new launcher.");
++                migratedProfiles.put(entry.getKey(), entry.getValue());
++
+             }
++
+             // OLauncher end
+ 
+-            this.profiles.putAll(var4.profiles);
++            this.profiles.putAll(migratedProfiles); // Results from migrating profiles
+             this.selectedProfile = var4.selectedProfile;
+             this.selectedUser = var4.selectedUser;
+             this.authDatabase = var4.authenticationDatabase;
+@@ -152,10 +165,12 @@ public class ProfileManager {
+             if (this.profiles.get("(Default)") != null) {
+                 this.selectedProfile = "(Default)";
+             } else if (this.profiles.size() > 0) {
+-                this.selectedProfile = ((Profile)this.profiles.values().iterator().next()).getName();
++                this.selectedProfile = ((Profile) this.profiles.values().iterator().next()).getUniqueName(); // olauncher - use unique name
+             } else {
+                 this.selectedProfile = "(Default)";
+-                this.profiles.put("(Default)", new Profile(this.selectedProfile));
++                Profile defaultProfile = new Profile("Default");
++                defaultProfile.setUniqueName(this.selectedProfile);
++                this.profiles.put(this.selectedProfile, defaultProfile); // olauncher - name default profile instead of null
+             }
+         }
+ 
+diff --git a/src/main/java/net/minecraft/launcher/ui/bottombar/ProfileSelectionPanel.java b/src/main/java/net/minecraft/launcher/ui/bottombar/ProfileSelectionPanel.java
+index 787a41a..1121e25 100644
+--- a/src/main/java/net/minecraft/launcher/ui/bottombar/ProfileSelectionPanel.java
++++ b/src/main/java/net/minecraft/launcher/ui/bottombar/ProfileSelectionPanel.java
+@@ -13,6 +13,7 @@ import java.io.IOException;
+ import java.util.ArrayList;
+ import java.util.Collections;
+ import java.util.Iterator;
++import java.util.UUID;
+ import javax.swing.JButton;
+ import javax.swing.JComboBox;
+ import javax.swing.JLabel;
+@@ -40,6 +41,7 @@ public class ProfileSelectionPanel extends JPanel implements ActionListener, Ite
+     public ProfileSelectionPanel(Launcher var1) {
+         this.minecraftLauncher = var1;
+         this.profileList.setRenderer(new ProfileSelectionPanel.ProfileListRenderer());
++        this.profileList.addActionListener(this);
+         this.profileList.addItemListener(this);
+         this.profileList.addItem("Loading profiles...");
+         this.newProfileButton.addActionListener(this);
+@@ -78,7 +80,7 @@ public class ProfileSelectionPanel extends JPanel implements ActionListener, Ite
+     }
+ 
+     public void populateProfiles() {
+-        String var1 = this.minecraftLauncher.getProfileManager().getSelectedProfile().getName();
++        String var1 = this.minecraftLauncher.getProfileManager().getSelectedProfile().getUniqueName(); // olauncher - use unique name
+         Profile var2 = null;
+         ArrayList var3 = Lists.newArrayList(this.minecraftLauncher.getProfileManager().getProfiles().values());
+         this.profileList.removeAllItems();
+@@ -88,7 +90,7 @@ public class ProfileSelectionPanel extends JPanel implements ActionListener, Ite
+         Profile var5;
+         for(Iterator var4 = var3.iterator(); var4.hasNext(); this.profileList.addItem(var5)) {
+             var5 = (Profile)var4.next();
+-            if (var1.equals(var5.getName())) {
++            if (var1.equals(var5.getUniqueName())) { // olauncher - use unique name
+                 var2 = var5;
+             }
+         }
+@@ -110,7 +112,7 @@ public class ProfileSelectionPanel extends JPanel implements ActionListener, Ite
+         if (var1.getStateChange() == 1) {
+             if (!this.skipSelectionUpdate && var1.getItem() instanceof Profile) {
+                 Profile var2 = (Profile)var1.getItem();
+-                this.minecraftLauncher.getProfileManager().setSelectedProfile(var2.getName());
++                this.minecraftLauncher.getProfileManager().setSelectedProfile(var2.getUniqueName()); // olauncher - unique name
+ 
+                 try {
+                     this.minecraftLauncher.getProfileManager().saveProfiles();
+@@ -129,13 +131,9 @@ public class ProfileSelectionPanel extends JPanel implements ActionListener, Ite
+         if (var1.getSource() == this.newProfileButton) {
+             var2 = new Profile(this.minecraftLauncher.getProfileManager().getSelectedProfile());
+             var2.setName("Copy of " + var2.getName());
+-
+-            while(this.minecraftLauncher.getProfileManager().getProfiles().containsKey(var2.getName())) {
+-                var2.setName(var2.getName() + "_");
+-            }
+-
++            var2.setUniqueName(UUID.randomUUID().toString().replace("-", "")); // olauncher - use unique name
+             ProfileEditorPopup.showEditProfileDialog(this.getMinecraftLauncher(), var2);
+-            this.minecraftLauncher.getProfileManager().setSelectedProfile(var2.getName());
++            this.minecraftLauncher.getProfileManager().setSelectedProfile(var2.getUniqueName()); // olauncher - use unique name
+         } else if (var1.getSource() == this.editProfileButton) {
+             var2 = this.minecraftLauncher.getProfileManager().getSelectedProfile();
+             ProfileEditorPopup.showEditProfileDialog(this.getMinecraftLauncher(), var2);
+diff --git a/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileEditorPopup.java b/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileEditorPopup.java
+index c04f6c5..1f46772 100644
+--- a/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileEditorPopup.java
++++ b/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileEditorPopup.java
+@@ -26,7 +26,6 @@ import org.apache.logging.log4j.Logger;
+ public class ProfileEditorPopup extends JPanel implements ActionListener {
+     private static final Logger LOGGER = LogManager.getLogger();
+     private final Launcher minecraftLauncher;
+-    private final Profile originalProfile;
+     private final Profile profile;
+     private final JButton saveButton = new JButton("Save Profile");
+     private final JButton cancelButton = new JButton("Cancel");
+@@ -38,7 +37,6 @@ public class ProfileEditorPopup extends JPanel implements ActionListener {
+     public ProfileEditorPopup(Launcher var1, Profile var2) {
+         super(true);
+         this.minecraftLauncher = var1;
+-        this.originalProfile = var2;
+         this.profile = new Profile(var2);
+         this.profileInfoPanel = new ProfileInfoPanel(this);
+         this.profileVersionPanel = new ProfileVersionPanel(this);
+@@ -72,21 +70,9 @@ public class ProfileEditorPopup extends JPanel implements ActionListener {
+         if (var1.getSource() == this.saveButton) {
+             try {
+                 ProfileManager var2 = this.minecraftLauncher.getProfileManager();
+-                Map var3 = var2.getProfiles();
+-                String var4 = var2.getSelectedProfile().getName();
+-                if (!this.originalProfile.getName().equals(this.profile.getName())) {
+-                    var3.remove(this.originalProfile.getName());
+-
+-                    while(var3.containsKey(this.profile.getName())) {
+-                        this.profile.setName(this.profile.getName() + "_");
+-                    }
+-                }
+-
+-                var3.put(this.profile.getName(), this.profile);
+-                if (var4.equals(this.originalProfile.getName())) {
+-                    var2.setSelectedProfile(this.profile.getName());
+-                }
+-
++                Map<String, Profile> var3 = var2.getProfiles();
++                var3.put(this.profile.getUniqueName(), this.profile); // olauncher - code cleanup
++                var2.setSelectedProfile(this.profile.getUniqueName());
+                 var2.saveProfiles();
+                 var2.fireRefreshEvent();
+             } catch (IOException var5) {
+diff --git a/src/main/java/net/minecraft/launcher/ui/tabs/ProfileListTab.java b/src/main/java/net/minecraft/launcher/ui/tabs/ProfileListTab.java
+index c0ba865..8b249f5 100644
+--- a/src/main/java/net/minecraft/launcher/ui/tabs/ProfileListTab.java
++++ b/src/main/java/net/minecraft/launcher/ui/tabs/ProfileListTab.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.launcher.ui.tabs;
+ 
++import com.google.common.base.MoreObjects;
+ import com.mojang.launcher.OperatingSystem;
+ import java.awt.event.ActionEvent;
+ import java.awt.event.ActionListener;
+@@ -10,6 +11,7 @@ import java.util.ArrayList;
+ import java.util.Collection;
+ import java.util.Collections;
+ import java.util.List;
++import java.util.Objects;
+ import javax.swing.Icon;
+ import javax.swing.JMenuItem;
+ import javax.swing.JOptionPane;
+@@ -20,6 +22,8 @@ import javax.swing.SwingUtilities;
+ import javax.swing.event.PopupMenuEvent;
+ import javax.swing.event.PopupMenuListener;
+ import javax.swing.table.AbstractTableModel;
++
++import dev.figboot.olauncher.util.UUIDGenerator;
+ import net.minecraft.launcher.Launcher;
+ import net.minecraft.launcher.LauncherConstants;
+ import net.minecraft.launcher.SwingUserInterface;
+@@ -84,11 +88,7 @@ public class ProfileListTab extends JScrollPane implements RefreshedProfilesList
+             public void actionPerformed(ActionEvent var1) {
+                 Profile var2 = new Profile();
+                 var2.setName("New Profile");
+-
+-                while(ProfileListTab.this.minecraftLauncher.getProfileManager().getProfiles().containsKey(var2.getName())) {
+-                    var2.setName(var2.getName() + "_");
+-                }
+-
++                var2.setUniqueName(UUIDGenerator.generate()); // olauncher - support for multiple same name
+                 ProfileEditorPopup.showEditProfileDialog(ProfileListTab.this.getMinecraftLauncher(), var2);
+             }
+         });
+@@ -99,11 +99,7 @@ public class ProfileListTab extends JScrollPane implements RefreshedProfilesList
+                     Profile var3 = (Profile)ProfileListTab.this.dataModel.profiles.get(var2);
+                     Profile var4 = new Profile(var3);
+                     var4.setName("Copy of " + var3.getName());
+-
+-                    while(ProfileListTab.this.minecraftLauncher.getProfileManager().getProfiles().containsKey(var4.getName())) {
+-                        var4.setName(var4.getName() + "_");
+-                    }
+-
++                    var4.setUniqueName(UUIDGenerator.generate()); // olauncher - support for multiple same name
+                     ProfileEditorPopup.showEditProfileDialog(ProfileListTab.this.getMinecraftLauncher(), var4);
+                 }
+             }
+@@ -124,7 +120,7 @@ public class ProfileListTab extends JScrollPane implements RefreshedProfilesList
+                     Profile var3 = (Profile)ProfileListTab.this.dataModel.profiles.get(var2);
+                     int var4 = JOptionPane.showOptionDialog(((SwingUserInterface)ProfileListTab.this.minecraftLauncher.getUserInterface()).getFrame(), "Are you sure you want to delete this profile?", "Profile Confirmation", 0, 2, (Icon)null, LauncherConstants.CONFIRM_PROFILE_DELETION_OPTIONS, LauncherConstants.CONFIRM_PROFILE_DELETION_OPTIONS[0]);
+                     if (var4 == 0) {
+-                        ProfileListTab.this.minecraftLauncher.getProfileManager().getProfiles().remove(var3.getName());
++                        ProfileListTab.this.minecraftLauncher.getProfileManager().getProfiles().remove(var3.getUniqueName()); // olauncher - use unique name
+ 
+                         try {
+                             ProfileListTab.this.minecraftLauncher.getProfileManager().saveProfiles();
+@@ -227,7 +223,7 @@ public class ProfileListTab extends JScrollPane implements RefreshedProfilesList
+             case 0:
+                 return var3.getName();
+             case 1:
+-                if (var3.getLastVersionId() == null) {
++                if (Objects.equals(MoreObjects.firstNonNull(var3.getLastVersionId(), "latest-version").toLowerCase(), "latest-version")) { // olauncher - better handle latest versions
+                     return "(Latest version)";
+                 }
+ 
+diff --git a/src/main/java/net/minecraft/launcher/updater/Library.java b/src/main/java/net/minecraft/launcher/updater/Library.java
+index 8a42200..ea1d541 100644
+--- a/src/main/java/net/minecraft/launcher/updater/Library.java
++++ b/src/main/java/net/minecraft/launcher/updater/Library.java
+@@ -142,6 +142,7 @@ public class Library {
+             throw new IllegalStateException("Cannot get artifact dir of empty/blank artifact");
+         } else {
+             // olauncher - handle natives on newer versions
++
+             String[] var1 = this.name.split(":", 4);
+             return var1.length < 4 ?
+                     String.format("%s/%s/%s", var1[0].replaceAll("\\.", "/"), var1[1], var1[2]) :
+@@ -157,7 +158,11 @@ public class Library {
+         if (this.name == null) {
+             throw new IllegalStateException("Cannot get artifact path of empty/blank artifact");
+         } else {
+-            return String.format("%s/%s", this.getArtifactBaseDir(), this.getArtifactFilename(var1));
++            StringBuilder stringBuilder = new StringBuilder();
++            stringBuilder.append(this.getArtifactBaseDir());
++            stringBuilder.append("/");
++            stringBuilder.append(this.getArtifactFilename(var1));
++            return stringBuilder.toString();
+         }
+     }
+ 
+-- 
+2.42.0.windows.2
+
