@@ -1,4 +1,4 @@
-From 73a0b685ad4c5fd0d68ee05e56ad3fa2aea900cb Mon Sep 17 00:00:00 2001
+From 29ca112152ecb83fd5dce4d6807d9df5c7ac083d Mon Sep 17 00:00:00 2001
 From: Befell <54691311+DevBefell@users.noreply.github.com>
 Date: Wed, 27 Mar 2024 16:15:31 -0700
 Subject: [PATCH] proper fix for migrating profiles and same name profiles.
@@ -346,31 +346,6 @@ index c0ba865..8b249f5 100644
                      return "(Latest version)";
                  }
  
-diff --git a/src/main/java/net/minecraft/launcher/updater/Library.java b/src/main/java/net/minecraft/launcher/updater/Library.java
-index 8a42200..ea1d541 100644
---- a/src/main/java/net/minecraft/launcher/updater/Library.java
-+++ b/src/main/java/net/minecraft/launcher/updater/Library.java
-@@ -142,6 +142,7 @@ public class Library {
-             throw new IllegalStateException("Cannot get artifact dir of empty/blank artifact");
-         } else {
-             // olauncher - handle natives on newer versions
-+
-             String[] var1 = this.name.split(":", 4);
-             return var1.length < 4 ?
-                     String.format("%s/%s/%s", var1[0].replaceAll("\\.", "/"), var1[1], var1[2]) :
-@@ -157,7 +158,11 @@ public class Library {
-         if (this.name == null) {
-             throw new IllegalStateException("Cannot get artifact path of empty/blank artifact");
-         } else {
--            return String.format("%s/%s", this.getArtifactBaseDir(), this.getArtifactFilename(var1));
-+            StringBuilder stringBuilder = new StringBuilder();
-+            stringBuilder.append(this.getArtifactBaseDir());
-+            stringBuilder.append("/");
-+            stringBuilder.append(this.getArtifactFilename(var1));
-+            return stringBuilder.toString();
-         }
-     }
- 
 -- 
-2.42.0.windows.2
+2.43.0
 
