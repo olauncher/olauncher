@@ -1,0 +1,1114 @@
+From 9aeaddb481760347386edd493a1e8b0d49c26bf2 Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot@figboot.dev>
+Date: Sun, 31 Mar 2024 17:49:36 -0500
+Subject: [PATCH] Auth overhaul
+
+
+diff --git a/src/main/java/com/mojang/authlib/HttpAuthenticationService.java b/src/main/java/com/mojang/authlib/HttpAuthenticationService.java
+index f9a2fc5..3a3605e 100644
+--- a/src/main/java/com/mojang/authlib/HttpAuthenticationService.java
++++ b/src/main/java/com/mojang/authlib/HttpAuthenticationService.java
+@@ -12,6 +12,8 @@ import java.net.URLEncoder;
+ import java.util.Iterator;
+ import java.util.Map;
+ import java.util.Map.Entry;
++
++import dev.figboot.olauncher.auth.error.ResponseCodeException;
+ import org.apache.commons.io.Charsets;
+ import org.apache.commons.io.IOUtils;
+ import org.apache.commons.lang3.Validate;
+diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java
+index cb3b5a0..eb6acd0 100644
+--- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java
++++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java
+@@ -24,19 +24,28 @@ import com.mojang.authlib.Agent;
+ import com.mojang.authlib.UserAuthentication;
+ import com.mojang.authlib.exceptions.AuthenticationException;
+ import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
++import dev.figboot.olauncher.auth.error.ResponseCodeException;
+ import dev.figboot.olauncher.auth.responses.MSResponse;
+ import dev.figboot.olauncher.util.BetterUUIDTypeAdapter;
+ import dev.figboot.olauncher.util.InstantTypeAdapter;
++import lombok.Lombok;
++import org.apache.logging.log4j.LogManager;
++import org.apache.logging.log4j.Logger;
+ 
+-import java.io.IOException;
+-import java.io.UnsupportedEncodingException;
++import java.io.*;
++import java.net.HttpURLConnection;
+ import java.net.Proxy;
+ import java.net.URL;
+ import java.net.URLEncoder;
++import java.nio.charset.StandardCharsets;
+ import java.time.Instant;
+ import java.util.UUID;
++import java.util.function.Consumer;
++import java.util.function.Function;
+ 
+ public class MicrosoftAuthenticationService extends YggdrasilAuthenticationService {
++    private static final Logger LOGGER = LogManager.getLogger();
++
+     public static final URL ROUTE_LOGIN_LIVE_TOKEN = constantURL("https://login.live.com/oauth20_token.srf");
+     public static final URL ROUTE_XBOXLIVE_AUTH = constantURL("https://user.auth.xboxlive.com/user/authenticate");
+     public static final URL ROUTE_XBOXLIVE_XSTS = constantURL("https://xsts.auth.xboxlive.com/xsts/authorize");
+@@ -44,6 +53,10 @@ public class MicrosoftAuthenticationService extends YggdrasilAuthenticationServi
+     public static final URL ROUTE_MINECRAFT_PROFILE = constantURL("https://api.minecraftservices.com/minecraft/profile");
+     public static final URL ROUTE_MINECRAFT_PROFILE_SKINS_ACTIVE = constantURL("https://api.minecraftservices.com/minecraft/profile/skins/active");
+ 
++    public static final URL DEVICE_CODE_URL = constantURL("https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode");
++    public static final URL DEVICE_CODE_HEARTBEAT_URL = constantURL("https://login.microsoftonline.com/consumers/oauth2/v2.0/token");
++    public static final URL ENTITLEMENTS_URL = constantURL("https://api.minecraftservices.com/entitlements");
++
+     private final Gson gson;
+ 
+     public MicrosoftAuthenticationService(Proxy proxy, String token) {
+@@ -59,49 +72,99 @@ public class MicrosoftAuthenticationService extends YggdrasilAuthenticationServi
+         return new MicrosoftUserAuthentication(this, var1);
+     }
+ 
+-    protected <T extends MSResponse> T post(URL var1, Object var2, Class<T> clazz) throws AuthenticationException {
+-        try {
+-            String res = performPostRequest(var1, gson.toJson(var2), "application/json");
+-            return gson.fromJson(res, clazz);
+-        } catch (IOException ex) {
+-            throw new AuthenticationException("Cannot connect to server", ex);
++    private String readStreamFully(InputStream is) throws IOException {
++        byte[] arr = new byte[4096];
++        int nread;
++        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
++            while ((nread = is.read(arr)) > 0) {
++                baos.write(arr, 0, nread);
++            }
++
++            return new String(baos.toByteArray(), StandardCharsets.UTF_8);
+         }
+     }
+ 
+-    protected <T extends MSResponse> T postForm(URL var1, String data, Class<T> clazz) throws AuthenticationException {
+-        try {
+-            String res = performPostRequest(var1, data, "application/x-www-form-urlencoded");
+-            return gson.fromJson(res, clazz);
++    private <T> T readResponse(HttpURLConnection conn, Function<String, T> mappingFunc) throws IOException, AuthenticationException {
++        LOGGER.debug("[rq {}] Reading response data", conn.getURL());
++
++        int code = conn.getResponseCode();
++        String message = conn.getResponseMessage();
++
++        LOGGER.debug("[rq {}] Response is {} {}", conn.getURL(), code, message);
++
++        try (InputStream is = conn.getInputStream()) {
++            LOGGER.debug("[rq {}] Reading normal stream.", conn.getURL());
++
++            String fullRes = readStreamFully(is);
++            LOGGER.debug("[rq {}] Returned data: {}", conn.getURL(), fullRes);
++
++            return mappingFunc.apply(fullRes);
+         } catch (IOException ex) {
+-            throw new AuthenticationException("Cannot connect to server", ex);
++            LOGGER.debug("[rq {}] Error reading input stream. Reading error stream instead.", conn.getURL());
++            LOGGER.debug(ex);
++
++            try (InputStream ierr = conn.getErrorStream()) {
++                String fullError = readStreamFully(ierr);
++                LOGGER.debug("[rq {}] Returned error data: {}", conn.getURL(), fullError);
++                Object res = mappingFunc.apply(fullError);
++                throw ResponseCodeException.fill(new ResponseCodeException("Server responded with " + code + " " + message,
++                                ex, res instanceof MSResponse ? (MSResponse)res : null),
++                        code, message);
++            }
+         }
+     }
+ 
+-    protected <T extends MSResponse> T get(URL url, Class<T> clazz) throws AuthenticationException {
+-        try {
+-            String res = performGetRequest(url);
+-            return gson.fromJson(res, clazz);
+-        } catch (IOException ex) {
+-            throw new AuthenticationException("Cannot connect to server", ex);
+-        }
++    public <T> T makeRequest(URL url, String data, String type, Function<String, T> mappingFunc) throws AuthenticationException {
++        return makeRequest(url, data, type, null, mappingFunc);
+     }
+ 
+-    protected <T> T getAuthenticated(URL url, String token, Class<T> clazz) throws AuthenticationException {
++    public <T> T makeRequest(URL url, String data, String type, String bearer, Function<String, T> mappingFunc) throws AuthenticationException {
++        HttpURLConnection conn = null;
+         try {
+-            String res = performGetRequest(url, token);
+-            return gson.fromJson(res, clazz);
++            conn = createUrlConnection(url);
++
++            if (bearer != null) {
++                conn.setRequestProperty("Authorization", "Bearer " + bearer);
++            }
++
++            if (data != null) {
++                byte[] dataBytes = data.getBytes(StandardCharsets.UTF_8);
++
++                conn.setRequestProperty("Content-Length", "" + dataBytes.length);
++                conn.setRequestProperty("Content-Type", type);
++
++                conn.setDoOutput(true);
++
++                LOGGER.debug("[rq {}]: Writing POST data: {}", url, data);
++                try (OutputStream os = conn.getOutputStream()) {
++                    os.write(dataBytes);
++                }
++            }
++
++            return readResponse(conn, mappingFunc);
+         } catch (IOException ex) {
+-            throw new AuthenticationException("Cannot connect to server", ex);
++            throw new AuthenticationException("I/O exception for request", ex);
++        } finally {
++            if (conn != null) conn.disconnect();
+         }
+     }
+ 
+-    protected <T> T deleteAuthenticated(URL url, String token, Class<T> clazz) throws AuthenticationException {
+-        try {
+-            String res = performDeleteRequest(url, token);
+-            return gson.fromJson(res, clazz);
+-        } catch (IOException ex) {
+-            throw new AuthenticationException("Cannot connect to server", ex);
+-        }
++    protected <T> T post(URL var1, Object var2, Class<T> clazz) throws AuthenticationException {
++        return makeRequest(var1, gson.toJson(var2), "application/json", s -> gson.fromJson(s, clazz));
++    }
++
++    protected <T> T postForm(URL var1, Consumer<FormBuilder> formProvider, Class<T> clazz) throws AuthenticationException {
++        FormBuilder fb = new FormBuilder();
++        formProvider.accept(fb);
++        return makeRequest(var1, fb.build(), "application/x-www-form-urlencoded", s -> gson.fromJson(s, clazz));
++    }
++
++    protected <T> T get(URL url, Class<T> clazz) throws AuthenticationException {
++        return makeRequest(url, null, null, s -> gson.fromJson(s, clazz));
++    }
++
++    protected <T> T getAuthenticated(URL url, String token, Class<T> clazz) throws AuthenticationException {
++        return makeRequest(url, null, null, token, s -> gson.fromJson(s, clazz));
+     }
+ 
+     protected static class FormURLEncodedBuilder {
+@@ -134,4 +197,30 @@ public class MicrosoftAuthenticationService extends YggdrasilAuthenticationServi
+             return data.toString();
+         }
+     }
++
++    public static class FormBuilder {
++        private final StringBuilder builder = new StringBuilder();
++
++        private FormBuilder() { }
++
++        public void appendNoEncode(String key, String value) {
++            if (builder.length() > 0) builder.append('&');
++
++            builder.append(key);
++            builder.append("=");
++            builder.append(value);
++        }
++
++        public void append(String key, String value) {
++            try {
++                appendNoEncode(URLEncoder.encode(key, "UTF-8"), URLEncoder.encode(value, "UTF-8"));
++            } catch (UnsupportedEncodingException ex) {
++                throw Lombok.sneakyThrow(ex); // should never happen
++            }
++        }
++
++        private String build() {
++            return builder.toString();
++        }
++    }
+ }
+diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
+index b6c71f6..19a1abe 100644
+--- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
++++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
+@@ -18,20 +18,15 @@
+ 
+ package dev.figboot.olauncher.auth;
+ 
+-import com.google.gson.JsonElement;
+-import com.google.gson.JsonObject;
+-import com.google.gson.JsonParser;
+ import com.mojang.authlib.*;
+ import com.mojang.authlib.exceptions.AuthenticationException;
+ import com.mojang.authlib.minecraft.MinecraftSessionService;
+ import dev.figboot.olauncher.OLauncherConstants;
++import dev.figboot.olauncher.auth.error.ResponseCodeException;
+ import dev.figboot.olauncher.auth.requests.MinecraftXboxLoginRequest;
+ import dev.figboot.olauncher.auth.requests.XSTSAuthRequest;
+ import dev.figboot.olauncher.auth.requests.XboxLiveAuthRequest;
+-import dev.figboot.olauncher.auth.responses.MSTokenAuthResponse;
+-import dev.figboot.olauncher.auth.responses.MinecraftXboxLoginResponse;
+-import dev.figboot.olauncher.auth.responses.XSTSAuthResponse;
+-import dev.figboot.olauncher.auth.responses.XboxLiveAuthResponse;
++import dev.figboot.olauncher.auth.responses.*;
+ import dev.figboot.olauncher.auth.ui.GameProfileFixDialog;
+ import lombok.Getter;
+ import org.apache.commons.lang3.StringUtils;
+@@ -50,12 +45,10 @@ import java.net.HttpURLConnection;
+ import java.net.MalformedURLException;
+ import java.net.URL;
+ import java.net.URLEncoder;
+-import java.nio.charset.StandardCharsets;
+ import java.security.SecureRandom;
+ import java.time.Instant;
+ import java.time.format.DateTimeParseException;
+ import java.time.temporal.ChronoUnit;
+-import java.util.Base64;
+ import java.util.Map;
+ import java.util.UUID;
+ 
+@@ -76,6 +69,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+     private boolean online;
+ 
+     private MSLoginServer.Response msLoginRes;
++    private MSDeviceCodeHeartbeatResponse msDeviceLoginRes;
+ 
+     private final MinecraftSessionService sessionService;
+ 
+@@ -91,6 +85,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+         online = false;
+ 
+         msLoginRes = null;
++        msDeviceLoginRes = null;
+ 
+         sessionService = service.createMinecraftSessionService();
+     }
+@@ -106,8 +101,6 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+ 
+     @Override
+     public void logIn() throws AuthenticationException {
+-        if (msLoginRes == null && msRefreshToken == null) throw new AuthenticationException("Username/email and password login is not supported");
+-
+         if (msLoginRes != null) {
+             if (msLoginRes.isInternalError())
+                 throw new AuthenticationException("An internal error occurred while authorizing your account");
+@@ -115,6 +108,15 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+                 throw new AuthenticationException(msLoginRes.getErrorDesc() + " (" + msLoginRes.getError() + ")");
+         }
+ 
++        if (msDeviceLoginRes != null) {
++            String hash = xblLogIn(msDeviceLoginRes.getAccesToken());
++            xstsAndMinecraftLogIn(hash);
++            profileLogIn();
++
++            msDeviceLoginRes = null;
++            return;
++        }
++
+         String msAuthCode = msLoginRes == null ? null : this.msLoginRes.getCode();
+         this.msLoginRes = null;
+ 
+@@ -138,18 +140,39 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+         }
+     }
+ 
++    private boolean ownsGame() throws AuthenticationException {
++        LOGGER.debug("Checking if they own the game...");
++        MinecraftEntitlementsResponse entitlementRes = getAuthenticationService().getAuthenticated(MicrosoftAuthenticationService.ENTITLEMENTS_URL,
++                mojToken, MinecraftEntitlementsResponse.class);
++
++        if (entitlementRes.getItems() == null) {
++            return false;
++        }
++
++        for (MinecraftEntitlementsResponse.EntitlementItem item : entitlementRes.getItems()) {
++            if (item.getName().equals("product_minecraft") || item.getName().equals("game_minecraft")) {
++                return true;
++            }
++        }
++
++        return false;
++    }
++
+     private String msAndXblColdLogIn(String msAuthCode) throws AuthenticationException {
+         LOGGER.debug("Getting access token from live...");
+-        MSTokenAuthResponse tokAuthRes = getAuthenticationService().postForm(MicrosoftAuthenticationService.ROUTE_LOGIN_LIVE_TOKEN,
+-                new MicrosoftAuthenticationService.FormURLEncodedBuilder("")
+-                        .append("client_id", OLauncherConstants.APP_CLIENT_ID.toString())
+-                        .append("code", msAuthCode)
+-                        .append("grant_type", "authorization_code")
+-                        .append("redirect_uri", OLauncherConstants.REDIR_URI)
+-                        .build(), MSTokenAuthResponse.class);
+-
+-        if (tokAuthRes.getError() != null) {
+-            throw new AuthenticationException(tokAuthRes.getError() + " - " + tokAuthRes.getErrorDescription());
++        MSTokenAuthResponse tokAuthRes;
++
++        try {
++            tokAuthRes = getAuthenticationService().postForm(MicrosoftAuthenticationService.ROUTE_LOGIN_LIVE_TOKEN,
++                    form -> {
++                        form.append("client_id", OLauncherConstants.APP_CLIENT_ID.toString());
++                        form.append("code", msAuthCode);
++                        form.append("grant_type", "authorization_code");
++                        form.append("redirect_uri", OLauncherConstants.REDIR_URI);
++                    }, MSTokenAuthResponse.class);
++        } catch (ResponseCodeException ex) {
++            MSResponse res = ex.getResponse();
++            throw new AuthenticationException(res.getError() + " - " + res.getErrorDescription(), ex);
+         }
+ 
+         this.msRefreshToken = tokAuthRes.getRefreshToken();
+@@ -159,16 +182,19 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+ 
+     private String msAndXblWarmLogIn() throws AuthenticationException {
+         LOGGER.debug("Logging into live with a refresh token...");
+-        MSTokenAuthResponse tokAuthRes = getAuthenticationService().postForm(MicrosoftAuthenticationService.ROUTE_LOGIN_LIVE_TOKEN,
+-                new MicrosoftAuthenticationService.FormURLEncodedBuilder("")
+-                        .append("client_id", OLauncherConstants.APP_CLIENT_ID.toString())
+-                        .append("refresh_token", msRefreshToken)
+-                        .append("grant_type", "refresh_token")
+-                        .append("redirect_uri", OLauncherConstants.REDIR_URI).build(),
+-                MSTokenAuthResponse.class);
+-
+-        if (tokAuthRes.getError() != null) {
+-            throw new AuthenticationException(tokAuthRes.getError() + " - " + tokAuthRes.getErrorDescription());
++        MSTokenAuthResponse tokAuthRes;
++
++        try {
++            tokAuthRes = getAuthenticationService().postForm(MicrosoftAuthenticationService.ROUTE_LOGIN_LIVE_TOKEN,
++                    form -> {
++                        form.append("client_id", OLauncherConstants.APP_CLIENT_ID.toString());
++                        form.append("refresh_token", msRefreshToken);
++                        form.append("grant_type", "refresh_token");
++                        form.append("redirect_uri", OLauncherConstants.REDIR_URI);
++                    }, MSTokenAuthResponse.class);
++        } catch (ResponseCodeException ex) {
++            MSResponse res = ex.getResponse();
++            throw new AuthenticationException(res.getError() + " - " + res.getErrorDescription(), ex);
+         }
+ 
+         this.msRefreshToken = tokAuthRes.getRefreshToken();
+@@ -189,9 +215,25 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+ 
+     private void xstsAndMinecraftLogIn(String userHash) throws AuthenticationException {
+         LOGGER.debug("Acquiring Minecraft XSTS token...");
+-        XSTSAuthResponse xstsAuthRes = getAuthenticationService().post(MicrosoftAuthenticationService.ROUTE_XBOXLIVE_XSTS,
+-                new XSTSAuthRequest(xblToken, XSTSAuthRequest.RP_MINECRAFT),
+-                XSTSAuthResponse.class);
++        XSTSAuthResponse xstsAuthRes;
++
++        try {
++            xstsAuthRes = getAuthenticationService().post(MicrosoftAuthenticationService.ROUTE_XBOXLIVE_XSTS,
++                    new XSTSAuthRequest(xblToken, XSTSAuthRequest.RP_MINECRAFT),
++                    XSTSAuthResponse.class);
++        } catch (ResponseCodeException ex) {
++            long error = ex.getResponse().getXError();
++            String message = ex.getResponse().getXMessage();
++            if (message == null) message = "...no message...";
++
++            if (error == 2148916238L) {
++                throw new AuthenticationException(String.format("Account is held by a minor outside of a family. %d (%s)", error, message), ex);
++            } else if (ex.getResponse().getXError() == 2148916233L) {
++                throw new AuthenticationException(String.format("Account is not on Xbox. %d (%s)", error, message), ex);
++            } else {
++                throw new AuthenticationException(String.format("Unknown Xbox XSTS error. %d (%s)", error, message), ex);
++            }
++        }
+ 
+         if (userHash != null && !userHash.equals(xstsAuthRes.getUserHash())) {
+             throw new AuthenticationException("The user hash has changed?");
+@@ -222,10 +264,15 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+     private void profileLogIn() throws AuthenticationException {
+         if (this.xuid == null) findXUID();
+ 
++        if (!ownsGame()) {
++            throw new AuthenticationException("No Minecraft entitlement! Do you own the game?");
++        }
++
+         LOGGER.debug("Getting your user profile...");
+         profileInfo = getAuthenticationService().getAuthenticated(MicrosoftAuthenticationService.ROUTE_MINECRAFT_PROFILE,
+                 mojToken, MCProfileInfo.class);
+ 
++        if (false) { // this code should be unnecessary now -figboot
+         while (profileInfo.getId() == null) {
+             // User profile just returns 404 (who knows why)
+             // I believe that it may be an issue with the Mojang API
+@@ -238,6 +285,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+             profileInfo = getAuthenticationService().getAuthenticated(MicrosoftAuthenticationService.ROUTE_MINECRAFT_PROFILE,
+                     mojToken, MCProfileInfo.class);
+         }
++        }
+ 
+         GameProfile profile = new GameProfile(profileInfo.getId(), profileInfo.getName());
+         profile = sessionService.fillProfileProperties(profile, false);
+@@ -334,6 +382,10 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+         msLoginRes = code;
+     }
+ 
++    public void setDeviceLoginResponse(MSDeviceCodeHeartbeatResponse res) {
++        msDeviceLoginRes = res;
++    }
++
+     @Override
+     public boolean isLoggedIn() {
+         return StringUtils.isNotBlank(mojToken);
+@@ -355,7 +407,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+     }
+ 
+     private static UUID xuidFromString(String xuidStr) {
+-        return new UUID(0, Long.parseUnsignedLong(xuidStr));
++        return StringUtils.isBlank(xuidStr) ? null : new UUID(0, Long.parseUnsignedLong(xuidStr));
+     }
+ 
+     @Override
+@@ -372,7 +424,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+         }
+ 
+         if (var1.containsKey("xuid")) {
+-            xuid = xuidFromString("xuid");
++            xuid = xuidFromString((String)var1.get("xuid"));
+         } else if (var1.containsKey("xuid2")) {
+             try {
+                 xuid = UUID.fromString((String)var1.get("xuid2"));
+@@ -393,13 +445,34 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+         }
+     }
+ 
++    public MSDeviceCodeResponse startDeviceAuth() throws AuthenticationException {
++        return getAuthenticationService().postForm(MicrosoftAuthenticationService.DEVICE_CODE_URL,
++                form -> {
++                    form.append("client_id", OLauncherConstants.APP_CLIENT_ID.toString());
++                    form.append("scope", OLauncherConstants.APP_SCOPES);
++                }, MSDeviceCodeResponse.class);
++    }
++
++    public MSDeviceCodeHeartbeatResponse checkDeviceAuth(String deviceCode) throws AuthenticationException {
++        return getAuthenticationService().postForm(MicrosoftAuthenticationService.DEVICE_CODE_HEARTBEAT_URL,
++                form -> {
++                    form.appendNoEncode("grant_type", "urn:ietf:params:oauth:grant-type:device_code");
++                    form.append("client_id", OLauncherConstants.APP_CLIENT_ID.toString());
++                    form.append("device_code", deviceCode);
++                }, MSDeviceCodeHeartbeatResponse.class);
++    }
++
+     @Override
+     public Map<String, Object> saveForStorage() {
+         Map<String, Object> map = super.saveForStorage();
+         map.put("refreshToken", msRefreshToken);
+         map.put("xboxLiveToken", xblToken);
+         map.put("xboxLiveTokenExpire", xblTokenExpire.toString());
+-        map.put("xuid2", xuid.toString());
++
++        if (xuid != null) {
++            map.put("xuid2", xuid.toString());
++        }
++
+         map.put("mojToken", mojToken);
+         map.put("mojTokenExpire", mojTokenExpire.toString());
+         return map;
+diff --git a/src/main/java/dev/figboot/olauncher/auth/error/ResponseCodeException.java b/src/main/java/dev/figboot/olauncher/auth/error/ResponseCodeException.java
+new file mode 100644
+index 0000000..8e02bd1
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/auth/error/ResponseCodeException.java
+@@ -0,0 +1,36 @@
++package dev.figboot.olauncher.auth.error;
++
++import com.mojang.authlib.exceptions.AuthenticationException;
++import dev.figboot.olauncher.auth.responses.MSResponse;
++import lombok.Getter;
++
++import java.io.IOException;
++import java.net.HttpURLConnection;
++
++public class ResponseCodeException extends AuthenticationException {
++    @Getter private final MSResponse response;
++
++    @Getter private int code;
++    @Getter private String httpMessage;
++
++    public static ResponseCodeException fill(ResponseCodeException ex, int code, String message) throws IOException {
++        ex.code = code;
++        ex.httpMessage = message;
++        return ex;
++    }
++
++    public ResponseCodeException(String message, MSResponse response) {
++        super(message);
++        this.response = response;
++    }
++
++    public ResponseCodeException(Throwable cause, MSResponse response) {
++        super(cause);
++        this.response = response;
++    }
++
++    public ResponseCodeException(String message, Throwable cause, MSResponse response) {
++        super(cause);
++        this.response = response;
++    }
++}
+diff --git a/src/main/java/dev/figboot/olauncher/auth/responses/MSDeviceCodeHeartbeatResponse.java b/src/main/java/dev/figboot/olauncher/auth/responses/MSDeviceCodeHeartbeatResponse.java
+new file mode 100644
+index 0000000..dd8d3b1
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/auth/responses/MSDeviceCodeHeartbeatResponse.java
+@@ -0,0 +1,28 @@
++package dev.figboot.olauncher.auth.responses;
++
++import lombok.Getter;
++
++public class MSDeviceCodeHeartbeatResponse extends MSResponse {
++    private String token_type;
++    @Getter private String scope;
++    private int expires_in;
++    private String access_token;
++    private String refresh_token;
++    @Getter private Integer interval;
++
++    public String getTokenType() {
++        return token_type;
++    }
++
++    public int getExpiresIn() {
++        return expires_in;
++    }
++
++    public String getAccesToken() {
++        return access_token;
++    }
++
++    public String getRefreshToken() {
++        return refresh_token;
++    }
++}
+diff --git a/src/main/java/dev/figboot/olauncher/auth/responses/MSDeviceCodeResponse.java b/src/main/java/dev/figboot/olauncher/auth/responses/MSDeviceCodeResponse.java
+new file mode 100644
+index 0000000..fa13e4d
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/auth/responses/MSDeviceCodeResponse.java
+@@ -0,0 +1,28 @@
++package dev.figboot.olauncher.auth.responses;
++
++import lombok.Getter;
++
++public class MSDeviceCodeResponse extends MSResponse {
++    private String device_code;
++    private String user_code;
++    private String verification_uri;
++    private int expires_in;
++    @Getter private int interval;
++    @Getter private String message;
++
++    public String getDeviceCode() {
++        return device_code;
++    }
++
++    public String getUserCode() {
++        return user_code;
++    }
++
++    public String getVerificationUri() {
++        return verification_uri;
++    }
++
++    public int getExpiresIn() {
++        return expires_in;
++    }
++}
+diff --git a/src/main/java/dev/figboot/olauncher/auth/responses/MSResponse.java b/src/main/java/dev/figboot/olauncher/auth/responses/MSResponse.java
+index 0159f0b..1001984 100644
+--- a/src/main/java/dev/figboot/olauncher/auth/responses/MSResponse.java
++++ b/src/main/java/dev/figboot/olauncher/auth/responses/MSResponse.java
+@@ -24,7 +24,18 @@ public class MSResponse {
+     @Getter private String error;
+     private String error_description;
+ 
++    private long XErr;
++    private String Message;
++
+     public String getErrorDescription() {
+         return error_description;
+     }
++
++    public long getXError() {
++        return XErr;
++    }
++
++    public String getXMessage() {
++        return Message;
++    }
+ }
+diff --git a/src/main/java/dev/figboot/olauncher/auth/responses/MinecraftEntitlementsResponse.java b/src/main/java/dev/figboot/olauncher/auth/responses/MinecraftEntitlementsResponse.java
+new file mode 100644
+index 0000000..65443e5
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/auth/responses/MinecraftEntitlementsResponse.java
+@@ -0,0 +1,15 @@
++package dev.figboot.olauncher.auth.responses;
++
++import lombok.Getter;
++
++import java.util.List;
++
++public class MinecraftEntitlementsResponse extends MSResponse {
++    @Getter private List<EntitlementItem> items;
++    @Getter private String signature;
++    @Getter private String keyId;
++
++    public static class EntitlementItem {
++        @Getter private String name, signature;
++    }
++}
+diff --git a/src/main/java/dev/figboot/olauncher/auth/ui/DeviceCodeDialog.java b/src/main/java/dev/figboot/olauncher/auth/ui/DeviceCodeDialog.java
+new file mode 100644
+index 0000000..c032be4
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/auth/ui/DeviceCodeDialog.java
+@@ -0,0 +1,211 @@
++package dev.figboot.olauncher.auth.ui;
++
++import com.mojang.authlib.exceptions.AuthenticationException;
++import dev.figboot.olauncher.auth.MicrosoftUserAuthentication;
++import dev.figboot.olauncher.auth.error.ResponseCodeException;
++import dev.figboot.olauncher.auth.responses.MSDeviceCodeHeartbeatResponse;
++import dev.figboot.olauncher.auth.responses.MSDeviceCodeResponse;
++import dev.figboot.olauncher.auth.responses.MSResponse;
++import org.apache.logging.log4j.LogManager;
++import org.apache.logging.log4j.Logger;
++
++import javax.swing.*;
++import javax.swing.border.EmptyBorder;
++import java.awt.*;
++import java.awt.datatransfer.StringSelection;
++import java.awt.event.WindowAdapter;
++import java.awt.event.WindowEvent;
++import java.util.concurrent.ScheduledThreadPoolExecutor;
++import java.util.concurrent.TimeUnit;
++import java.util.function.Consumer;
++
++public class DeviceCodeDialog extends JDialog {
++    private static final Logger LOGGER = LogManager.getLogger();
++
++    private final MicrosoftUserAuthentication authentication;
++
++    private final JLabel lblStatus;
++    private final JProgressBar pgbProgress = new JProgressBar();
++
++    private final JButton btnCopyCode;
++    private final JButton btnCopyLink;
++    private final JButton btnCancel;
++
++    private final ScheduledThreadPoolExecutor schedExec;
++
++    private boolean hasShutDown = false;
++    private MSDeviceCodeResponse deviceCodeResponse;
++
++    private final Consumer<MSDeviceCodeHeartbeatResponse> callback;
++
++    // https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-device-code
++    public DeviceCodeDialog(MicrosoftUserAuthentication authentication, Consumer<MSDeviceCodeHeartbeatResponse> callback) {
++        super(null, "Microsoft Login", ModalityType.APPLICATION_MODAL);
++        this.authentication = authentication;
++        this.callback = callback;
++
++        setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
++
++        lblStatus = new JLabel("Initializing device logon flow...");
++
++        btnCopyCode = new JButton("Copy Code");
++        btnCopyLink = new JButton("Copy Link");
++        btnCancel = new JButton("Cancel");
++
++        schedExec = new ScheduledThreadPoolExecutor(5);
++        schedExec.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
++
++        addWindowListener(new WindowAdapter() {
++            @Override
++            public void windowClosed(WindowEvent e) {
++                shutDown();
++            }
++
++            @Override
++            public void windowClosing(WindowEvent e) {
++                shutDown();
++                dispose();
++            }
++
++            @Override
++            public void windowOpened(WindowEvent e) {
++                schedExec.submit(DeviceCodeDialog.this::startDeviceAuth);
++            }
++        });
++
++        btnCancel.addActionListener(e -> {
++            shutDown();
++            dispose();
++        });
++
++        btnCopyCode.addActionListener(e -> {
++            if (deviceCodeResponse != null) {
++                Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(deviceCodeResponse.getUserCode()), null);
++            }
++        });
++
++        btnCopyLink.addActionListener(e -> {
++            if (deviceCodeResponse != null) {
++                Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(deviceCodeResponse.getVerificationUri()), null);
++            }
++        });
++
++        initInterface();
++    }
++
++    private void initInterface() {
++        JPanel mainPanel = new JPanel(new BorderLayout(5, 5));
++        add(mainPanel);
++        mainPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
++
++        setResizable(false);
++        setModal(true);
++
++        pgbProgress.setIndeterminate(true);
++
++        JPanel infoPanel = new JPanel(new BorderLayout(5, 5));
++
++        infoPanel.add(lblStatus, BorderLayout.CENTER);
++        infoPanel.add(pgbProgress, BorderLayout.PAGE_END);
++
++        mainPanel.add(infoPanel, BorderLayout.CENTER);
++
++        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
++        actionPanel.add(btnCopyCode);
++        actionPanel.add(btnCopyLink);
++        actionPanel.add(btnCancel);
++
++        btnCopyCode.setEnabled(false);
++        btnCopyLink.setEnabled(false);
++        mainPanel.add(actionPanel, BorderLayout.PAGE_END);
++
++        pack();
++        setLocationRelativeTo(null);
++        setVisible(true);
++    }
++
++    private void startDeviceAuth() {
++        try {
++            deviceCodeResponse = authentication.startDeviceAuth();
++
++            if (deviceCodeResponse.getError() != null) { // FIXME
++                handleAuthError("Error in device authentication: " + deviceCodeResponse.getError() + "\n" + deviceCodeResponse.getErrorDescription());
++                return;
++            }
++
++            setStatus(deviceCodeResponse.getMessage(), true);
++
++            authHeartbeat();
++        } catch (AuthenticationException ex) {
++            LOGGER.error("Error starting device authentication", ex);
++            handleAuthError("Failed to begin device authentication flow:\n" + ex.getClass().getSimpleName() + ": " + ex.getMessage());
++        }
++    }
++
++    private void authHeartbeat() {
++        try {
++            MSDeviceCodeHeartbeatResponse heartbeat;
++            try {
++                heartbeat = authentication.checkDeviceAuth(deviceCodeResponse.getDeviceCode());
++            } catch (ResponseCodeException ex) {
++                heartbeat = (MSDeviceCodeHeartbeatResponse)ex.getResponse();
++                if (heartbeat.getError().equals("authorization_pending")) {
++                    schedExec.schedule(this::authHeartbeat, heartbeat.getInterval() == null ? deviceCodeResponse.getInterval() : heartbeat.getInterval(), TimeUnit.SECONDS);
++                } else {
++                    handleAuthError("Error in device authentication: " + heartbeat.getError() + "\n" + heartbeat.getErrorDescription());
++                }
++                return;
++            }
++
++            setStatus("Code received, logging in...", false);
++
++            shutDown();
++            dispose();
++            callback.accept(heartbeat);
++        } catch (AuthenticationException ex) {
++            LOGGER.error("Error checking device authentication", ex);
++            handleAuthError("Failed to authenticate:\n" + ex.getClass().getSimpleName() + ": " + ex.getMessage());
++        }
++    }
++
++    private void setStatus(String status, boolean active) {
++        SwingUtilities.invokeLater(() -> {
++            btnCopyCode.setEnabled(active);
++            btnCopyLink.setEnabled(active);
++            pgbProgress.setVisible(!active);
++            lblStatus.setText(status);
++
++            pack();
++            setLocationRelativeTo(null);
++        });
++    }
++
++    private void handleAuthError(String message) {
++        SwingUtilities.invokeLater(() -> {
++            JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
++            shutDown();
++            dispose();
++        });
++    }
++
++    private void shutDown() {
++        if (hasShutDown) return;
++        hasShutDown = true;
++
++        lblStatus.setText("Cancelling...");
++        pgbProgress.setVisible(true);
++        btnCancel.setEnabled(false);
++
++        schedExec.shutdown();
++
++        try {
++            if (!schedExec.awaitTermination(5, TimeUnit.SECONDS)) {
++                LOGGER.warn("Failed to shut down scheduled executor in time... :(");
++            } else {
++                LOGGER.info("Shut down device login executor.");
++            }
++        } catch (InterruptedException ex) {
++            Thread.currentThread().interrupt();
++        }
++    }
++}
+diff --git a/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog.java b/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog.java
+index 83bd084..79799e0 100644
+--- a/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog.java
++++ b/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog.java
+@@ -25,6 +25,7 @@ import org.apache.logging.log4j.LogManager;
+ import org.apache.logging.log4j.Logger;
+ 
+ import javax.swing.*;
++import javax.swing.border.EmptyBorder;
+ import java.awt.*;
+ import java.awt.datatransfer.StringSelection;
+ import java.awt.event.ActionEvent;
+@@ -56,12 +57,13 @@ public class MSLoginDialog extends JDialog {
+ 
+         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+ 
++        lblInfo.setBorder(new EmptyBorder(5, 5, 5, 5));
+         btnCancel.addActionListener(this::btnCancelClick);
+         btnCopy.addActionListener(this::btnCopyLink);
+ 
+         addWindowListener(new WindowAdapter() {
+             @Override
+-            public void windowClosing(WindowEvent e) {
++            public void windowClosed(WindowEvent e) {
+                 if (loginServer != null) {
+                     loginServer.stop();
+                     btnCancel.setEnabled(false);
+@@ -77,9 +79,10 @@ public class MSLoginDialog extends JDialog {
+         });
+ 
+         try {
+-            loginServer = new MSLoginServer(InetAddress.getByName("127.0.0.1"), OLauncherConstants.REDIR_URI_PORT, this::handleComplete);
++            loginServer = new MSLoginServer(InetAddress.getLoopbackAddress(), OLauncherConstants.REDIR_URI_PORT, this::handleComplete);
+             loginServer.listen();
+-            OperatingSystem.openLink(URI.create(link = String.format("https://login.live.com/oauth20_authorize.srf?client_id=%s&response_type=code&redirect_uri=%s&scope=%s",
++            OperatingSystem.openLink(URI.create(link = String.format("https://login.live.com/oauth20_authorize.srf" +
++                            "?client_id=%s&response_type=code&redirect_uri=%s&scope=%s&prompt=select_account",
+                     URLEncoder.encode(OLauncherConstants.APP_CLIENT_ID.toString(), "UTF-8"),
+                     URLEncoder.encode(OLauncherConstants.REDIR_URI, "UTF-8"),
+                     URLEncoder.encode(OLauncherConstants.APP_SCOPES, "UTF-8")
+@@ -97,6 +100,8 @@ public class MSLoginDialog extends JDialog {
+     }
+ 
+     private void initInterface() {
++        setTitle("OLauncher Login");
++        setResizable(false);
+         setModal(true);
+         setModalityType(ModalityType.APPLICATION_MODAL);
+         setLayout(new BorderLayout());
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/update/ReleaseInfo.java b/src/main/java/dev/figboot/olauncher/launcher/update/ReleaseInfo.java
+index c0a6ba0..74026c7 100644
+--- a/src/main/java/dev/figboot/olauncher/launcher/update/ReleaseInfo.java
++++ b/src/main/java/dev/figboot/olauncher/launcher/update/ReleaseInfo.java
+@@ -83,7 +83,7 @@ public class ReleaseInfo {
+         }
+ 
+         public boolean isRedistJar() {
+-            return getState().equals("uploaded") && getContentType().equals("application/x-java-archive") && getName().endsWith("-redist.jar");
++            return getState().equals("uploaded") && (getContentType().equals("application/x-java-archive") || getContentType().equals("application/java-archive")) && getName().endsWith("-redist.jar");
+         }
+     }
+ }
+diff --git a/src/main/java/net/minecraft/launcher/ui/popups/login/AuthErrorForm.java b/src/main/java/net/minecraft/launcher/ui/popups/login/AuthErrorForm.java
+index 7731ed5..4bfa493 100644
+--- a/src/main/java/net/minecraft/launcher/ui/popups/login/AuthErrorForm.java
++++ b/src/main/java/net/minecraft/launcher/ui/popups/login/AuthErrorForm.java
+@@ -25,7 +25,7 @@ public class AuthErrorForm extends JPanel {
+     }
+ 
+     protected void createInterface() {
+-        this.setBorder(new EmptyBorder(0, 0, 15, 0));
++        this.setBorder(new EmptyBorder(0, 0, 5, 0)); // olauncher: shrink
+         this.errorLabel.setFont(this.errorLabel.getFont().deriveFont(1));
+         this.add(this.errorLabel);
+     }
+diff --git a/src/main/java/net/minecraft/launcher/ui/popups/login/ExistingUserListForm.java b/src/main/java/net/minecraft/launcher/ui/popups/login/ExistingUserListForm.java
+index 7a9da9f..c1f6d05 100644
+--- a/src/main/java/net/minecraft/launcher/ui/popups/login/ExistingUserListForm.java
++++ b/src/main/java/net/minecraft/launcher/ui/popups/login/ExistingUserListForm.java
+@@ -90,7 +90,9 @@ public class ExistingUserListForm extends JPanel implements ActionListener {
+         var1.gridwidth = 2;
+         this.add(Box.createVerticalStrut(5), var1);
+         this.add(new JLabel("Alternatively, log in with a new account below:"), var1);
+-        this.add(new Separator(), var1);
++
++        // olauncher: remove separator
++        // this.add(new Separator(), var1);
+     }
+ 
+     public void actionPerformed(ActionEvent var1) {
+diff --git a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
+index 31f1846..e5af44f 100644
+--- a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
++++ b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
+@@ -16,16 +16,11 @@ import java.awt.event.ActionEvent;
+ import java.awt.event.ActionListener;
+ import java.awt.event.MouseAdapter;
+ import java.awt.event.MouseEvent;
+-import javax.swing.Box;
+-import javax.swing.JComboBox;
+-import javax.swing.JLabel;
+-import javax.swing.JPanel;
+-import javax.swing.JPasswordField;
+-import javax.swing.JTextField;
+-import javax.swing.SwingUtilities;
++import javax.swing.*;
+ 
+ import dev.figboot.olauncher.auth.MSLoginServer;
+ import dev.figboot.olauncher.auth.MicrosoftUserAuthentication;
++import dev.figboot.olauncher.auth.ui.DeviceCodeDialog;
+ import dev.figboot.olauncher.auth.ui.MSLoginDialog;
+ import net.minecraft.launcher.LauncherConstants;
+ import net.minecraft.launcher.profile.AuthenticationDatabase;
+@@ -59,8 +54,9 @@ public class LogInForm extends JPanel implements ActionListener {
+         var1.gridy = -1;
+         var1.weightx = 1.0D;
+         this.add(Box.createGlue());
++        Font var3 = getFont().deriveFont(1);
++        /*
+         JLabel var2 = new JLabel("Email Address or Username:");
+-        Font var3 = var2.getFont().deriveFont(1);
+         Font var4 = var2.getFont().deriveFont((float)var3.getSize() - 2.0F);
+         var2.setFont(var3);
+         this.add(var2, var1);
+@@ -90,6 +86,7 @@ public class LogInForm extends JPanel implements ActionListener {
+             }
+         });
+         this.add(var7, var1);
++         */
+         this.createUserDropdownPanel(var3);
+         this.add(this.userDropdownPanel, var1);
+         this.add(Box.createVerticalStrut(10), var1);
+@@ -223,6 +220,19 @@ public class LogInForm extends JPanel implements ActionListener {
+         });
+     }
+ 
++    public void openMSDeviceLogin() {
++        SwingUtilities.invokeLater(() -> {
++            if (authentication instanceof MicrosoftUserAuthentication) {
++                new DeviceCodeDialog((MicrosoftUserAuthentication)authentication, res -> {
++                    ((MicrosoftUserAuthentication)authentication).setDeviceLoginResponse(res);
++                    tryLogIn();
++                });
++            } else {
++                JOptionPane.showMessageDialog(this, "Not a Microsoft authentication object!", "Error", JOptionPane.ERROR_MESSAGE);
++            }
++        });
++    }
++
+     public void handleMSLogin(MSLoginServer.Response response) {
+         if (response == null) {
+             this.popup.getErrorForm().displayError(new AuthenticationException("The authentication code is null"), "The authentication request was cancelled.");
+diff --git a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInPopup.java b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInPopup.java
+index 0c66c11..69b9729 100644
+--- a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInPopup.java
++++ b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInPopup.java
+@@ -30,7 +30,8 @@ public class LogInPopup extends JPanel implements ActionListener {
+     private final LogInForm logInForm;
+     private final JButton loginButton = new JButton("Log In");
+     private final JButton registerButton = new JButton("Register");
+-    private final JButton microsoftLoginButton = new JButton("Log In with Microsoft"); // olauncher - Add MS login button
++    private final JButton microsoftLoginButton = new JButton("Microsoft Login"); // olauncher - Add MS login button
++    private final JButton microsoftDeviceLoginButton = new JButton("Microsoft Login (Device Code)"); // olauncher - Add MS login button
+     private final JProgressBar progressBar = new JProgressBar();
+ 
+     public LogInPopup(Launcher var1, LogInPopup.Callback var2) {
+@@ -44,6 +45,7 @@ public class LogInPopup extends JPanel implements ActionListener {
+         this.loginButton.addActionListener(this);
+         this.registerButton.addActionListener(this);
+         this.microsoftLoginButton.addActionListener(this);
++        this.microsoftDeviceLoginButton.addActionListener(this);
+     }
+ 
+     protected void createInterface() {
+@@ -58,7 +60,7 @@ public class LogInPopup extends JPanel implements ActionListener {
+                 JPanel var4 = new JPanel();
+                 var4.add(var3);
+                 this.add(var4);
+-                this.add(Box.createVerticalStrut(10));
++                //this.add(Box.createVerticalStrut(10));
+             }
+         } catch (IOException var5) {
+             var5.printStackTrace();
+@@ -70,12 +72,15 @@ public class LogInPopup extends JPanel implements ActionListener {
+ 
+         this.add(this.errorForm);
+         this.add(this.logInForm);
+-        this.add(Box.createVerticalStrut(15));
++        //this.add(Box.createVerticalStrut(15));
+         JPanel var6 = new JPanel();
++        var6.setLayout(new GridLayout(2, 1, 0, 5));
+         /*var6.setLayout(new GridLayout(1, 2, 10, 0));
+         var6.add(this.registerButton);
+         var6.add(this.loginButton);*/
+         // olauncher - Add MS login button
++        // olauncher - remove stuff
++        /*
+         var6.setLayout(new GridBagLayout());
+         GridBagConstraints regConstraints = new GridBagConstraints(),
+                            loginConstraints = new GridBagConstraints(),
+@@ -95,7 +100,13 @@ public class LogInPopup extends JPanel implements ActionListener {
+         msLoginConstraints.gridy = 1;
+         msLoginConstraints.gridwidth = 2;
+         msLoginConstraints.insets = new Insets(5, 0, 0, 0);
+-        var6.add(microsoftLoginButton, msLoginConstraints);
++        var6.add(microsoftLoginButton, msLoginConstraints); */
++
++        microsoftLoginButton.setAlignmentX(Component.CENTER_ALIGNMENT);
++        microsoftDeviceLoginButton.setAlignmentX(Component.CENTER_ALIGNMENT);
++
++        var6.add(microsoftLoginButton);
++        var6.add(microsoftDeviceLoginButton);
+ 
+         this.add(var6);
+         this.progressBar.setIndeterminate(true);
+@@ -110,6 +121,8 @@ public class LogInPopup extends JPanel implements ActionListener {
+             OperatingSystem.openLink(LauncherConstants.URL_REGISTER);
+         } else if (var1.getSource() == this.microsoftLoginButton) { // olauncher - handle MS login button
+             logInForm.openMSLogin();
++        } else if (var1.getSource() == this.microsoftDeviceLoginButton) {
++            logInForm.openMSDeviceLogin();
+         }
+ 
+     }
+@@ -124,6 +137,11 @@ public class LogInPopup extends JPanel implements ActionListener {
+             this.progressBar.setIndeterminate(false);
+             this.progressBar.setIndeterminate(true);
+             this.progressBar.setVisible(!var1);
++
++            // olauncher - login buttons
++            microsoftLoginButton.setEnabled(var1);
++            microsoftDeviceLoginButton.setEnabled(var1);
++
+             this.repack();
+         } else {
+             SwingUtilities.invokeLater(new Runnable() {
+-- 
+2.43.0
+
