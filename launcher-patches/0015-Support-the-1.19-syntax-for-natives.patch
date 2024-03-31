@@ -1,4 +1,4 @@
-From be21ba387a7b2121af0a26a4aaab0541c51b13d5 Mon Sep 17 00:00:00 2001
+From 244ee0cd93cdba7fd7d70003280478342a40e322 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Tue, 14 Jun 2022 04:54:47 -0500
 Subject: [PATCH] Support the 1.19 syntax for natives

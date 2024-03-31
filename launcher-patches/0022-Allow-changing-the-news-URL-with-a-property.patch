@@ -1,4 +1,4 @@
-From c9d54f614c8b59f38759ce04bf6f48a74d3aa5ad Mon Sep 17 00:00:00 2001
+From 4ffb497922eec5e32c28cc559b5b1d464296a99a Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Sat, 23 Sep 2023 18:31:23 -0500
 Subject: [PATCH] Allow changing the news URL with a property

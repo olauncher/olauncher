@@ -1,4 +1,4 @@
-From d6dbcf394af714102fb2b6ee864029d4bf4d7184 Mon Sep 17 00:00:00 2001
+From e48fbb63a4bec4f470777edf9ce40eb893a26e08 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Sat, 14 Oct 2023 18:03:22 -0500
 Subject: [PATCH] Properly migrate profiles from new launcher

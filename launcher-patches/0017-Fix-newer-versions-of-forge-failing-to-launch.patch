@@ -1,4 +1,4 @@
-From ff00a2d668eb04cf75ba019b11f55c69795b8fc5 Mon Sep 17 00:00:00 2001
+From a6adc925b5ec433ec8fba542f486e85cd68a58ab Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot3132@gmail.com>
 Date: Wed, 9 Nov 2022 02:59:04 -0600
 Subject: [PATCH] Fix newer versions of forge failing to launch
