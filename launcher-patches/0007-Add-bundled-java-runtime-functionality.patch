@@ -1,4 +1,4 @@
-From 7c10565fbfde4dd8e3dba681d8079b902386a497 Mon Sep 17 00:00:00 2001
+From 32dfda335a6ea1384ff550128f3d4448efb61e29 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Sat, 26 Mar 2022 15:24:44 -0500
 Subject: [PATCH] Add bundled java runtime functionality
@@ -1162,10 +1162,10 @@ index 06e506a..12b5f87 100644
                      SwingUserInterface.LOGGER.info("Termination took too long.");
                  }
 diff --git a/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
-index a4b4e50..4349e7d 100644
+index 74aeaaa..066ecb4 100644
 --- a/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
 +++ b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
-@@ -119,7 +119,7 @@ public class GameLaunchDispatcher implements GameRunnerListener {
+@@ -117,7 +117,7 @@ public class GameLaunchDispatcher implements GameRunnerListener {
  
                  var5.setStatus(GameInstanceStatus.IDLE);
                  var5.addListener(GameLaunchDispatcher.this);
@@ -1317,5 +1317,5 @@ index 9d786d5..acb4ee0 100644
 +    // olauncher end
  }
 -- 
-2.40.1
+2.43.0
 

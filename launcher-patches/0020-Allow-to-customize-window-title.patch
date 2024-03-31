@@ -1,4 +1,4 @@
-From 894d996ece13d6a368a2034c37ba8df31e8542c5 Mon Sep 17 00:00:00 2001
+From 6a4e1c9b7f8deb257a9fe21937ba414bed160870 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot3132@gmail.com>
 Date: Sat, 10 Jun 2023 16:05:54 -0500
 Subject: [PATCH] Allow to customize window title
@@ -40,5 +40,5 @@ index 524c1f7..528aa6c 100644
          this.frame.setDefaultCloseOperation(2);
          this.frame.addWindowListener(new WindowAdapter() {
 -- 
-2.40.1
+2.43.0
 

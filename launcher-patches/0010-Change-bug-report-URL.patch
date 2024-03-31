@@ -1,4 +1,4 @@
-From c390e5f2d0521d6d10b113ea13b629804e80f2f2 Mon Sep 17 00:00:00 2001
+From 1f2b49f84d15e9f893f6c945344e92e3285ef9ed Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 7 Apr 2022 04:10:54 -0500
 Subject: [PATCH] Change bug report URL
@@ -18,5 +18,5 @@ index cd37a5b..d9c609c 100644
                  }
              }
 -- 
-2.40.1
+2.43.0
 

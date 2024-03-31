@@ -1,4 +1,4 @@
-From 13984a812b71312105348f5750be607a637c741b Mon Sep 17 00:00:00 2001
+From 0a14be48a9ce70c4e7d16f55755537bb0fbb67ca Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Tue, 29 Mar 2022 02:04:21 -0500
 Subject: [PATCH] Move MSLoginDialog2 to the firepit
@@ -26,5 +26,5 @@ index 97e9988..cb564f0 100644
      private final UserAuthentication auth;
  
 -- 
-2.40.1
+2.43.0
 

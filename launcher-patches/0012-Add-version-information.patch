@@ -1,4 +1,4 @@
-From a7affd8f38f0fa5356a74fa6c1866a4b0614f7fd Mon Sep 17 00:00:00 2001
+From 85db2f2896e4faa31cdbf3eb0c88c3db6ffe8e1e Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Mon, 11 Apr 2022 02:52:40 -0500
 Subject: [PATCH] Add version information
@@ -211,5 +211,5 @@ index 7cbae64..524c1f7 100644
  
      public JFrame getFrame() {
 -- 
-2.40.1
+2.43.0
 

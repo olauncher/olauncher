@@ -1,4 +1,4 @@
-From 8542020866c9e0727e6367b16197c6eeca1b5db5 Mon Sep 17 00:00:00 2001
+From aa3096203eb11f93ddf955c4bfac34134c3d70b9 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 10 Mar 2022 01:37:59 -0600
 Subject: [PATCH] Add maven project
@@ -1206,5 +1206,5 @@ similarity index 100%
 rename from yggdrasil_session_pubkey.der
 rename to src/main/resources/yggdrasil_session_pubkey.der
 -- 
-2.40.1
+2.43.0
 
