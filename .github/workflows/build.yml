@@ -23,6 +23,8 @@ jobs:
     - uses: actions/checkout@v4
       with:
         submodules: recursive
+    - name: Git setup
+      run: git config --global commit.gpgsign false && git config --global user.email olauncher@example.com && git config --global user.name olauncher
     - name: Set up JDK 8
       uses: actions/setup-java@v4
       with:
