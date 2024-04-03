@@ -1,4 +1,4 @@
-From bf5d3a2aebd01561169481ceddb59ea891de4fd9 Mon Sep 17 00:00:00 2001
+From c4de793e7f216d28f5b9c65cbf45072fedd69577 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Sun, 31 Mar 2024 17:49:36 -0500
 Subject: [PATCH] Auth overhaul
@@ -1097,19 +1097,6 @@ index 0c66c11..ccee197 100644
          }
  
      }
-diff --git a/src/main/resources/log4j2.xml b/src/main/resources/log4j2.xml
-index 720caf7..0e7c4dd 100644
---- a/src/main/resources/log4j2.xml
-+++ b/src/main/resources/log4j2.xml
-@@ -13,7 +13,7 @@
-         </Async>
-     </Appenders>
-     <Loggers>
--        <Root level="info">
-+        <Root level="debug">
-             <AppenderRef ref="Async"/>
-         </Root>
-     </Loggers>
 -- 
 2.32.0.windows.1
 
