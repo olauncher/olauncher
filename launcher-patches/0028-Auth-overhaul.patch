@@ -1,23 +1,24 @@
-From 94095019f3436bfb3cfed8a029ddf5a5a97a3a93 Mon Sep 17 00:00:00 2001
+From 150d69435092fe613652409580090b2dfa5af2ac Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot3132@gmail.com>
 Date: Sun, 31 Mar 2024 17:49:36 -0500
 Subject: [PATCH] Auth overhaul
 
 
 diff --git a/src/main/java/dev/figboot/olauncher/OLauncherConstants.java b/src/main/java/dev/figboot/olauncher/OLauncherConstants.java
-index e88d992..f162f12 100644
+index e88d992..56b23c8 100644
 --- a/src/main/java/dev/figboot/olauncher/OLauncherConstants.java
 +++ b/src/main/java/dev/figboot/olauncher/OLauncherConstants.java
-@@ -33,4 +33,7 @@ public final class OLauncherConstants {
+@@ -33,4 +33,8 @@ public final class OLauncherConstants {
      public static final String REDIR_URI = "http://localhost:" + REDIR_URI_PORT;
  
      public static final URL JRE_MANIFEST_URL = constantURL("https://launchermeta.mojang.com/v1/products/java-runtime/2ec0cc96c44e5a76b9c8b7c39df7210883d12871/all.json");
 +
 +    public static final URL DEVICE_CODE_URL = constantURL("https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode");
 +    public static final URL DEVICE_CODE_HEARTBEAT_URL = constantURL("https://login.microsoftonline.com/consumers/oauth2/v2.0/token");
++    public static final URL ENTITLEMENTS_URL = constantURL("https://api.minecraftservices.com/entitlements");
  }
 diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
-index b6c71f6..661290d 100644
+index b6c71f6..6d6f8c1 100644
 --- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 +++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 @@ -28,10 +28,7 @@ import dev.figboot.olauncher.OLauncherConstants;
@@ -48,16 +49,16 @@ index b6c71f6..661290d 100644
  
          sessionService = service.createMinecraftSessionService();
      }
-@@ -106,7 +105,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -106,8 +105,6 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
  
      @Override
      public void logIn() throws AuthenticationException {
 -        if (msLoginRes == null && msRefreshToken == null) throw new AuthenticationException("Username/email and password login is not supported");
-+        if (msLoginRes == null && msDeviceLoginRes == null && msRefreshToken == null) throw new AuthenticationException("Username/email and password login is not supported");
- 
+-
          if (msLoginRes != null) {
              if (msLoginRes.isInternalError())
-@@ -115,6 +114,15 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+                 throw new AuthenticationException("An internal error occurred while authorizing your account");
+@@ -115,6 +112,15 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
                  throw new AuthenticationException(msLoginRes.getErrorDesc() + " (" + msLoginRes.getError() + ")");
          }
  
@@ -73,7 +74,43 @@ index b6c71f6..661290d 100644
          String msAuthCode = msLoginRes == null ? null : this.msLoginRes.getCode();
          this.msLoginRes = null;
  
-@@ -334,6 +342,10 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -138,6 +144,24 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+         }
+     }
+ 
++    private boolean ownsGame() throws AuthenticationException {
++        LOGGER.debug("Checking if they own the game...");
++        MinecraftEntitlementsResponse entitlementRes = getAuthenticationService().getAuthenticated(OLauncherConstants.ENTITLEMENTS_URL,
++                mojToken, MinecraftEntitlementsResponse.class);
++
++        if (entitlementRes.getItems() == null) {
++            return false;
++        }
++
++        for (MinecraftEntitlementsResponse.EntitlementItem item : entitlementRes.getItems()) {
++            if (item.getName().equals("product_minecraft") || item.getName().equals("game_minecraft")) {
++                return true;
++            }
++        }
++
++        return false;
++    }
++
+     private String msAndXblColdLogIn(String msAuthCode) throws AuthenticationException {
+         LOGGER.debug("Getting access token from live...");
+         MSTokenAuthResponse tokAuthRes = getAuthenticationService().postForm(MicrosoftAuthenticationService.ROUTE_LOGIN_LIVE_TOKEN,
+@@ -222,6 +246,10 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+     private void profileLogIn() throws AuthenticationException {
+         if (this.xuid == null) findXUID();
+ 
++        if (!ownsGame()) {
++            throw new AuthenticationException("No Minecraft entitlement! Do you own the game?");
++        }
++
+         LOGGER.debug("Getting your user profile...");
+         profileInfo = getAuthenticationService().getAuthenticated(MicrosoftAuthenticationService.ROUTE_MINECRAFT_PROFILE,
+                 mojToken, MCProfileInfo.class);
+@@ -334,6 +362,10 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
          msLoginRes = code;
      }
  
@@ -84,7 +121,7 @@ index b6c71f6..661290d 100644
      @Override
      public boolean isLoggedIn() {
          return StringUtils.isNotBlank(mojToken);
-@@ -355,7 +367,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -355,7 +387,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
      }
  
      private static UUID xuidFromString(String xuidStr) {
@@ -93,7 +130,7 @@ index b6c71f6..661290d 100644
      }
  
      @Override
-@@ -372,7 +384,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -372,7 +404,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
          }
  
          if (var1.containsKey("xuid")) {
@@ -102,7 +139,7 @@ index b6c71f6..661290d 100644
          } else if (var1.containsKey("xuid2")) {
              try {
                  xuid = UUID.fromString((String)var1.get("xuid2"));
-@@ -393,13 +405,42 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -393,13 +425,42 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
          }
      }
  
@@ -212,6 +249,27 @@ index 0000000..fa13e4d
 +
 +    public int getExpiresIn() {
 +        return expires_in;
++    }
++}
+diff --git a/src/main/java/dev/figboot/olauncher/auth/responses/MinecraftEntitlementsResponse.java b/src/main/java/dev/figboot/olauncher/auth/responses/MinecraftEntitlementsResponse.java
+new file mode 100644
+index 0000000..65443e5
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/auth/responses/MinecraftEntitlementsResponse.java
+@@ -0,0 +1,15 @@
++package dev.figboot.olauncher.auth.responses;
++
++import lombok.Getter;
++
++import java.util.List;
++
++public class MinecraftEntitlementsResponse extends MSResponse {
++    @Getter private List<EntitlementItem> items;
++    @Getter private String signature;
++    @Getter private String keyId;
++
++    public static class EntitlementItem {
++        @Getter private String name, signature;
 +    }
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/auth/ui/DeviceCodeDialog.java b/src/main/java/dev/figboot/olauncher/auth/ui/DeviceCodeDialog.java
