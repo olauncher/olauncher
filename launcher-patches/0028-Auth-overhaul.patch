@@ -1,4 +1,4 @@
-From c4de793e7f216d28f5b9c65cbf45072fedd69577 Mon Sep 17 00:00:00 2001
+From ee8012b59581aae53764fa3732bcc4c907b9c5a0 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Sun, 31 Mar 2024 17:49:36 -0500
 Subject: [PATCH] Auth overhaul
@@ -224,7 +224,7 @@ index cb3b5a0..eb6acd0 100644
 +    }
  }
 diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
-index b6c71f6..e290073 100644
+index b6c71f6..19a1abe 100644
 --- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 +++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 @@ -18,20 +18,15 @@
@@ -345,7 +345,7 @@ index b6c71f6..e290073 100644
 +                    form -> {
 +                        form.append("client_id", OLauncherConstants.APP_CLIENT_ID.toString());
 +                        form.append("code", msAuthCode);
-+                        form.append("grant_type", "aurhorization_code");
++                        form.append("grant_type", "authorization_code");
 +                        form.append("redirect_uri", OLauncherConstants.REDIR_URI);
 +                    }, MSTokenAuthResponse.class);
 +        } catch (ResponseCodeException ex) {
@@ -504,7 +504,7 @@ index b6c71f6..e290073 100644
          return map;
 diff --git a/src/main/java/dev/figboot/olauncher/auth/error/ResponseCodeException.java b/src/main/java/dev/figboot/olauncher/auth/error/ResponseCodeException.java
 new file mode 100644
-index 0000000..7349a1c
+index 0000000..8e02bd1
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/auth/error/ResponseCodeException.java
 @@ -0,0 +1,36 @@
@@ -1098,5 +1098,5 @@ index 0c66c11..ccee197 100644
  
      }
 -- 
-2.32.0.windows.1
+2.43.0
 
