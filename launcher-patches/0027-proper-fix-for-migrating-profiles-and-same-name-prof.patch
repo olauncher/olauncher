@@ -1,4 +1,4 @@
-From 29ca112152ecb83fd5dce4d6807d9df5c7ac083d Mon Sep 17 00:00:00 2001
+From fce8ac4972221732dfb4bea35264b3b4f1aa32b1 Mon Sep 17 00:00:00 2001
 From: Befell <54691311+DevBefell@users.noreply.github.com>
 Date: Wed, 27 Mar 2024 16:15:31 -0700
 Subject: [PATCH] proper fix for migrating profiles and same name profiles.
@@ -106,10 +106,19 @@ index a88b0b3..9141d27 100644
  
      static {
 diff --git a/src/main/java/net/minecraft/launcher/profile/ProfileManager.java b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
-index bb7d8a0..70fb5f8 100644
+index bb7d8a0..1cb9c2b 100644
 --- a/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
 +++ b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
-@@ -67,7 +67,7 @@ public class ProfileManager {
+@@ -21,6 +21,8 @@ import com.mojang.launcher.updater.LowerCaseEnumTypeAdapterFactory;
+ import java.io.File;
+ import java.io.IOException;
+ import java.lang.reflect.Type;
++import java.nio.file.Files;
++import java.nio.file.StandardCopyOption;
+ import java.util.ArrayList;
+ import java.util.Collections;
+ import java.util.Date;
+@@ -67,7 +69,7 @@ public class ProfileManager {
      }
  
      public void saveProfiles() throws IOException {
@@ -118,40 +127,68 @@ index bb7d8a0..70fb5f8 100644
          FileUtils.writeStringToFile(this.profileFile, this.gson.toJson(var1));
      }
  
-@@ -105,15 +105,28 @@ public class ProfileManager {
+@@ -77,26 +79,9 @@ public class ProfileManager {
+         this.selectedUser = null;
+         if (this.profileFile.isFile()) {
+             JsonObject var1 = this.parser.parse(FileUtils.readFileToString(this.profileFile)).getAsJsonObject();
+-            if (var1.has("launcherVersion")) {
+-                JsonObject var2 = var1.getAsJsonObject("launcherVersion");
+-                if (var2.has("profilesFormat") && var2.getAsJsonPrimitive("profilesFormat").getAsInt() != 1) {
+-                    if (this.launcher.getUserInterface().shouldDowngradeProfiles()) {
+-                        File var3 = new File(this.profileFile.getParentFile(), "launcher_profiles.old.json");
+-                        if (var3.exists()) {
+-                            var3.delete();
+-                        }
+-
+-                        this.profileFile.renameTo(var3);
+-                        this.fireRefreshEvent();
+-                        this.fireUserChangedEvent();
+-                        return false;
+-                    }
+-
+-                    this.launcher.getLauncher().shutdownLauncher();
+-                    System.exit(0);
+-                    return false;
+-                }
+-            }
++            // olauncher start - creates backups for profiles
++            Files.copy(this.profileFile.toPath(),  new File(this.profileFile.getParentFile(), "launcher_profiles.old.json").toPath(), StandardCopyOption.REPLACE_EXISTING);
++            // olauncher end
+ 
+             if (var1.has("clientToken")) {
+                 this.launcher.setClientToken((UUID)this.gson.fromJson(var1.get("clientToken"), UUID.class));
+@@ -104,14 +89,23 @@ public class ProfileManager {
+ 
              ProfileManager.RawProfileList var4 = (ProfileManager.RawProfileList)this.gson.fromJson(var1, ProfileManager.RawProfileList.class);
  
-             // OLauncher start - migrate launcher profiles properly
-+            Map<String, Profile> migratedProfiles;
-+            migratedProfiles = new HashMap<>();
-             for (Map.Entry<String, Profile> entry : var4.profiles.entrySet()) {
+-            // OLauncher start - migrate launcher profiles properly
+-            for (Map.Entry<String, Profile> entry : var4.profiles.entrySet()) {
 -                if (!entry.getValue().getName().equals(entry.getKey())) {
 -                    LOGGER.info("Migrating profile " + entry.getKey() + " from new launcher.");
 -                    entry.getValue().setName(entry.getKey());
-+                entry.getValue().setUniqueName(entry.getKey());
-+                String name = entry.getValue().getName();
++            // olauncher start - migrate profiles correctly
++            var4.profiles.replaceAll((key, value) ->{
++                value.setUniqueName(key);
++                String name = value.getName();
 +                if (name.isEmpty()) {
 +                    // Fallback use last version ID
-+                    name = entry.getValue().getLastVersionId();
++                    name = value.getLastVersionId();
 +                    if (name.equals("latest-release")) {
 +                        name = "Latest Version";
 +                    }
-+                    LOGGER.info("Using Version ID as name for " + name);
-+                    entry.getValue().setName(name);
++                    value.setName(name);
                  }
-+                LOGGER.info("Migrating profile " + name + " from new launcher.");
-+                migratedProfiles.put(entry.getKey(), entry.getValue());
+-            }
+-            // OLauncher end
++                LOGGER.info("Loaded profile " + name);
++                return value;
++            });
 +
-             }
-+
-             // OLauncher end
++            // olauncher end
  
--            this.profiles.putAll(var4.profiles);
-+            this.profiles.putAll(migratedProfiles); // Results from migrating profiles
+             this.profiles.putAll(var4.profiles);
              this.selectedProfile = var4.selectedProfile;
-             this.selectedUser = var4.selectedUser;
-             this.authDatabase = var4.authenticationDatabase;
-@@ -152,10 +165,12 @@ public class ProfileManager {
+@@ -152,10 +146,12 @@ public class ProfileManager {
              if (this.profiles.get("(Default)") != null) {
                  this.selectedProfile = "(Default)";
              } else if (this.profiles.size() > 0) {
@@ -347,5 +384,5 @@ index c0ba865..8b249f5 100644
                  }
  
 -- 
-2.43.0
+2.42.0.windows.2
 
