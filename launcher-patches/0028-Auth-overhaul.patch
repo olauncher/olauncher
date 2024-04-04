@@ -1,4 +1,4 @@
-From ee8012b59581aae53764fa3732bcc4c907b9c5a0 Mon Sep 17 00:00:00 2001
+From 9aeaddb481760347386edd493a1e8b0d49c26bf2 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Sun, 31 Mar 2024 17:49:36 -0500
 Subject: [PATCH] Auth overhaul
@@ -1026,7 +1026,7 @@ index 31f1846..e5af44f 100644
          if (response == null) {
              this.popup.getErrorForm().displayError(new AuthenticationException("The authentication code is null"), "The authentication request was cancelled.");
 diff --git a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInPopup.java b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInPopup.java
-index 0c66c11..ccee197 100644
+index 0c66c11..69b9729 100644
 --- a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInPopup.java
 +++ b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInPopup.java
 @@ -30,7 +30,8 @@ public class LogInPopup extends JPanel implements ActionListener {
@@ -1097,6 +1097,18 @@ index 0c66c11..ccee197 100644
          }
  
      }
+@@ -124,6 +137,11 @@ public class LogInPopup extends JPanel implements ActionListener {
+             this.progressBar.setIndeterminate(false);
+             this.progressBar.setIndeterminate(true);
+             this.progressBar.setVisible(!var1);
++
++            // olauncher - login buttons
++            microsoftLoginButton.setEnabled(var1);
++            microsoftDeviceLoginButton.setEnabled(var1);
++
+             this.repack();
+         } else {
+             SwingUtilities.invokeLater(new Runnable() {
 -- 
 2.43.0
 
