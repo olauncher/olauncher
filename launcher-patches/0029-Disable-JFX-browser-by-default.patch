@@ -1,0 +1,29 @@
+From 79a88def2988db0b8d65b2051329c6825d141836 Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot@figboot.dev>
+Date: Mon, 11 Mar 2024 20:47:12 -0500
+Subject: [PATCH] Disable JFX browser by default
+
+
+diff --git a/src/main/java/net/minecraft/launcher/ui/tabs/WebsiteTab.java b/src/main/java/net/minecraft/launcher/ui/tabs/WebsiteTab.java
+index ebf0a73..20657c9 100644
+--- a/src/main/java/net/minecraft/launcher/ui/tabs/WebsiteTab.java
++++ b/src/main/java/net/minecraft/launcher/ui/tabs/WebsiteTab.java
+@@ -33,7 +33,15 @@ public class WebsiteTab extends JPanel {
+         });
+     }
+ 
++    // olauncher
++    private static final boolean USE_JFX = Boolean.parseBoolean(System.getProperty("dev.figboot.UseJFXBrowser", "false"));
++
+     private Browser selectBrowser() {
++        if (!USE_JFX) { /* olauncher */
++            LOGGER.debug("(OLauncher) Using swing browser");
++            return new LegacySwingBrowser();
++        }
++
+         if (this.hasJFX()) {
+             LOGGER.info("JFX is already initialized");
+             return new JFXBrowser();
+-- 
+2.43.0
+
