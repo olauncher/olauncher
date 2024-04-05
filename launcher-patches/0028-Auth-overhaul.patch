@@ -1,4 +1,4 @@
-From 9aeaddb481760347386edd493a1e8b0d49c26bf2 Mon Sep 17 00:00:00 2001
+From a7f43a42f7d60e49f3d6b7a7a2cbd450b3ab343e Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Sun, 31 Mar 2024 17:49:36 -0500
 Subject: [PATCH] Auth overhaul
@@ -224,7 +224,7 @@ index cb3b5a0..eb6acd0 100644
 +    }
  }
 diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
-index b6c71f6..19a1abe 100644
+index b6c71f6..2486d77 100644
 --- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 +++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 @@ -18,20 +18,15 @@
@@ -288,11 +288,12 @@ index b6c71f6..19a1abe 100644
          if (msLoginRes != null) {
              if (msLoginRes.isInternalError())
                  throw new AuthenticationException("An internal error occurred while authorizing your account");
-@@ -115,6 +108,15 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -115,6 +108,16 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
                  throw new AuthenticationException(msLoginRes.getErrorDesc() + " (" + msLoginRes.getError() + ")");
          }
  
 +        if (msDeviceLoginRes != null) {
++            msRefreshToken = msDeviceLoginRes.getRefreshToken();
 +            String hash = xblLogIn(msDeviceLoginRes.getAccesToken());
 +            xstsAndMinecraftLogIn(hash);
 +            profileLogIn();
@@ -304,10 +305,20 @@ index b6c71f6..19a1abe 100644
          String msAuthCode = msLoginRes == null ? null : this.msLoginRes.getCode();
          this.msLoginRes = null;
  
-@@ -138,18 +140,39 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
-         }
-     }
- 
+@@ -131,25 +134,48 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+             String hash = msAndXblWarmLogIn();
+             xstsAndMinecraftLogIn(hash);
+             profileLogIn();
+-        } else {
++        } else if (msAuthCode != null) {
+             String hash = msAndXblColdLogIn(msAuthCode);
+             xstsAndMinecraftLogIn(hash);
+             profileLogIn();
++        } else {
++            throw new AuthenticationException("This account's credentials aren't saved! You must log in again.");
++        }
++    }
++
 +    private boolean ownsGame() throws AuthenticationException {
 +        LOGGER.debug("Checking if they own the game...");
 +        MinecraftEntitlementsResponse entitlementRes = getAuthenticationService().getAuthenticated(MicrosoftAuthenticationService.ENTITLEMENTS_URL,
@@ -321,11 +332,11 @@ index b6c71f6..19a1abe 100644
 +            if (item.getName().equals("product_minecraft") || item.getName().equals("game_minecraft")) {
 +                return true;
 +            }
-+        }
+         }
 +
 +        return false;
-+    }
-+
+     }
+ 
      private String msAndXblColdLogIn(String msAuthCode) throws AuthenticationException {
          LOGGER.debug("Getting access token from live...");
 -        MSTokenAuthResponse tokAuthRes = getAuthenticationService().postForm(MicrosoftAuthenticationService.ROUTE_LOGIN_LIVE_TOKEN,
@@ -354,7 +365,7 @@ index b6c71f6..19a1abe 100644
          }
  
          this.msRefreshToken = tokAuthRes.getRefreshToken();
-@@ -159,16 +182,19 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -159,16 +185,19 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
  
      private String msAndXblWarmLogIn() throws AuthenticationException {
          LOGGER.debug("Logging into live with a refresh token...");
@@ -384,7 +395,7 @@ index b6c71f6..19a1abe 100644
          }
  
          this.msRefreshToken = tokAuthRes.getRefreshToken();
-@@ -189,9 +215,25 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -189,9 +218,25 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
  
      private void xstsAndMinecraftLogIn(String userHash) throws AuthenticationException {
          LOGGER.debug("Acquiring Minecraft XSTS token...");
@@ -413,7 +424,7 @@ index b6c71f6..19a1abe 100644
  
          if (userHash != null && !userHash.equals(xstsAuthRes.getUserHash())) {
              throw new AuthenticationException("The user hash has changed?");
-@@ -222,10 +264,15 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -222,10 +267,15 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
      private void profileLogIn() throws AuthenticationException {
          if (this.xuid == null) findXUID();
  
@@ -429,7 +440,7 @@ index b6c71f6..19a1abe 100644
          while (profileInfo.getId() == null) {
              // User profile just returns 404 (who knows why)
              // I believe that it may be an issue with the Mojang API
-@@ -238,6 +285,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -238,6 +288,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
              profileInfo = getAuthenticationService().getAuthenticated(MicrosoftAuthenticationService.ROUTE_MINECRAFT_PROFILE,
                      mojToken, MCProfileInfo.class);
          }
@@ -437,7 +448,7 @@ index b6c71f6..19a1abe 100644
  
          GameProfile profile = new GameProfile(profileInfo.getId(), profileInfo.getName());
          profile = sessionService.fillProfileProperties(profile, false);
-@@ -334,6 +382,10 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -334,6 +385,10 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
          msLoginRes = code;
      }
  
@@ -448,7 +459,7 @@ index b6c71f6..19a1abe 100644
      @Override
      public boolean isLoggedIn() {
          return StringUtils.isNotBlank(mojToken);
-@@ -355,7 +407,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -355,7 +410,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
      }
  
      private static UUID xuidFromString(String xuidStr) {
@@ -457,7 +468,7 @@ index b6c71f6..19a1abe 100644
      }
  
      @Override
-@@ -372,7 +424,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -372,7 +427,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
          }
  
          if (var1.containsKey("xuid")) {
@@ -466,7 +477,7 @@ index b6c71f6..19a1abe 100644
          } else if (var1.containsKey("xuid2")) {
              try {
                  xuid = UUID.fromString((String)var1.get("xuid2"));
-@@ -393,13 +445,34 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -393,13 +448,34 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
          }
      }
  
