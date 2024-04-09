@@ -1,0 +1,496 @@
+From b10c81bf6b3b07b4ff069585aac0ae2d1caffbf3 Mon Sep 17 00:00:00 2001
+From: Befell <54691311+DevBefell@users.noreply.github.com>
+Date: Tue, 9 Apr 2024 01:02:27 -0700
+Subject: [PATCH] internal overhaul
+
+
+diff --git a/src/main/java/com/mojang/launcher/game/process/direct/DirectProcessInputMonitor.java b/src/main/java/com/mojang/launcher/game/process/direct/DirectProcessInputMonitor.java
+index d484001..3991737 100644
+--- a/src/main/java/com/mojang/launcher/game/process/direct/DirectProcessInputMonitor.java
++++ b/src/main/java/com/mojang/launcher/game/process/direct/DirectProcessInputMonitor.java
+@@ -20,23 +20,22 @@ public class DirectProcessInputMonitor extends Thread {
+     }
+ 
+     public void run() {
+-        InputStreamReader var1 = new InputStreamReader(this.process.getRawProcess().getInputStream());
+-        BufferedReader var2 = new BufferedReader(var1);
+-        String var3 = null;
+-
+-        while(this.process.isRunning()) {
+-            try {
+-                while((var3 = var2.readLine()) != null) {
+-                    this.logProcessor.onGameOutput(this.process, var3);
+-                    if (this.process.getSysOutFilter().apply(var3) == Boolean.TRUE) {
+-                        this.process.getSysOutLines().add(var3);
+-                    }
++        // olauncher - prevent streams being closed early
++        try (BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(this.process.getRawProcess().getInputStream()))){
++            String string;
++            while ((string = bufferedReader.readLine()) != null) {
++                this.logProcessor.onGameOutput(this.process, string);
++                if (this.process.getSysOutFilter().apply(string) == Boolean.TRUE) {
++                    this.process.getSysOutLines().add(string);
+                 }
+-            } catch (IOException var8) {
+-                LOGGER.error(var8);
+-            } finally {
+-                IOUtils.closeQuietly(var1);
+             }
++        } catch (IOException var8) {
++            LOGGER.error(var8);
++        }
++        try {
++            this.process.getRawProcess().waitFor();
++        } catch (InterruptedException exception){
++            LOGGER.error("Process was interrupted: ", exception);
+         }
+ 
+         GameProcessRunnable var4 = this.process.getExitRunnable();
+diff --git a/src/main/java/dev/figboot/olauncher/launcher/profile/AccountsDatabase.java b/src/main/java/dev/figboot/olauncher/launcher/profile/AccountsDatabase.java
+new file mode 100644
+index 0000000..16f3310
+--- /dev/null
++++ b/src/main/java/dev/figboot/olauncher/launcher/profile/AccountsDatabase.java
+@@ -0,0 +1,61 @@
++package dev.figboot.olauncher.launcher.profile;
++
++import com.google.gson.*;
++import dev.figboot.olauncher.auth.MicrosoftAuthenticationService;
++import net.minecraft.launcher.Launcher;
++import net.minecraft.launcher.profile.AuthenticationDatabase;
++
++import java.lang.reflect.Type;
++import java.util.UUID;
++
++public class AccountsDatabase {
++    public final AuthenticationDatabase authenticationDatabase;
++    public final String selectedUser;
++    public final UUID clientToken;
++
++    public AccountsDatabase(AuthenticationDatabase authenticationDatabase, String selectedUser, UUID clientToken) {
++        this.authenticationDatabase = authenticationDatabase;
++        this.selectedUser = selectedUser;
++        this.clientToken = clientToken;
++    }
++
++    public static class Serializer implements JsonDeserializer<AccountsDatabase>, JsonSerializer<AccountsDatabase> {
++        private final Launcher launcher;
++
++        public Serializer(Launcher launcher) {
++            this.launcher = launcher;
++        }
++
++        @Override
++        public AccountsDatabase deserialize(JsonElement jsonElement, Type type, JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
++            JsonObject data = jsonElement.getAsJsonObject();
++
++            AuthenticationDatabase database = new AuthenticationDatabase(new MicrosoftAuthenticationService(this.launcher.getLauncher().getProxy(), this.launcher.getClientToken().toString()));
++            if (data.has("authenticationDatabase")) {
++                database = jsonDeserializationContext.deserialize(data.get("authenticationDatabase"), AuthenticationDatabase.class);
++            }
++
++            String selectedUser = null;
++            if (data.has("selectedUser")) {
++                selectedUser = data.getAsJsonPrimitive("selectedUser").getAsString();
++            } else if (!database.getknownUUIDs().isEmpty()) {
++                selectedUser = database.getknownUUIDs().iterator().next();
++            }
++
++            UUID clientToken = UUID.randomUUID();
++            if (data.has("clientToken")) {
++                clientToken = jsonDeserializationContext.deserialize(data.get("clientToken"), UUID.class);
++            }
++            return new AccountsDatabase(database, selectedUser, clientToken);
++        }
++
++        @Override
++        public JsonElement serialize(AccountsDatabase accountDatabase, Type type, JsonSerializationContext jsonSerializationContext) {
++            JsonObject data = new JsonObject();
++            data.add("selectedUser", jsonSerializationContext.serialize(accountDatabase.selectedUser));
++            data.add("clientToken", jsonSerializationContext.serialize(accountDatabase.clientToken));
++            data.add("authenticationDatabase", jsonSerializationContext.serialize(accountDatabase.authenticationDatabase));
++            return data;
++        }
++    }
++}
+diff --git a/src/main/java/net/minecraft/launcher/Launcher.java b/src/main/java/net/minecraft/launcher/Launcher.java
+index a9aeefa..c9fe389 100644
+--- a/src/main/java/net/minecraft/launcher/Launcher.java
++++ b/src/main/java/net/minecraft/launcher/Launcher.java
+@@ -20,6 +20,9 @@ import java.io.IOException;
+ import java.lang.Thread.UncaughtExceptionHandler;
+ import java.net.PasswordAuthentication;
+ import java.net.Proxy;
++import java.nio.charset.StandardCharsets;
++import java.nio.file.Files;
++import java.nio.file.Path;
+ import java.text.DateFormat;
+ import java.util.ArrayList;
+ import java.util.Calendar;
+@@ -30,6 +33,7 @@ import java.util.Iterator;
+ import java.util.List;
+ import java.util.Locale;
+ import java.util.UUID;
++import java.util.stream.Stream;
+ import javax.swing.JFrame;
+ 
+ import dev.figboot.olauncher.OLauncherConstants;
+@@ -317,57 +321,39 @@ public class Launcher {
+         File var1 = new File(this.getLauncher().getWorkingDirectory(), "assets");
+         File var2 = new File(var1, "indexes");
+         File var3 = new File(var1, "objects");
+-        HashSet var4 = Sets.newHashSet();
++        // olauncher start - simplify cleanup and prevent errors.
+         if (var3.isDirectory()) {
+-            Iterator var5 = this.getLauncher().getVersionManager().getInstalledVersions().iterator();
+-
+-            while(true) {
+-                VersionSyncInfo var6;
+-                File var9;
+-                do {
+-                    if (!var5.hasNext()) {
+-                        File[] var15 = var3.listFiles((FileFilter)DirectoryFileFilter.DIRECTORY); // olauncher - cast to FileFilter
+-                        if (var15 != null) {
+-                            File[] var16 = var15;
+-                            int var17 = var15.length;
+-
+-                            for(int var18 = 0; var18 < var17; ++var18) {
+-                                var9 = var16[var18];
+-                                File[] var19 = var9.listFiles((FileFilter)FileFileFilter.FILE); // olauncher - cast to FileFilter
+-                                if (var19 != null) {
+-                                    File[] var20 = var19;
+-                                    int var21 = var19.length;
+-
+-                                    for(int var13 = 0; var13 < var21; ++var13) {
+-                                        File var14 = var20[var13];
+-                                        if (!var4.contains(var14.getName().toLowerCase())) {
+-                                            LOGGER.info("Cleaning up orphaned object {}", new Object[]{var14.getName()});
+-                                            FileUtils.deleteQuietly(var14);
+-                                        }
+-                                    }
+-                                }
+-                            }
+-                        }
+-
+-                        deleteEmptyDirectories(var3);
+-                        return;
+-                    }
+-
+-                    var6 = (VersionSyncInfo)var5.next();
+-                } while(!(var6.getLocalVersion() instanceof CompleteMinecraftVersion));
+-
+-                CompleteMinecraftVersion var7 = (CompleteMinecraftVersion)var6.getLocalVersion();
+-                String var8 = var7.getAssetIndex().getId();
+-                var9 = new File(var2, var8 + ".json");
+-                AssetIndex var10 = (AssetIndex)this.gson.fromJson(FileUtils.readFileToString(var9, Charsets.UTF_8), AssetIndex.class);
+-                Iterator var11 = var10.getUniqueObjects().keySet().iterator();
+-
+-                while(var11.hasNext()) {
+-                    AssetIndex.AssetObject var12 = (AssetIndex.AssetObject)var11.next();
+-                    var4.add(var12.getHash().toLowerCase());
++            LOGGER.info("Looking for orphaned assets to clean up...");
++            HashSet<String> existing = new HashSet<>();
++            for (VersionSyncInfo versionSyncInfo : this.launcher.getVersionManager().getInstalledVersions()) {
++                if (!(versionSyncInfo.getLocalVersion() instanceof CompleteMinecraftVersion)) {
++                    continue;
+                 }
++                CompleteMinecraftVersion version = (CompleteMinecraftVersion) versionSyncInfo.getLocalVersion();
++                String id = version.getAssetIndex().getId();
++                File versionIndex = new File(var2, id + ".json");
++                if (!versionIndex.exists()) { // Prevent FileNotFoundException for indexes that isn't downloaded
++                    continue;
++                }
++                AssetIndex assetIndex = this.gson.fromJson(FileUtils.readFileToString(versionIndex, StandardCharsets.UTF_8), AssetIndex.class);
++                for (AssetIndex.AssetObject assetObject : assetIndex.getUniqueObjects().keySet()) {
++                    existing.add(assetObject.getHash().toLowerCase());
++                }
++            }
++            try (Stream<Path> paths = Files.walk(var3.toPath())) {
++                paths.filter(Files::isRegularFile).forEach(path -> {
++                    File file = path.toFile();
++                    if (!existing.contains(file.getName())) {
++                        LOGGER.info("Cleaning up orphaned assets " + file.getName() );
++                        FileUtils.deleteQuietly(file);
++                    }
++                });
++            }catch (Exception e){
++                LOGGER.warn("Error looking orphaned assets: ", e.getMessage());
+             }
++            deleteEmptyDirectories(var3);
+         }
++        // olauncher end
+     }
+ 
+     public void cleanupOrphanedLibraries() throws IOException {
+@@ -477,28 +463,16 @@ public class Launcher {
+     }
+ 
+     public void cleanupOldNatives() {
+-        File var1 = new File(this.launcher.getWorkingDirectory(), "versions/");
+-        LOGGER.info("Looking for old natives & assets to clean up...");
+-        AgeFileFilter var2 = new AgeFileFilter(System.currentTimeMillis() - 3600000L);
+-        if (var1.isDirectory()) {
+-            File[] var3 = var1.listFiles((FileFilter)DirectoryFileFilter.DIRECTORY); // olauncher - cast to FileFilter
+-            if (var3 != null) {
+-                File[] var4 = var3;
+-                int var5 = var3.length;
+-
+-                for(int var6 = 0; var6 < var5; ++var6) {
+-                    File var7 = var4[var6];
+-                    File[] var8 = var7.listFiles((FileFilter)FileFilterUtils.and(new IOFileFilter[]{new PrefixFileFilter(var7.getName() + "-natives-"), var2})); // olauncher - cast to FileFilter
+-                    if (var8 != null) {
+-                        File[] var9 = var8;
+-                        int var10 = var8.length;
+-
+-                        for(int var11 = 0; var11 < var10; ++var11) {
+-                            File var12 = var9[var11];
+-                            LOGGER.debug("Deleting " + var12);
+-                            FileUtils.deleteQuietly(var12);
+-                        }
+-                    }
++        // olauncher start - move natives into bin and simplify clean up process
++        File natives = new File(this.launcher.getWorkingDirectory(), "bin/");
++        LOGGER.info("Looking for old natives to clean up...");
++        if (natives.isDirectory()) {
++            AgeFileFilter old = new AgeFileFilter(System.currentTimeMillis() - 86400000L); // olauncher - Old Files from 24hrs/one day ago
++            File[] files = natives.listFiles((FileFilter) FileFilterUtils.and(DirectoryFileFilter.DIRECTORY, old));
++            if (files != null) {
++                for (File file : files) {
++                    FileUtils.deleteQuietly(file);
++                    LOGGER.info("Cleaning up old natives " + file.getName());
+                 }
+             }
+ 
+diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
+index 6436333..099cba2 100644
+--- a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
++++ b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
+@@ -44,9 +44,11 @@ import java.util.UUID;
+ import java.util.Map.Entry;
+ import java.util.zip.ZipEntry;
+ import java.util.zip.ZipFile;
++import java.util.Arrays;
+ 
+ import dev.figboot.olauncher.auth.MicrosoftUserAuthentication;
+ import dev.figboot.olauncher.launcher.runtime.RuntimesManifest;
++import dev.figboot.olauncher.util.UUIDGenerator;
+ import net.minecraft.launcher.CompatibilityRule;
+ import net.minecraft.launcher.CurrentLaunchFeatureMatcher;
+ import net.minecraft.launcher.Launcher;
+@@ -86,15 +88,12 @@ public class MinecraftGameRunner extends AbstractGameRunner implements GameProce
+         synchronized(this.lock) {
+             if (this.nativeDir != null && var1 == GameInstanceStatus.IDLE) {
+                 LOGGER.info("Deleting " + this.nativeDir);
+-                if (this.nativeDir.isDirectory() && !FileUtils.deleteQuietly(this.nativeDir)) {
+-                    LOGGER.warn("Couldn't delete " + this.nativeDir + " - scheduling for deletion upon exit");
+-
++                if (this.nativeDir.isDirectory()) {
+                     try {
+-                        FileUtils.forceDeleteOnExit(this.nativeDir);
+-                    } catch (Throwable var5) {
++                        FileUtils.forceDeleteOnExit(this.nativeDir); // olauncher - prevent unnecessary attempts at deleting natives
++                    } catch (IOException e) {
++                        LOGGER.warn("Couldn't delete " + this.nativeDir, e);
+                     }
+-                } else {
+-                    this.nativeDir = null;
+                 }
+             }
+ 
+@@ -118,7 +117,7 @@ public class MinecraftGameRunner extends AbstractGameRunner implements GameProce
+         if (this.getVersion() == null) {
+             LOGGER.error("Aborting launch; version is null?");
+         } else {
+-            this.nativeDir = new File(this.getLauncher().getWorkingDirectory(), "versions/" + this.getVersion().getId() + "/" + this.getVersion().getId() + "-natives-" + System.nanoTime());
++            this.nativeDir = new File(this.getLauncher().getWorkingDirectory(), "bin/" + UUIDGenerator.generate());
+             if (!this.nativeDir.isDirectory()) {
+                 this.nativeDir.mkdirs();
+             }
+@@ -175,7 +174,7 @@ public class MinecraftGameRunner extends AbstractGameRunner implements GameProce
+             var4.withLogProcessor(this.minecraftLauncher.getUserInterface().showGameOutputTab(this));
+             String var5 = this.selectedProfile.getJavaArgs();
+             if (var5 != null) {
+-                var4.withArguments(var5.split(" "));
++                var4.withArguments(Arrays.stream(var5.split(" ")).filter(string -> !string.isEmpty()).toArray(String[]::new)); // olauncher - empty items equal to error finding main class
+             } else {
+                 boolean var6 = "32".equals(System.getProperty("sun.arch.data.model"));
+                 String var7 = var6 ? Profile.DEFAULT_JRE_ARGUMENTS_32BIT : Profile.DEFAULT_JRE_ARGUMENTS_64BIT; // olauncher - use default JVM argument variables
+diff --git a/src/main/java/net/minecraft/launcher/profile/ProfileManager.java b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
+index 1cb9c2b..922e385 100644
+--- a/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
++++ b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
+@@ -33,6 +33,7 @@ import java.util.Map;
+ import java.util.UUID;
+ 
+ import dev.figboot.olauncher.auth.MicrosoftAuthenticationService;
++import dev.figboot.olauncher.launcher.profile.AccountsDatabase;
+ import net.minecraft.launcher.Launcher;
+ import net.minecraft.launcher.LauncherConstants;
+ import org.apache.commons.io.FileUtils;
+@@ -46,6 +47,7 @@ public class ProfileManager {
+     private final Gson gson;
+     private final Map<String, Profile> profiles = new HashMap();
+     private final File profileFile;
++    private final File accountsFile;
+     private final List<RefreshedProfilesListener> refreshedProfilesListeners = Collections.synchronizedList(new ArrayList());
+     private final List<UserChangedListener> userChangedListeners = Collections.synchronizedList(new ArrayList());
+     private String selectedProfile;
+@@ -57,33 +59,52 @@ public class ProfileManager {
+     public ProfileManager(Launcher var1) {
+         this.launcher = var1;
+         this.profileFile = new File(var1.getLauncher().getWorkingDirectory(), "launcher_profiles.json");
++        this.accountsFile = new File(var1.getLauncher().getWorkingDirectory(), "launcher_accounts.json");
+         GsonBuilder var2 = new GsonBuilder();
+         var2.registerTypeAdapterFactory(new LowerCaseEnumTypeAdapterFactory());
+         var2.registerTypeAdapter(Date.class, new DateTypeAdapter());
+         var2.registerTypeAdapter(File.class, new FileTypeAdapter());
++        var2.registerTypeAdapter(AccountsDatabase.class, new AccountsDatabase.Serializer(var1)); // olauncher - register accounts serializer
+         var2.registerTypeAdapter(AuthenticationDatabase.class, new AuthenticationDatabase.Serializer(var1));
+-        var2.registerTypeAdapter(ProfileManager.RawProfileList.class, new ProfileManager.RawProfileList.Serializer(var1));
++        var2.registerTypeAdapter(ProfileManager.RawProfileList.class, new ProfileManager.RawProfileList.Serializer());
+         var2.setPrettyPrinting();
+         this.gson = var2.create();
+         this.authDatabase = new AuthenticationDatabase(new MicrosoftAuthenticationService(var1.getLauncher().getProxy(), var1.getClientToken().toString()));
+     }
+ 
+     public void saveProfiles() throws IOException {
+-        ProfileManager.RawProfileList var1 = new ProfileManager.RawProfileList(this.profiles, this.getSelectedProfile().getUniqueName(), this.selectedUser, this.launcher.getClientToken(), this.authDatabase);
++        ProfileManager.RawProfileList var1 = new ProfileManager.RawProfileList(this.profiles, this.getSelectedProfile().getUniqueName());
+         FileUtils.writeStringToFile(this.profileFile, this.gson.toJson(var1));
++        AccountsDatabase accountsDatabase = new AccountsDatabase(this.authDatabase,this.selectedUser, this.launcher.getClientToken());
++        FileUtils.writeStringToFile(this.accountsFile, this.gson.toJson(accountsDatabase));
+     }
+ 
+     public boolean loadProfiles() throws IOException {
+         this.profiles.clear();
+         this.selectedProfile = null;
+         this.selectedUser = null;
++        if (this.accountsFile.isFile()){
++            JsonObject accountsData = this.parser.parse(FileUtils.readFileToString(this.accountsFile)).getAsJsonObject();
++            AccountsDatabase accountsDatabase = this.gson.fromJson(accountsData, AccountsDatabase.class);
++            if (accountsDatabase.clientToken != null) {
++                this.launcher.setClientToken((UUID)this.gson.fromJson(accountsData.get("clientToken"), UUID.class));
++            }
++            this.selectedUser = accountsDatabase.selectedUser;
++            this.authDatabase = accountsDatabase.authenticationDatabase;
++
++        }
+         if (this.profileFile.isFile()) {
+             JsonObject var1 = this.parser.parse(FileUtils.readFileToString(this.profileFile)).getAsJsonObject();
+             // olauncher start - creates backups for profiles
+             Files.copy(this.profileFile.toPath(),  new File(this.profileFile.getParentFile(), "launcher_profiles.old.json").toPath(), StandardCopyOption.REPLACE_EXISTING);
+             // olauncher end
+-
+-            if (var1.has("clientToken")) {
++            if (var1.has("authenticationDatabase")){
++                this.authDatabase = this.gson.fromJson(var1.get("authenticationDatabase"), AuthenticationDatabase.class);
++            }
++            if (var1.has("selectedUser")){
++                this.selectedUser = var1.getAsJsonPrimitive("selectedUser").getAsString();
++            }
++            if (var1.has("clientToken")){
+                 this.launcher.setClientToken((UUID)this.gson.fromJson(var1.get("clientToken"), UUID.class));
+             }
+ 
+@@ -98,6 +119,8 @@ public class ProfileManager {
+                     name = value.getLastVersionId();
+                     if (name.equals("latest-release")) {
+                         name = "Latest Version";
++                    } else if(name.equals("latest-snapshot")){
++                        name = "Latest Snapshot";
+                     }
+                     value.setName(name);
+                 }
+@@ -109,8 +132,6 @@ public class ProfileManager {
+ 
+             this.profiles.putAll(var4.profiles);
+             this.selectedProfile = var4.selectedProfile;
+-            this.selectedUser = var4.selectedUser;
+-            this.authDatabase = var4.authenticationDatabase;
+             this.fireRefreshEvent();
+             this.fireUserChangedEvent();
+             return true;
+@@ -199,32 +220,11 @@ public class ProfileManager {
+     private static class RawProfileList {
+         public Map<String, Profile> profiles;
+         public String selectedProfile;
+-        public String selectedUser;
+-        public UUID clientToken;
+-        public AuthenticationDatabase authenticationDatabase;
+-
+-        private RawProfileList(Map<String, Profile> var1, String var2, String var3, UUID var4, AuthenticationDatabase var5) {
+-            this.profiles = new HashMap();
+-            this.clientToken = UUID.randomUUID();
++        private RawProfileList(Map<String, Profile> var1, String var2) {
+             this.profiles = var1;
+             this.selectedProfile = var2;
+-            this.selectedUser = var3;
+-            this.clientToken = var4;
+-            this.authenticationDatabase = var5;
+         }
+-
+-        // $FF: synthetic method
+-        RawProfileList(Map var1, String var2, String var3, UUID var4, AuthenticationDatabase var5, Object var6) {
+-            this(var1, var2, var3, var4, var5);
+-        }
+-
+         public static class Serializer implements JsonDeserializer<ProfileManager.RawProfileList>, JsonSerializer<ProfileManager.RawProfileList> {
+-            private final Launcher launcher;
+-
+-            public Serializer(Launcher var1) {
+-                this.launcher = var1;
+-            }
+-
+             public ProfileManager.RawProfileList deserialize(JsonElement var1, Type var2, JsonDeserializationContext var3) throws JsonParseException {
+                 JsonObject var4 = (JsonObject)var1;
+                 Object var5 = Maps.newHashMap();
+@@ -237,27 +237,6 @@ public class ProfileManager {
+                 if (var4.has("selectedProfile")) {
+                     var6 = var4.getAsJsonPrimitive("selectedProfile").getAsString();
+                 }
+-
+-                UUID var7 = UUID.randomUUID();
+-                if (var4.has("clientToken")) {
+-                    var7 = (UUID)var3.deserialize(var4.get("clientToken"), UUID.class);
+-                }
+-
+-                // olauncher - use new authentication service
+-                AuthenticationDatabase var8 = new AuthenticationDatabase(new MicrosoftAuthenticationService(this.launcher.getLauncher().getProxy(), this.launcher.getClientToken().toString()));
+-                if (var4.has("authenticationDatabase")) {
+-                    var8 = (AuthenticationDatabase)var3.deserialize(var4.get("authenticationDatabase"), AuthenticationDatabase.class);
+-                }
+-
+-                String var9 = null;
+-                if (var4.has("selectedUser")) {
+-                    var9 = var4.getAsJsonPrimitive("selectedUser").getAsString();
+-                } else if (var6 != null && ((Map)var5).containsKey(var6) && ((Profile)((Map)var5).get(var6)).getPlayerUUID() != null) {
+-                    var9 = ((Profile)((Map)var5).get(var6)).getPlayerUUID();
+-                } else if (!var8.getknownUUIDs().isEmpty()) {
+-                    var9 = (String)var8.getknownUUIDs().iterator().next();
+-                }
+-
+                 Iterator var10 = ((Map)var5).values().iterator();
+ 
+                 while(var10.hasNext()) {
+@@ -265,7 +244,7 @@ public class ProfileManager {
+                     var11.setPlayerUUID((String)null);
+                 }
+ 
+-                return new ProfileManager.RawProfileList((Map)var5, var6, var9, var7, var8);
++                return new ProfileManager.RawProfileList((Map)var5, var6);
+             }
+ 
+             public JsonElement serialize(ProfileManager.RawProfileList var1, Type var2, JsonSerializationContext var3) {
+@@ -276,9 +255,6 @@ public class ProfileManager {
+                 JsonObject var5 = new JsonObject();
+                 var5.add("profiles", var3.serialize(var1.profiles));
+                 var5.add("selectedProfile", var3.serialize(var1.selectedProfile));
+-                var5.add("clientToken", var3.serialize(var1.clientToken));
+-                var5.add("authenticationDatabase", var3.serialize(var1.authenticationDatabase));
+-                var5.add("selectedUser", var3.serialize(var1.selectedUser));
+                 var5.add("launcherVersion", var4);
+                 return var5;
+             }
+-- 
+2.44.0.windows.1
+

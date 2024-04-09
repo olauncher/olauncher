@@ -1,4 +1,4 @@
-From e157e4b13aa0ab81784dc1e855b114dca4b17a8c Mon Sep 17 00:00:00 2001
+From d226f521aa6723637dabcdccba82b6d28963a9b9 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 10 Mar 2022 01:37:59 -0600
 Subject: [PATCH] Add maven project
@@ -304,7 +304,7 @@ index 2310227..0000000
 -</xs:schema>
 diff --git a/META-INF/MANIFEST.MF b/META-INF/MANIFEST.MF
 deleted file mode 100644
-index aef7cf0..0000000
+index 6c5d5ec..0000000
 --- a/META-INF/MANIFEST.MF
 +++ /dev/null
 @@ -1,4 +0,0 @@
@@ -1206,5 +1206,5 @@ similarity index 100%
 rename from yggdrasil_session_pubkey.der
 rename to src/main/resources/yggdrasil_session_pubkey.der
 -- 
-2.43.0
+2.44.0.windows.1
 
