@@ -1,4 +1,4 @@
-From 4721421e7d956a3429dd9c31bdab1a21a2f0b97a Mon Sep 17 00:00:00 2001
+From 98d2762a6b0c8f3b7aa7c06cd77a426d9dd107b2 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 10 Mar 2022 02:35:36 -0600
 Subject: [PATCH] Fix compile issues
@@ -236,7 +236,7 @@ index fe2d1c0..c739732 100644
  
      private static LauncherConstants.LauncherProperties getProperties() {
 diff --git a/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
-index dde1ec3..c5a8fc4 100644
+index 0631e87..add2434 100644
 --- a/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
 +++ b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
 @@ -1,5 +1,6 @@
@@ -246,7 +246,7 @@ index dde1ec3..c5a8fc4 100644
  import com.google.common.base.Objects;
  import com.google.common.collect.BiMap;
  import com.google.common.collect.HashBiMap;
-@@ -107,7 +108,7 @@ public class GameLaunchDispatcher implements GameRunnerListener {
+@@ -112,7 +113,7 @@ public class GameLaunchDispatcher implements GameRunnerListener {
  
          this.launcher.getLauncher().getVersionManager().getExecutorService().execute(new Runnable() {
              public void run() {
@@ -255,7 +255,7 @@ index dde1ec3..c5a8fc4 100644
                  VersionSyncInfo var1 = null;
                  if (var4 != null) {
                      var1 = GameLaunchDispatcher.this.launcher.getLauncher().getVersionManager().getVersionSyncInfo(var4);
-@@ -157,14 +158,14 @@ public class GameLaunchDispatcher implements GameRunnerListener {
+@@ -162,14 +163,14 @@ public class GameLaunchDispatcher implements GameRunnerListener {
          this.lock.lock();
  
          try {
@@ -528,5 +528,5 @@ index 21dbec3..4e7612f 100644
      }
  }
 -- 
-2.43.0
+2.44.0.windows.1
 
