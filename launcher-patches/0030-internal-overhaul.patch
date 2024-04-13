@@ -1,4 +1,4 @@
-From b10c81bf6b3b07b4ff069585aac0ae2d1caffbf3 Mon Sep 17 00:00:00 2001
+From c63508de9c81df9313b413c5802daa1192aa28e1 Mon Sep 17 00:00:00 2001
 From: Befell <54691311+DevBefell@users.noreply.github.com>
 Date: Tue, 9 Apr 2024 01:02:27 -0700
 Subject: [PATCH] internal overhaul
@@ -46,6 +46,26 @@ index d484001..3991737 100644
          }
  
          GameProcessRunnable var4 = this.process.getExitRunnable();
+diff --git a/src/main/java/com/mojang/launcher/updater/VersionManager.java b/src/main/java/com/mojang/launcher/updater/VersionManager.java
+index d594f22..9c60d0c 100644
+--- a/src/main/java/com/mojang/launcher/updater/VersionManager.java
++++ b/src/main/java/com/mojang/launcher/updater/VersionManager.java
+@@ -5,6 +5,8 @@ import com.mojang.launcher.updater.download.DownloadJob;
+ import com.mojang.launcher.versions.CompleteVersion;
+ import com.mojang.launcher.versions.ReleaseType;
+ import com.mojang.launcher.versions.Version;
++import net.minecraft.launcher.game.MinecraftReleaseType;
++
+ import java.io.IOException;
+ import java.util.List;
+ import java.util.concurrent.ThreadPoolExecutor;
+@@ -41,4 +43,6 @@ public interface VersionManager {
+     void installVersion(CompleteVersion var1) throws IOException;
+ 
+     void uninstallVersion(CompleteVersion var1) throws IOException;
++
++    VersionFilter<MinecraftReleaseType> getVersionFilter(); // olauncher - move version filter
+ }
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/profile/AccountsDatabase.java b/src/main/java/dev/figboot/olauncher/launcher/profile/AccountsDatabase.java
 new file mode 100644
 index 0000000..16f3310
@@ -114,10 +134,18 @@ index 0000000..16f3310
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/launcher/Launcher.java b/src/main/java/net/minecraft/launcher/Launcher.java
-index a9aeefa..c9fe389 100644
+index a9aeefa..f951bb2 100644
 --- a/src/main/java/net/minecraft/launcher/Launcher.java
 +++ b/src/main/java/net/minecraft/launcher/Launcher.java
-@@ -20,6 +20,9 @@ import java.io.IOException;
+@@ -9,6 +9,7 @@ import com.mojang.authlib.exceptions.AuthenticationException;
+ import com.mojang.authlib.exceptions.InvalidCredentialsException;
+ import com.mojang.launcher.OperatingSystem;
+ import com.mojang.launcher.updater.DateTypeAdapter;
++import com.mojang.launcher.updater.VersionManager;
+ import com.mojang.launcher.updater.VersionSyncInfo;
+ import com.mojang.launcher.updater.download.assets.AssetIndex;
+ import com.mojang.launcher.versions.CompleteVersion;
+@@ -20,6 +21,9 @@ import java.io.IOException;
  import java.lang.Thread.UncaughtExceptionHandler;
  import java.net.PasswordAuthentication;
  import java.net.Proxy;
@@ -127,7 +155,7 @@ index a9aeefa..c9fe389 100644
  import java.text.DateFormat;
  import java.util.ArrayList;
  import java.util.Calendar;
-@@ -30,6 +33,7 @@ import java.util.Iterator;
+@@ -30,6 +34,7 @@ import java.util.Iterator;
  import java.util.List;
  import java.util.Locale;
  import java.util.UUID;
@@ -135,7 +163,16 @@ index a9aeefa..c9fe389 100644
  import javax.swing.JFrame;
  
  import dev.figboot.olauncher.OLauncherConstants;
-@@ -317,57 +321,39 @@ public class Launcher {
+@@ -112,7 +117,7 @@ public class Launcher {
+             LOGGER.info("System.getProperty('sun.arch.data.model') == '" + System.getProperty("sun.arch.data.model") + "'");
+             LOGGER.info("proxy == " + var3);
+             this.launchDispatcher = new GameLaunchDispatcher(this, this.processArgs(var5));
+-            this.launcher = new com.mojang.launcher.Launcher(this.userInterface, var2, var3, var4, new MinecraftVersionManager(new LocalVersionList(var2), new RemoteVersionList(LauncherConstants.PROPERTIES.getVersionManifest(), var3)), Agent.MINECRAFT, MinecraftReleaseTypeFactory.instance(), 21);
++            this.launcher = new com.mojang.launcher.Launcher(this.userInterface, var2, var3, var4, new MinecraftVersionManager(new LocalVersionList(var2), new RemoteVersionList(LauncherConstants.PROPERTIES.getVersionManifest(), var3, this)), Agent.MINECRAFT, MinecraftReleaseTypeFactory.instance(), 21);
+             this.profileManager = new ProfileManager(this);
+             ((SwingUserInterface)this.userInterface).initializeFrame();
+             refreshJavaRuntimes(); // olauncher - refresh java runtimes
+@@ -317,57 +322,39 @@ public class Launcher {
          File var1 = new File(this.getLauncher().getWorkingDirectory(), "assets");
          File var2 = new File(var1, "indexes");
          File var3 = new File(var1, "objects");
@@ -222,7 +259,7 @@ index a9aeefa..c9fe389 100644
      }
  
      public void cleanupOrphanedLibraries() throws IOException {
-@@ -477,28 +463,16 @@ public class Launcher {
+@@ -477,28 +464,16 @@ public class Launcher {
      }
  
      public void cleanupOldNatives() {
@@ -261,6 +298,92 @@ index a9aeefa..c9fe389 100644
                  }
              }
  
+@@ -511,16 +486,17 @@ public class Launcher {
+         Iterator var2 = this.getProfileManager().getProfiles().values().iterator();
+ 
+         VersionSyncInfo var5;
++        VersionManager versionManager = this.getLauncher().getVersionManager();
+         while(var2.hasNext()) {
+             Profile var3 = (Profile)var2.next();
+             String var4 = var3.getLastVersionId();
+             var5 = null;
+             if (var4 != null) {
+-                var5 = this.getLauncher().getVersionManager().getVersionSyncInfo(var4);
++                var5 = versionManager.getVersionSyncInfo(var4);
+             }
+ 
+             if (var5 == null || var5.getLatestVersion() == null) {
+-                var5 = (VersionSyncInfo)this.getLauncher().getVersionManager().getVersions(var3.getVersionFilter()).get(0);
++                var5 = versionManager.getVersions().get(0);  // olauncher - use moved version filter
+             }
+ 
+             if (var5 != null) {
+@@ -537,7 +513,7 @@ public class Launcher {
+         Calendar var10 = Calendar.getInstance();
+         var10.add(5, -7);
+         Date var11 = var10.getTime();
+-        Iterator var12 = this.getLauncher().getVersionManager().getInstalledVersions().iterator();
++        Iterator var12 = versionManager.getInstalledVersions().iterator();
+ 
+         while(var12.hasNext()) {
+             var5 = (VersionSyncInfo)var12.next();
+@@ -548,7 +524,7 @@ public class Launcher {
+                         LOGGER.info("Deleting orphaned version {} because it's a snapshot available on remote", new Object[]{var13.getId()});
+ 
+                         try {
+-                            this.getLauncher().getVersionManager().uninstallVersion(var13);
++                            versionManager.uninstallVersion(var13);
+                         } catch (IOException var8) {
+                             LOGGER.warn("Couldn't uninstall version " + var13.getId(), var8);
+                         }
+@@ -556,7 +532,7 @@ public class Launcher {
+                         LOGGER.info("Deleting orphaned version {} because it's an unsupported old snapshot", new Object[]{var13.getId()});
+ 
+                         try {
+-                            this.getLauncher().getVersionManager().uninstallVersion(var13);
++                            versionManager.uninstallVersion(var13);
+                         } catch (IOException var9) {
+                             LOGGER.warn("Couldn't uninstall version " + var13.getId(), var9);
+                         }
+diff --git a/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
+index 4349e7d..4b5379b 100644
+--- a/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
++++ b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
+@@ -7,6 +7,7 @@ import com.mojang.authlib.UserAuthentication;
+ import com.mojang.launcher.game.GameInstanceStatus;
+ import com.mojang.launcher.game.runner.GameRunner;
+ import com.mojang.launcher.game.runner.GameRunnerListener;
++import com.mojang.launcher.updater.VersionManager;
+ import com.mojang.launcher.updater.VersionSyncInfo;
+ import java.io.File;
+ import java.util.Iterator;
+@@ -32,7 +33,7 @@ public class GameLaunchDispatcher implements GameRunnerListener {
+         ProfileManager var1 = this.launcher.getProfileManager();
+         Profile var2 = var1.getProfiles().isEmpty() ? null : var1.getSelectedProfile();
+         UserAuthentication var3 = var1.getSelectedUser() == null ? null : var1.getAuthDatabase().getByUUID(var1.getSelectedUser());
+-        if (var3 != null && var3.isLoggedIn() && var2 != null && !this.launcher.getLauncher().getVersionManager().getVersions(var2.getVersionFilter()).isEmpty()) {
++        if (var3 != null && var3.isLoggedIn() && var2 != null && !this.launcher.getLauncher().getVersionManager().getVersions(null).isEmpty()) { // olauncher - check without version filter
+             this.lock.lock();
+ 
+             try {
+@@ -107,14 +108,15 @@ public class GameLaunchDispatcher implements GameRunnerListener {
+ 
+         this.launcher.getLauncher().getVersionManager().getExecutorService().execute(new Runnable() {
+             public void run() {
++                VersionManager versionManager = GameLaunchDispatcher.this.launcher.getLauncher().getVersionManager();
+                 var5.setVisibility((LauncherVisibilityRule)MoreObjects.firstNonNull(var2.getLauncherVisibilityOnGameClose(), Profile.DEFAULT_LAUNCHER_VISIBILITY)); // olauncher - Objects -> MoreObjects
+                 VersionSyncInfo var1 = null;
+                 if (var4 != null) {
+-                    var1 = GameLaunchDispatcher.this.launcher.getLauncher().getVersionManager().getVersionSyncInfo(var4);
++                    var1 = versionManager.getVersionSyncInfo(var4);
+                 }
+ 
+                 if (var1 == null || var1.getLatestVersion() == null) {
+-                    var1 = (VersionSyncInfo)GameLaunchDispatcher.this.launcher.getLauncher().getVersionManager().getVersions(var2.getVersionFilter()).get(0);
++                    var1 = versionManager.getVersions().get(0);
+                 }
+ 
+                 var5.setStatus(GameInstanceStatus.IDLE);
 diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
 index 6436333..099cba2 100644
 --- a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
@@ -315,19 +438,100 @@ index 6436333..099cba2 100644
              } else {
                  boolean var6 = "32".equals(System.getProperty("sun.arch.data.model"));
                  String var7 = var6 ? Profile.DEFAULT_JRE_ARGUMENTS_32BIT : Profile.DEFAULT_JRE_ARGUMENTS_64BIT; // olauncher - use default JVM argument variables
+diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftReleaseType.java b/src/main/java/net/minecraft/launcher/game/MinecraftReleaseType.java
+index df55cae..9c4c3f0 100644
+--- a/src/main/java/net/minecraft/launcher/game/MinecraftReleaseType.java
++++ b/src/main/java/net/minecraft/launcher/game/MinecraftReleaseType.java
+@@ -11,6 +11,7 @@ public enum MinecraftReleaseType implements ReleaseType {
+     OLD_BETA("old_beta", "Allow use of old \"Beta\" Minecraft versions (From 2010-2011)"),
+     OLD_ALPHA("old_alpha", "Allow use of old \"Alpha\" Minecraft versions (From 2010)");
+ 
++    private static final String POPUP_CUSTOM_VERSIONS = "Are you sure you want to enable custom versions?\nThey are modified and are not guaranteed to be safe.\n";
+     private static final String POPUP_DEV_VERSIONS = "Are you sure you want to enable development builds?\nThey are not guaranteed to be stable and may corrupt your world.\nYou are advised to run this in a separate directory or run regular backups.";
+     private static final String POPUP_OLD_VERSIONS = "These versions are very out of date and may be unstable. Any bugs, crashes, missing features or\nother nasties you may find will never be fixed in these versions.\nIt is strongly recommended you play these in separate directories to avoid corruption.\nWe are not responsible for the damage to your nostalgia or your save files!";
+     private static final Map<String, MinecraftReleaseType> LOOKUP = Maps.newHashMap();
+@@ -33,12 +34,14 @@ public enum MinecraftReleaseType implements ReleaseType {
+     public String getPopupWarning() {
+         if (this.description == null) {
+             return null;
++        } else if (this == CUSTOM) {
++            return POPUP_CUSTOM_VERSIONS;
+         } else if (this == SNAPSHOT) {
+-            return "Are you sure you want to enable development builds?\nThey are not guaranteed to be stable and may corrupt your world.\nYou are advised to run this in a separate directory or run regular backups.";
++            return POPUP_DEV_VERSIONS; // olauncher - proper use of variables
+         } else if (this == OLD_BETA) {
+-            return "These versions are very out of date and may be unstable. Any bugs, crashes, missing features or\nother nasties you may find will never be fixed in these versions.\nIt is strongly recommended you play these in separate directories to avoid corruption.\nWe are not responsible for the damage to your nostalgia or your save files!";
++            return POPUP_OLD_VERSIONS; // olauncher - proper use of variables
+         } else {
+-            return this == OLD_ALPHA ? "These versions are very out of date and may be unstable. Any bugs, crashes, missing features or\nother nasties you may find will never be fixed in these versions.\nIt is strongly recommended you play these in separate directories to avoid corruption.\nWe are not responsible for the damage to your nostalgia or your save files!" : null;
++            return this == OLD_ALPHA ? POPUP_OLD_VERSIONS : null; // olauncher - proper use of variables
+         }
+     }
+ 
+diff --git a/src/main/java/net/minecraft/launcher/profile/Profile.java b/src/main/java/net/minecraft/launcher/profile/Profile.java
+index 9141d27..78a18aa 100644
+--- a/src/main/java/net/minecraft/launcher/profile/Profile.java
++++ b/src/main/java/net/minecraft/launcher/profile/Profile.java
+@@ -15,6 +15,7 @@ public class Profile implements Comparable<Profile> {
+     public static final String DEFAULT_JRE_ARGUMENTS_32BIT = "-Xmx2G -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M";
+     public static final Profile.Resolution DEFAULT_RESOLUTION = new Profile.Resolution(854, 480);
+     public static final LauncherVisibilityRule DEFAULT_LAUNCHER_VISIBILITY;
++    @Deprecated
+     public static final Set<MinecraftReleaseType> DEFAULT_RELEASE_TYPES;
+     private transient String uniqueName;
+     private String name;
+@@ -23,6 +24,7 @@ public class Profile implements Comparable<Profile> {
+     private String javaDir;
+     private String javaArgs;
+     private Profile.Resolution resolution;
++    @Deprecated
+     private Set<MinecraftReleaseType> allowedReleaseTypes;
+     private String playerUUID;
+     private Boolean useHopperCrashService;
+@@ -108,11 +110,11 @@ public class Profile implements Comparable<Profile> {
+     public void setPlayerUUID(String var1) {
+         this.playerUUID = var1;
+     }
+-
++    @Deprecated
+     public Set<MinecraftReleaseType> getAllowedReleaseTypes() {
+         return this.allowedReleaseTypes;
+     }
+-
++    @Deprecated
+     public void setAllowedReleaseTypes(Set<MinecraftReleaseType> var1) {
+         this.allowedReleaseTypes = var1;
+     }
 diff --git a/src/main/java/net/minecraft/launcher/profile/ProfileManager.java b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
-index 1cb9c2b..922e385 100644
+index 1cb9c2b..4385f7b 100644
 --- a/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
 +++ b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
-@@ -33,6 +33,7 @@ import java.util.Map;
+@@ -16,6 +16,7 @@ import com.google.gson.JsonSerializer;
+ import com.google.gson.reflect.TypeToken;
+ import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
+ import com.mojang.launcher.updater.DateTypeAdapter;
++import com.mojang.launcher.updater.VersionManager;
+ import com.mojang.launcher.updater.FileTypeAdapter;
+ import com.mojang.launcher.updater.LowerCaseEnumTypeAdapterFactory;
+ import java.io.File;
+@@ -30,11 +31,16 @@ import java.util.HashMap;
+ import java.util.Iterator;
+ import java.util.List;
+ import java.util.Map;
++import java.util.Set;
  import java.util.UUID;
++import java.util.HashSet;
  
  import dev.figboot.olauncher.auth.MicrosoftAuthenticationService;
 +import dev.figboot.olauncher.launcher.profile.AccountsDatabase;
  import net.minecraft.launcher.Launcher;
  import net.minecraft.launcher.LauncherConstants;
++import net.minecraft.launcher.game.MinecraftReleaseType;
++import net.minecraft.launcher.updater.MinecraftVersionManager;
  import org.apache.commons.io.FileUtils;
-@@ -46,6 +47,7 @@ public class ProfileManager {
+ import org.apache.logging.log4j.LogManager;
+ import org.apache.logging.log4j.Logger;
+@@ -46,6 +52,7 @@ public class ProfileManager {
      private final Gson gson;
      private final Map<String, Profile> profiles = new HashMap();
      private final File profileFile;
@@ -335,7 +539,7 @@ index 1cb9c2b..922e385 100644
      private final List<RefreshedProfilesListener> refreshedProfilesListeners = Collections.synchronizedList(new ArrayList());
      private final List<UserChangedListener> userChangedListeners = Collections.synchronizedList(new ArrayList());
      private String selectedProfile;
-@@ -57,33 +59,52 @@ public class ProfileManager {
+@@ -57,10 +64,12 @@ public class ProfileManager {
      public ProfileManager(Launcher var1) {
          this.launcher = var1;
          this.profileFile = new File(var1.getLauncher().getWorkingDirectory(), "launcher_profiles.json");
@@ -346,11 +550,9 @@ index 1cb9c2b..922e385 100644
          var2.registerTypeAdapter(File.class, new FileTypeAdapter());
 +        var2.registerTypeAdapter(AccountsDatabase.class, new AccountsDatabase.Serializer(var1)); // olauncher - register accounts serializer
          var2.registerTypeAdapter(AuthenticationDatabase.class, new AuthenticationDatabase.Serializer(var1));
--        var2.registerTypeAdapter(ProfileManager.RawProfileList.class, new ProfileManager.RawProfileList.Serializer(var1));
-+        var2.registerTypeAdapter(ProfileManager.RawProfileList.class, new ProfileManager.RawProfileList.Serializer());
+         var2.registerTypeAdapter(ProfileManager.RawProfileList.class, new ProfileManager.RawProfileList.Serializer(var1));
          var2.setPrettyPrinting();
-         this.gson = var2.create();
-         this.authDatabase = new AuthenticationDatabase(new MicrosoftAuthenticationService(var1.getLauncher().getProxy(), var1.getClientToken().toString()));
+@@ -69,21 +78,38 @@ public class ProfileManager {
      }
  
      public void saveProfiles() throws IOException {
@@ -392,7 +594,7 @@ index 1cb9c2b..922e385 100644
                  this.launcher.setClientToken((UUID)this.gson.fromJson(var1.get("clientToken"), UUID.class));
              }
  
-@@ -98,6 +119,8 @@ public class ProfileManager {
+@@ -98,6 +124,8 @@ public class ProfileManager {
                      name = value.getLastVersionId();
                      if (name.equals("latest-release")) {
                          name = "Latest Version";
@@ -401,7 +603,7 @@ index 1cb9c2b..922e385 100644
                      }
                      value.setName(name);
                  }
-@@ -109,8 +132,6 @@ public class ProfileManager {
+@@ -109,8 +137,6 @@ public class ProfileManager {
  
              this.profiles.putAll(var4.profiles);
              this.selectedProfile = var4.selectedProfile;
@@ -410,7 +612,7 @@ index 1cb9c2b..922e385 100644
              this.fireRefreshEvent();
              this.fireUserChangedEvent();
              return true;
-@@ -199,32 +220,11 @@ public class ProfileManager {
+@@ -199,25 +225,10 @@ public class ProfileManager {
      private static class RawProfileList {
          public Map<String, Profile> profiles;
          public String selectedProfile;
@@ -427,24 +629,43 @@ index 1cb9c2b..922e385 100644
 -            this.selectedUser = var3;
 -            this.clientToken = var4;
 -            this.authenticationDatabase = var5;
-         }
+-        }
 -
 -        // $FF: synthetic method
 -        RawProfileList(Map var1, String var2, String var3, UUID var4, AuthenticationDatabase var5, Object var6) {
 -            this(var1, var2, var3, var4, var5);
--        }
+         }
 -
          public static class Serializer implements JsonDeserializer<ProfileManager.RawProfileList>, JsonSerializer<ProfileManager.RawProfileList> {
--            private final Launcher launcher;
--
--            public Serializer(Launcher var1) {
--                this.launcher = var1;
--            }
--
-             public ProfileManager.RawProfileList deserialize(JsonElement var1, Type var2, JsonDeserializationContext var3) throws JsonParseException {
-                 JsonObject var4 = (JsonObject)var1;
-                 Object var5 = Maps.newHashMap();
-@@ -237,27 +237,6 @@ public class ProfileManager {
+             private final Launcher launcher;
+ 
+@@ -232,32 +243,32 @@ public class ProfileManager {
+                     var5 = (Map)var3.deserialize(var4.get("profiles"), (new TypeToken<Map<String, Profile>>() {
+                     }).getType());
+                 }
++                // olauncher start - add settings deserialize
++                if (var4.has("settings")){
++                    JsonObject settings = var4.getAsJsonObject("settings");
++                    if (settings.isJsonObject()){ // just to be safe
++                        Set<MinecraftReleaseType> releaseTypes = new HashSet<>();
++                        releaseTypes.add(MinecraftReleaseType.RELEASE);
++                        // get version filters
++                        if (settings.getAsJsonObject().has("versionFilter")){
++                            JsonObject versionFilter =  settings.getAsJsonObject("versionFilter");
++                            for (String key: versionFilter.keySet()){
++                                if (versionFilter.get(key).getAsBoolean()){
++                                    releaseTypes.add(MinecraftReleaseType.getByName(key));
++                                }
++                            }
++                        }else {
++                            releaseTypes.add(MinecraftReleaseType.CUSTOM);
++                        }
++                        ((MinecraftVersionManager)this.launcher.getLauncher().getVersionManager()).setAllowedReleaseTypes(releaseTypes);
++                    }
++                }
++                // olauncher end
+ 
+                 String var6 = null;
                  if (var4.has("selectedProfile")) {
                      var6 = var4.getAsJsonPrimitive("selectedProfile").getAsString();
                  }
@@ -472,7 +693,7 @@ index 1cb9c2b..922e385 100644
                  Iterator var10 = ((Map)var5).values().iterator();
  
                  while(var10.hasNext()) {
-@@ -265,7 +244,7 @@ public class ProfileManager {
+@@ -265,10 +276,24 @@ public class ProfileManager {
                      var11.setPlayerUUID((String)null);
                  }
  
@@ -481,7 +702,24 @@ index 1cb9c2b..922e385 100644
              }
  
              public JsonElement serialize(ProfileManager.RawProfileList var1, Type var2, JsonSerializationContext var3) {
-@@ -276,9 +255,6 @@ public class ProfileManager {
++                // olauncher start - add settings
++                JsonObject settings = new JsonObject();
++                // add version filters
++                JsonObject versionFilter = new JsonObject();
++                VersionManager versionManager = launcher.getLauncher().getVersionManager();
++                Set<MinecraftReleaseType> filter = versionManager.getVersionFilter().getTypes();
++                for (MinecraftReleaseType releaseType: MinecraftReleaseType.values()){
++                    if (releaseType == MinecraftReleaseType.RELEASE){
++                        continue;
++                    }
++                    versionFilter.addProperty(releaseType.getName(), filter.contains(releaseType));
++                }
++                settings.add("versionFilter", versionFilter);
++                // olauncher end
+                 JsonObject var4 = new JsonObject();
+                 var4.addProperty("name", LauncherConstants.getVersionName());
+                 var4.addProperty("format", 21);
+@@ -276,10 +301,8 @@ public class ProfileManager {
                  JsonObject var5 = new JsonObject();
                  var5.add("profiles", var3.serialize(var1.profiles));
                  var5.add("selectedProfile", var3.serialize(var1.selectedProfile));
@@ -489,8 +727,386 @@ index 1cb9c2b..922e385 100644
 -                var5.add("authenticationDatabase", var3.serialize(var1.authenticationDatabase));
 -                var5.add("selectedUser", var3.serialize(var1.selectedUser));
                  var5.add("launcherVersion", var4);
++                var5.add("settings", settings);
                  return var5;
              }
+         }
+diff --git a/src/main/java/net/minecraft/launcher/ui/bottombar/PlayerInfoPanel.java b/src/main/java/net/minecraft/launcher/ui/bottombar/PlayerInfoPanel.java
+index 52528d1..b9023e9 100644
+--- a/src/main/java/net/minecraft/launcher/ui/bottombar/PlayerInfoPanel.java
++++ b/src/main/java/net/minecraft/launcher/ui/bottombar/PlayerInfoPanel.java
+@@ -73,6 +73,7 @@ public class PlayerInfoPanel extends JPanel implements RefreshedVersionsListener
+ 
+     public void checkState() {
+         ProfileManager var1 = this.minecraftLauncher.getProfileManager();
++        VersionManager versionManager = this.minecraftLauncher.getLauncher().getVersionManager();
+         UserAuthentication var2 = var1.getSelectedUser() == null ? null : var1.getAuthDatabase().getByUUID(var1.getSelectedUser());
+         if (var2 != null && var2.isLoggedIn()) {
+             if (var2.getSelectedProfile() == null) {
+@@ -85,10 +86,10 @@ public class PlayerInfoPanel extends JPanel implements RefreshedVersionsListener
+         }
+ 
+         Profile var3 = var1.getProfiles().isEmpty() ? null : var1.getSelectedProfile();
+-        List var4 = var3 == null ? null : this.minecraftLauncher.getLauncher().getVersionManager().getVersions(var3.getVersionFilter());
++        List<VersionSyncInfo> var4 = var3 == null ? null : versionManager.getVersions();  // olauncher - use moved version filter, add type
+         VersionSyncInfo var5 = var3 != null && !var4.isEmpty() ? (VersionSyncInfo)var4.get(0) : null;
+         if (var3 != null && var3.getLastVersionId() != null) {
+-            VersionSyncInfo var6 = this.minecraftLauncher.getLauncher().getVersionManager().getVersionSyncInfo(var3.getLastVersionId());
++            VersionSyncInfo var6 = versionManager.getVersionSyncInfo(var3.getLastVersionId());
+             if (var6 != null && var6.getLatestVersion() != null) {
+                 var5 = var6;
+             }
+diff --git a/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileVersionPanel.java b/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileVersionPanel.java
+index eec04bd..2d29f39 100644
+--- a/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileVersionPanel.java
++++ b/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileVersionPanel.java
+@@ -2,6 +2,7 @@ package net.minecraft.launcher.ui.popups.profile;
+ 
+ import com.google.common.collect.Sets;
+ import com.mojang.launcher.events.RefreshedVersionsListener;
++import com.mojang.launcher.updater.VersionFilter;
+ import com.mojang.launcher.updater.VersionManager;
+ import com.mojang.launcher.updater.VersionSyncInfo;
+ import com.mojang.launcher.versions.Version;
+@@ -12,9 +13,9 @@ import java.awt.Insets;
+ import java.awt.event.ItemEvent;
+ import java.awt.event.ItemListener;
+ import java.util.ArrayList;
+-import java.util.HashSet;
+ import java.util.Iterator;
+ import java.util.List;
++import java.util.EnumSet;
+ import java.util.Set;
+ import javax.swing.BorderFactory;
+ import javax.swing.JCheckBox;
+@@ -28,6 +29,7 @@ import javax.swing.plaf.basic.BasicComboBoxRenderer;
+ import net.minecraft.launcher.SwingUserInterface;
+ import net.minecraft.launcher.game.MinecraftReleaseType;
+ import net.minecraft.launcher.profile.Profile;
++import net.minecraft.launcher.updater.MinecraftVersionManager;
+ 
+ public class ProfileVersionPanel extends JPanel implements RefreshedVersionsListener {
+     private final ProfileEditorPopup editor;
+@@ -40,11 +42,12 @@ public class ProfileVersionPanel extends JPanel implements RefreshedVersionsList
+         this.setBorder(BorderFactory.createTitledBorder("Version Selection"));
+         this.createInterface();
+         this.addEventHandlers();
+-        List var2 = var1.getMinecraftLauncher().getLauncher().getVersionManager().getVersions(var1.getProfile().getVersionFilter());
++        VersionManager versionManager = var1.getMinecraftLauncher().getLauncher().getVersionManager();
++        List<VersionSyncInfo> var2 = versionManager.getVersions();  // olauncher - use moved version filter, include type
+         if (var2.isEmpty()) {
+-            var1.getMinecraftLauncher().getLauncher().getVersionManager().addRefreshedVersionsListener(this);
++            versionManager.addRefreshedVersionsListener(this);
+         } else {
+-            this.populateVersions(var2);
++            this.populateVersions((MinecraftVersionManager) versionManager);
+         }
+ 
+     }
+@@ -61,7 +64,7 @@ public class ProfileVersionPanel extends JPanel implements RefreshedVersionsList
+             MinecraftReleaseType var5 = var2[var4];
+             if (var5.getDescription() != null) {
+                 ProfileVersionPanel.ReleaseTypeCheckBox var6 = new ProfileVersionPanel.ReleaseTypeCheckBox(var5);
+-                var6.setSelected(this.editor.getProfile().getVersionFilter().getTypes().contains(var5));
++                var6.setSelected(this.editor.getMinecraftLauncher().getLauncher().getVersionManager().getVersionFilter().getTypes().contains(var5));
+                 this.customVersionTypes.add(var6);
+                 var1.fill = 2;
+                 var1.weightx = 1.0D;
+@@ -122,8 +125,8 @@ public class ProfileVersionPanel extends JPanel implements RefreshedVersionsList
+     }
+ 
+     private void updateCustomVersionFilter() {
+-        Profile var1 = this.editor.getProfile();
+-        HashSet var2 = Sets.newHashSet(Profile.DEFAULT_RELEASE_TYPES);
++        MinecraftVersionManager versionManager = (MinecraftVersionManager) this.editor.getMinecraftLauncher().getLauncher().getVersionManager();
++        Set<MinecraftReleaseType> var2 = EnumSet.copyOf(versionManager.DEFAULT_RELEASE_TYPES); // olauncher - use variables
+         Iterator var3 = this.customVersionTypes.iterator();
+ 
+         while(var3.hasNext()) {
+@@ -134,46 +137,57 @@ public class ProfileVersionPanel extends JPanel implements RefreshedVersionsList
+                 var2.remove(var4.getType());
+             }
+         }
++        versionManager.setAllowedReleaseTypes(var2);
+ 
+-        if (var2.equals(Profile.DEFAULT_RELEASE_TYPES)) {
+-            var1.setAllowedReleaseTypes((Set)null);
+-        } else {
+-            var1.setAllowedReleaseTypes(var2);
+-        }
+-
+-        this.populateVersions(this.editor.getMinecraftLauncher().getLauncher().getVersionManager().getVersions(this.editor.getProfile().getVersionFilter()));
+-        this.editor.getMinecraftLauncher().getLauncher().getVersionManager().removeRefreshedVersionsListener(this);
++        this.populateVersions(versionManager);  // olauncher - use moved version filter
++        versionManager.removeRefreshedVersionsListener(this);
+     }
+ 
+     private void updateVersionSelection() {
+         Object var1 = this.versionList.getSelectedItem();
++        Version var2;
+         if (var1 instanceof VersionSyncInfo) {
+-            Version var2 = ((VersionSyncInfo)var1).getLatestVersion();
++            var2 = ((VersionSyncInfo)var1).getLatestVersion();
+             this.editor.getProfile().setLastVersionId(var2.getId());
+-        } else {
+-            this.editor.getProfile().setLastVersionId((String)null);
++        } else if (var1 instanceof Version){
++            var2 = (Version) var1;
++            this.editor.getProfile().setLastVersionId("latest-" + var2.getType().getName().toLowerCase());
+         }
+ 
++
+     }
+ 
+-    private void populateVersions(List<VersionSyncInfo> var1) {
++    private void populateVersions(MinecraftVersionManager versionManager) { // olauncher - use version manager
++        List<VersionSyncInfo> versions = versionManager.getVersions(null); // olauncher - no filter
++        VersionFilter<MinecraftReleaseType> versionFilter = versionManager.getVersionFilter();
+         String var2 = this.editor.getProfile().getLastVersionId();
+         VersionSyncInfo var3 = null;
++        Version latest = null;
+         this.versionList.removeAllItems();
+-        this.versionList.addItem("Use Latest Version");
+-
+-        VersionSyncInfo var5;
+-        for(Iterator var4 = var1.iterator(); var4.hasNext(); this.versionList.addItem(var5)) {
+-            var5 = (VersionSyncInfo)var4.next();
+-            if (var5.getLatestVersion().getId().equals(var2)) {
+-                var3 = var5;
++        // olauncher - add latest snapshots
++        versionManager.getLatestVersions().forEach(((minecraftReleaseType, version) -> {
++            if (minecraftReleaseType == MinecraftReleaseType.RELEASE || (versionManager.getVersionFilter().getTypes().contains(MinecraftReleaseType.SNAPSHOT) && minecraftReleaseType == MinecraftReleaseType.SNAPSHOT)){
++                this.versionList.addItem(version);
++            }
++        }));
++        for (VersionSyncInfo versionSyncInfo: versions){
++            if (versionSyncInfo.getLatestVersion().getId().equals(var2)){
++                var3 = versionSyncInfo;
++            }else if (var2.startsWith("latest-")){
++                latest = versionManager.getLatestVersions().get(MinecraftReleaseType.getByName(var2.replace("latest-", "")));
++            }
++            if (versionFilter.getTypes().contains(versionSyncInfo.getLatestVersion().getType())){
++                this.versionList.addItem(versionSyncInfo);
+             }
+         }
+ 
+-        if (var3 == null && !var1.isEmpty()) {
++        if (var3 == null && !versions.isEmpty() && latest == null) {
+             this.versionList.setSelectedIndex(0);
+-        } else {
+-            this.versionList.setSelectedItem(var3);
++        }else if (latest !=null){
++            this.versionList.getModel().setSelectedItem(latest);
++        }
++        else {
++            this.versionList.getModel().setSelectedItem(var3);
+         }
+ 
+     }
+@@ -181,8 +195,7 @@ public class ProfileVersionPanel extends JPanel implements RefreshedVersionsList
+     public void onVersionsRefreshed(final VersionManager var1) {
+         SwingUtilities.invokeLater(new Runnable() {
+             public void run() {
+-                List var1x = var1.getVersions(ProfileVersionPanel.this.editor.getProfile().getVersionFilter());
+-                ProfileVersionPanel.this.populateVersions(var1x);
++                ProfileVersionPanel.this.populateVersions((MinecraftVersionManager) var1);
+                 ProfileVersionPanel.this.editor.getMinecraftLauncher().getLauncher().getVersionManager().removeRefreshedVersionsListener(ProfileVersionPanel.this);
+             }
+         });
+@@ -211,13 +224,17 @@ public class ProfileVersionPanel extends JPanel implements RefreshedVersionsList
+         }
+ 
+         public Component getListCellRendererComponent(JList var1, Object var2, int var3, boolean var4, boolean var5) {
++            Object text = var2;
+             if (var2 instanceof VersionSyncInfo) {
+                 VersionSyncInfo var6 = (VersionSyncInfo)var2;
+                 Version var7 = var6.getLatestVersion();
+-                var2 = String.format("%s %s", var7.getType().getName(), var7.getId());
++                text = String.format("%s %s", var7.getType() == MinecraftReleaseType.CUSTOM ? "release" : var7.getType().getName(), var7.getId());
++            }else if (var2 instanceof Version){ // olauncher - add latest snapshots
++                Version version = (Version) var2;
++                text = String.format("Latest %s (%s)", version.getType().getName(), version.getId());
+             }
+ 
+-            super.getListCellRendererComponent(var1, var2, var3, var4, var5);
++            super.getListCellRendererComponent(var1, text, var3, var4, var5);
+             return this;
+         }
+ 
+diff --git a/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java b/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java
+index a8801e6..83f4a36 100644
+--- a/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java
++++ b/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java
+@@ -33,11 +33,15 @@ import java.util.Iterator;
+ import java.util.List;
+ import java.util.Set;
+ import java.util.Map.Entry;
++import java.util.Objects;
++import java.util.EnumSet;
++import java.util.Map;
+ import java.util.concurrent.ThreadPoolExecutor;
+ import java.util.concurrent.TimeUnit;
+ 
+ import net.minecraft.launcher.LauncherConstants;
+ import net.minecraft.launcher.game.MinecraftReleaseType;
++import net.minecraft.launcher.game.MinecraftReleaseTypeFactory;
+ import org.apache.commons.io.FileUtils;
+ import org.apache.commons.io.IOUtils;
+ import org.apache.logging.log4j.LogManager;
+@@ -52,6 +56,8 @@ public class MinecraftVersionManager implements VersionManager {
+     private final Object refreshLock;
+     private boolean isRefreshing;
+     private final Gson gson;
++    private Set<MinecraftReleaseType> allowedReleaseTypes; // olauncher - move allowed release types
++    public Set<MinecraftReleaseType> DEFAULT_RELEASE_TYPES = EnumSet.of(MinecraftReleaseType.RELEASE, MinecraftReleaseType.CUSTOM); // olauncher - move default release type
+ 
+     public MinecraftVersionManager(VersionList var1, VersionList var2) {
+         this.executorService = new ExceptionalThreadPoolExecutor(4, 8, 30L, TimeUnit.SECONDS);
+@@ -73,8 +79,13 @@ public class MinecraftVersionManager implements VersionManager {
+             LOGGER.info("Refreshing remote version list...");
+             this.remoteVersionList.refreshVersions();
+ 
+-            // olauncher start - verify integrity
+-
++            // olauncher start - lazy custom type finder, TODO: integrity check
++            this.localVersionList.versions.replaceAll((version)->{
++                if (!this.remoteVersionList.versionsByName.containsKey(version.getId())){
++                    ((CompleteMinecraftVersion)version).setType(MinecraftReleaseType.CUSTOM);
++                }
++                return version;
++            });
+             // olauncher end
+         } catch (IOException var7) {
+             synchronized(this.refreshLock) {
+@@ -99,7 +110,7 @@ public class MinecraftVersionManager implements VersionManager {
+     }
+ 
+     public List<VersionSyncInfo> getVersions() {
+-        return this.getVersions((VersionFilter)null);
++        return this.getVersions(getVersionFilter());
+     }
+ 
+     public List<VersionSyncInfo> getVersions(VersionFilter<? extends ReleaseType> var1) {
+@@ -197,6 +208,17 @@ public class MinecraftVersionManager implements VersionManager {
+     }
+ 
+     public VersionSyncInfo getVersionSyncInfo(String var1) {
++        if (var1.startsWith("latest-")){
++            MinecraftReleaseType type = MinecraftReleaseType.getByName(var1.replace("latest-", ""));
++            Version remote = this.remoteVersionList.getLatestVersion(type);
++            Version local = this.localVersionList.getLatestVersion(type);
++            if (remote != null){
++                if (!Objects.equals(remote.getId(), local.getId())){
++                    local = null;
++                }
++            }
++            return this.getVersionSyncInfo(local, remote);
++        }
+         return this.getVersionSyncInfo(this.localVersionList.getVersion(var1), this.remoteVersionList.getVersion(var1));
+     }
+ 
+@@ -395,4 +417,27 @@ public class MinecraftVersionManager implements VersionManager {
+         }
+ 
+     }
++
++    @Override
++    public VersionFilter<MinecraftReleaseType> getVersionFilter() {
++        VersionFilter<MinecraftReleaseType> versionFilter = new VersionFilter(MinecraftReleaseTypeFactory.instance()).setMaxCount(Integer.MAX_VALUE);
++        if (this.allowedReleaseTypes == null) {
++            versionFilter.onlyForTypes(DEFAULT_RELEASE_TYPES.toArray(new MinecraftReleaseType[0]));
++        } else {
++            versionFilter.onlyForTypes(this.allowedReleaseTypes.toArray(new MinecraftReleaseType[0]));
++        }
++
++        return versionFilter;
++    }
++    public void setAllowedReleaseTypes(Set<MinecraftReleaseType> var1) {
++        this.allowedReleaseTypes = var1;
++    }
++    public Map<MinecraftReleaseType, Version> getLatestVersions(){
++
++        if (this.remoteVersionList.latestVersions.isEmpty()){
++            return this.localVersionList.latestVersions;
++        }
++        return this.remoteVersionList.latestVersions;
++    }
++
+ }
+diff --git a/src/main/java/net/minecraft/launcher/updater/RemoteVersionList.java b/src/main/java/net/minecraft/launcher/updater/RemoteVersionList.java
+index 98350c7..ba90a8d 100644
+--- a/src/main/java/net/minecraft/launcher/updater/RemoteVersionList.java
++++ b/src/main/java/net/minecraft/launcher/updater/RemoteVersionList.java
+@@ -5,22 +5,30 @@ import com.mojang.launcher.Http;
+ import com.mojang.launcher.OperatingSystem;
+ import com.mojang.launcher.versions.CompleteVersion;
+ import com.mojang.launcher.versions.Version;
++import java.io.File;
+ import java.io.IOException;
+ import java.net.Proxy;
+ import java.net.URL;
++import java.nio.charset.StandardCharsets;
+ import java.util.ArrayList;
+ import java.util.Iterator;
+ import java.util.List;
+ import java.util.Map;
++import net.minecraft.launcher.Launcher;
+ import net.minecraft.launcher.game.MinecraftReleaseType;
++import org.apache.commons.io.FileUtils;
+ 
+ public class RemoteVersionList extends VersionList {
+     private final URL manifestUrl;
+     private final Proxy proxy;
++    private final Launcher launcher;
++    private File cached = null;
+ 
+-    public RemoteVersionList(URL var1, Proxy var2) {
++
++    public RemoteVersionList(URL var1, Proxy var2, Launcher launcher) {
+         this.manifestUrl = var1;
+         this.proxy = var2;
++        this.launcher = launcher;
+     }
+ 
+     public CompleteMinecraftVersion getCompleteVersion(Version var1) throws IOException {
+@@ -38,7 +46,18 @@ public class RemoteVersionList extends VersionList {
+ 
+     public void refreshVersions() throws IOException {
+         this.clearCache();
+-        RemoteVersionList.RawVersionList var1 = (RemoteVersionList.RawVersionList)this.gson.fromJson(this.getContent(this.manifestUrl), RemoteVersionList.RawVersionList.class);
++        // olauncher start - cache version manifest allowing for offline use
++        RemoteVersionList.RawVersionList var1;
++        try {
++            var1 = this.gson.fromJson(this.getContent(this.manifestUrl), RawVersionList.class);
++        } catch (IOException e){
++            if (cached.exists()){
++                var1 = this.gson.fromJson(FileUtils.readFileToString(cached, StandardCharsets.UTF_8), RawVersionList.class);
++            }else {
++                var1 = new RawVersionList(); // empty
++            }
++        }
++        // olauncher end
+         Iterator var2 = var1.getVersions().iterator();
+ 
+         while(var2.hasNext()) {
+@@ -62,7 +81,16 @@ public class RemoteVersionList extends VersionList {
+     }
+ 
+     public String getContent(URL var1) throws IOException {
+-        return Http.performGet(var1, this.proxy);
++        String data = Http.performGet(var1, this.proxy);
++        if (cached == null){
++            cached = new File(launcher.getLauncher().getWorkingDirectory(), "caches/version_manifest_v2.json");
++        }
++        if (!cached.exists()){
++            cached.getParentFile().mkdirs();
++        }
++        FileUtils.writeStringToFile(cached, data, StandardCharsets.UTF_8);
++
++        return data;
+     }
+ 
+     public Proxy getProxy() {
 -- 
 2.44.0.windows.1
 
