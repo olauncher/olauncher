@@ -1,4 +1,4 @@
-From c63508de9c81df9313b413c5802daa1192aa28e1 Mon Sep 17 00:00:00 2001
+From 80e18e9bcaf6b1ed3f8504ddf5ebc987e5708924 Mon Sep 17 00:00:00 2001
 From: Befell <54691311+DevBefell@users.noreply.github.com>
 Date: Tue, 9 Apr 2024 01:02:27 -0700
 Subject: [PATCH] internal overhaul
@@ -503,7 +503,7 @@ index 9141d27..78a18aa 100644
          this.allowedReleaseTypes = var1;
      }
 diff --git a/src/main/java/net/minecraft/launcher/profile/ProfileManager.java b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
-index 1cb9c2b..4385f7b 100644
+index 1cb9c2b..d5831a3 100644
 --- a/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
 +++ b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
 @@ -16,6 +16,7 @@ import com.google.gson.JsonSerializer;
@@ -584,7 +584,7 @@ index 1cb9c2b..4385f7b 100644
              // olauncher end
 -
 -            if (var1.has("clientToken")) {
-+            if (var1.has("authenticationDatabase")){
++            if (var1.has("authenticationDatabase") && authDatabase == null){
 +                this.authDatabase = this.gson.fromJson(var1.get("authenticationDatabase"), AuthenticationDatabase.class);
 +            }
 +            if (var1.has("selectedUser")){
