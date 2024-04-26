@@ -1,4 +1,4 @@
-From 2f773dfa5537acb25de696c694c23167a675d1ad Mon Sep 17 00:00:00 2001
+From 4f2121d89d5a511e7d3617f7cf12209ad519e3a4 Mon Sep 17 00:00:00 2001
 From: Befell <54691311+DevBefell@users.noreply.github.com>
 Date: Tue, 9 Apr 2024 01:02:27 -0700
 Subject: [PATCH] internal overhaul
@@ -346,7 +346,7 @@ index a9aeefa..f951bb2 100644
                              LOGGER.warn("Couldn't uninstall version " + var13.getId(), var9);
                          }
 diff --git a/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
-index 4349e7d..3e7e49b 100644
+index e757d67..b821372 100644
 --- a/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
 +++ b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
 @@ -15,6 +15,7 @@ import net.minecraft.launcher.Launcher;
@@ -365,25 +365,7 @@ index 4349e7d..3e7e49b 100644
 +        if (var3 != null && var3.isLoggedIn() && var2 != null && !this.launcher.getLauncher().getVersionManager().getVersions(null).isEmpty()) { // olauncher - check without version filter
              this.lock.lock();
  
-             try {
-@@ -107,14 +108,15 @@ public class GameLaunchDispatcher implements GameRunnerListener {
- 
-         this.launcher.getLauncher().getVersionManager().getExecutorService().execute(new Runnable() {
-             public void run() {
-+                VersionManager versionManager = GameLaunchDispatcher.this.launcher.getLauncher().getVersionManager();
-                 var5.setVisibility((LauncherVisibilityRule)MoreObjects.firstNonNull(var2.getLauncherVisibilityOnGameClose(), Profile.DEFAULT_LAUNCHER_VISIBILITY)); // olauncher - Objects -> MoreObjects
-                 VersionSyncInfo var1 = null;
-                 if (var4 != null) {
--                    var1 = GameLaunchDispatcher.this.launcher.getLauncher().getVersionManager().getVersionSyncInfo(var4);
-+                    var1 = versionManager.getVersionSyncInfo(var4);
-                 }
- 
-                 if (var1 == null || var1.getLatestVersion() == null) {
--                    var1 = (VersionSyncInfo)GameLaunchDispatcher.this.launcher.getLauncher().getVersionManager().getVersions(var2.getVersionFilter()).get(0);
-+                    var1 = versionManager.getVersions().get(0);
-                 }
- 
-                 var5.setStatus(GameInstanceStatus.IDLE);
+             label107: {
 diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
 index 6436333..099cba2 100644
 --- a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
