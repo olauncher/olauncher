@@ -1,4 +1,4 @@
-From 80e18e9bcaf6b1ed3f8504ddf5ebc987e5708924 Mon Sep 17 00:00:00 2001
+From 2f773dfa5537acb25de696c694c23167a675d1ad Mon Sep 17 00:00:00 2001
 From: Befell <54691311+DevBefell@users.noreply.github.com>
 Date: Tue, 9 Apr 2024 01:02:27 -0700
 Subject: [PATCH] internal overhaul
@@ -346,17 +346,17 @@ index a9aeefa..f951bb2 100644
                              LOGGER.warn("Couldn't uninstall version " + var13.getId(), var9);
                          }
 diff --git a/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
-index 4349e7d..4b5379b 100644
+index 4349e7d..3e7e49b 100644
 --- a/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
 +++ b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
-@@ -7,6 +7,7 @@ import com.mojang.authlib.UserAuthentication;
- import com.mojang.launcher.game.GameInstanceStatus;
- import com.mojang.launcher.game.runner.GameRunner;
- import com.mojang.launcher.game.runner.GameRunnerListener;
+@@ -15,6 +15,7 @@ import net.minecraft.launcher.Launcher;
+ import net.minecraft.launcher.profile.LauncherVisibilityRule;
+ import net.minecraft.launcher.profile.Profile;
+ import net.minecraft.launcher.profile.ProfileManager;
 +import com.mojang.launcher.updater.VersionManager;
- import com.mojang.launcher.updater.VersionSyncInfo;
- import java.io.File;
- import java.util.Iterator;
+ 
+ public class GameLaunchDispatcher implements GameRunnerListener {
+     private final Launcher launcher;
 @@ -32,7 +33,7 @@ public class GameLaunchDispatcher implements GameRunnerListener {
          ProfileManager var1 = this.launcher.getProfileManager();
          Profile var2 = var1.getProfiles().isEmpty() ? null : var1.getSelectedProfile();
