@@ -1,4 +1,4 @@
-From 4f2121d89d5a511e7d3617f7cf12209ad519e3a4 Mon Sep 17 00:00:00 2001
+From 44ef888358a31a377a5a89a7a7f97b8ca54a6be2 Mon Sep 17 00:00:00 2001
 From: Befell <54691311+DevBefell@users.noreply.github.com>
 Date: Tue, 9 Apr 2024 01:02:27 -0700
 Subject: [PATCH] internal overhaul
@@ -345,27 +345,6 @@ index a9aeefa..f951bb2 100644
                          } catch (IOException var9) {
                              LOGGER.warn("Couldn't uninstall version " + var13.getId(), var9);
                          }
-diff --git a/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
-index e757d67..b821372 100644
---- a/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
-+++ b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
-@@ -15,6 +15,7 @@ import net.minecraft.launcher.Launcher;
- import net.minecraft.launcher.profile.LauncherVisibilityRule;
- import net.minecraft.launcher.profile.Profile;
- import net.minecraft.launcher.profile.ProfileManager;
-+import com.mojang.launcher.updater.VersionManager;
- 
- public class GameLaunchDispatcher implements GameRunnerListener {
-     private final Launcher launcher;
-@@ -32,7 +33,7 @@ public class GameLaunchDispatcher implements GameRunnerListener {
-         ProfileManager var1 = this.launcher.getProfileManager();
-         Profile var2 = var1.getProfiles().isEmpty() ? null : var1.getSelectedProfile();
-         UserAuthentication var3 = var1.getSelectedUser() == null ? null : var1.getAuthDatabase().getByUUID(var1.getSelectedUser());
--        if (var3 != null && var3.isLoggedIn() && var2 != null && !this.launcher.getLauncher().getVersionManager().getVersions(var2.getVersionFilter()).isEmpty()) {
-+        if (var3 != null && var3.isLoggedIn() && var2 != null && !this.launcher.getLauncher().getVersionManager().getVersions(null).isEmpty()) { // olauncher - check without version filter
-             this.lock.lock();
- 
-             label107: {
 diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
 index 6436333..099cba2 100644
 --- a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
