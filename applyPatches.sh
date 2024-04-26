@@ -20,7 +20,8 @@ applyPatches() {
         echo "Patches applied cleanly to $to!"
     else
         echo "Patches did not apply cleanly to $to. Please fix."
+        return 1
     fi
 }
 
-applyPatches launcher olauncher
+applyPatches launcher olauncher || exit 1
