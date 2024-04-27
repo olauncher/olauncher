@@ -1,4 +1,4 @@
-From 44ef888358a31a377a5a89a7a7f97b8ca54a6be2 Mon Sep 17 00:00:00 2001
+From 96e234f92fc572a43469a2d8b6b5c7ad22980284 Mon Sep 17 00:00:00 2001
 From: Befell <54691311+DevBefell@users.noreply.github.com>
 Date: Tue, 9 Apr 2024 01:02:27 -0700
 Subject: [PATCH] internal overhaul
@@ -464,7 +464,7 @@ index 9141d27..78a18aa 100644
          this.allowedReleaseTypes = var1;
      }
 diff --git a/src/main/java/net/minecraft/launcher/profile/ProfileManager.java b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
-index 1cb9c2b..d5831a3 100644
+index 1cb9c2b..371c3d6 100644
 --- a/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
 +++ b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
 @@ -16,6 +16,7 @@ import com.google.gson.JsonSerializer;
@@ -513,7 +513,7 @@ index 1cb9c2b..d5831a3 100644
          var2.registerTypeAdapter(AuthenticationDatabase.class, new AuthenticationDatabase.Serializer(var1));
          var2.registerTypeAdapter(ProfileManager.RawProfileList.class, new ProfileManager.RawProfileList.Serializer(var1));
          var2.setPrettyPrinting();
-@@ -69,21 +78,38 @@ public class ProfileManager {
+@@ -69,56 +78,84 @@ public class ProfileManager {
      }
  
      public void saveProfiles() throws IOException {
@@ -529,51 +529,120 @@ index 1cb9c2b..d5831a3 100644
          this.selectedProfile = null;
          this.selectedUser = null;
 +        if (this.accountsFile.isFile()){
-+            JsonObject accountsData = this.parser.parse(FileUtils.readFileToString(this.accountsFile)).getAsJsonObject();
-+            AccountsDatabase accountsDatabase = this.gson.fromJson(accountsData, AccountsDatabase.class);
-+            if (accountsDatabase.clientToken != null) {
-+                this.launcher.setClientToken((UUID)this.gson.fromJson(accountsData.get("clientToken"), UUID.class));
++            JsonElement accountsDataElement = this.parser.parse(FileUtils.readFileToString(this.accountsFile));
++            if (accountsDataElement!=null){
++                JsonObject accountsData = accountsDataElement.getAsJsonObject();
++                AccountsDatabase accountsDatabase = this.gson.fromJson(accountsData, AccountsDatabase.class);
++                if (accountsDatabase.clientToken != null) {
++                    this.launcher.setClientToken((UUID)this.gson.fromJson(accountsData.get("clientToken"), UUID.class));
++                }
++                this.selectedUser = accountsDatabase.selectedUser;
++                this.authDatabase = accountsDatabase.authenticationDatabase;
 +            }
-+            this.selectedUser = accountsDatabase.selectedUser;
-+            this.authDatabase = accountsDatabase.authenticationDatabase;
 +
 +        }
          if (this.profileFile.isFile()) {
-             JsonObject var1 = this.parser.parse(FileUtils.readFileToString(this.profileFile)).getAsJsonObject();
-             // olauncher start - creates backups for profiles
-             Files.copy(this.profileFile.toPath(),  new File(this.profileFile.getParentFile(), "launcher_profiles.old.json").toPath(), StandardCopyOption.REPLACE_EXISTING);
-             // olauncher end
--
+-            JsonObject var1 = this.parser.parse(FileUtils.readFileToString(this.profileFile)).getAsJsonObject();
+-            // olauncher start - creates backups for profiles
+-            Files.copy(this.profileFile.toPath(),  new File(this.profileFile.getParentFile(), "launcher_profiles.old.json").toPath(), StandardCopyOption.REPLACE_EXISTING);
+-            // olauncher end
++            JsonElement profileDataElement = this.parser.parse(FileUtils.readFileToString(this.profileFile));
++            if (profileDataElement!=null) {
++                JsonObject var1 = profileDataElement.getAsJsonObject();
+ 
 -            if (var1.has("clientToken")) {
-+            if (var1.has("authenticationDatabase") && authDatabase == null){
-+                this.authDatabase = this.gson.fromJson(var1.get("authenticationDatabase"), AuthenticationDatabase.class);
-+            }
-+            if (var1.has("selectedUser")){
-+                this.selectedUser = var1.getAsJsonPrimitive("selectedUser").getAsString();
-+            }
-+            if (var1.has("clientToken")){
-                 this.launcher.setClientToken((UUID)this.gson.fromJson(var1.get("clientToken"), UUID.class));
-             }
+-                this.launcher.setClientToken((UUID)this.gson.fromJson(var1.get("clientToken"), UUID.class));
+-            }
  
-@@ -98,6 +124,8 @@ public class ProfileManager {
-                     name = value.getLastVersionId();
-                     if (name.equals("latest-release")) {
-                         name = "Latest Version";
-+                    } else if(name.equals("latest-snapshot")){
-+                        name = "Latest Snapshot";
-                     }
-                     value.setName(name);
+-            ProfileManager.RawProfileList var4 = (ProfileManager.RawProfileList)this.gson.fromJson(var1, ProfileManager.RawProfileList.class);
+-
+-            // olauncher start - migrate profiles correctly
+-            var4.profiles.replaceAll((key, value) ->{
+-                value.setUniqueName(key);
+-                String name = value.getName();
+-                if (name.isEmpty()) {
+-                    // Fallback use last version ID
+-                    name = value.getLastVersionId();
+-                    if (name.equals("latest-release")) {
+-                        name = "Latest Version";
+-                    }
+-                    value.setName(name);
++                // olauncher start - creates backups for profiles
++                Files.copy(this.profileFile.toPath(), new File(this.profileFile.getParentFile(), "launcher_profiles.old.json").toPath(), StandardCopyOption.REPLACE_EXISTING);
++                // olauncher end
++                if (var1.has("authenticationDatabase") && authDatabase == null) {
++                    this.authDatabase = this.gson.fromJson(var1.get("authenticationDatabase"), AuthenticationDatabase.class);
++                }
++                if (var1.has("selectedUser")) {
++                    this.selectedUser = var1.getAsJsonPrimitive("selectedUser").getAsString();
++                }
++                if (var1.has("clientToken")) {
++                    this.launcher.setClientToken((UUID) this.gson.fromJson(var1.get("clientToken"), UUID.class));
                  }
-@@ -109,8 +137,6 @@ public class ProfileManager {
+-                LOGGER.info("Loaded profile " + name);
+-                return value;
+-            });
  
-             this.profiles.putAll(var4.profiles);
-             this.selectedProfile = var4.selectedProfile;
+-            // olauncher end
++                ProfileManager.RawProfileList var4 = (ProfileManager.RawProfileList) this.gson.fromJson(var1, ProfileManager.RawProfileList.class);
++
++                // olauncher start - migrate profiles correctly
++                var4.profiles.replaceAll((key, value) -> {
++                    value.setUniqueName(key);
++                    String name = value.getName();
++                    if (name.isEmpty()) {
++                        // Fallback use last version ID
++                        name = value.getLastVersionId();
++                        // Make sure last version ID is set
++                        if (name == null) {
++                            value.setLastVersionId("latest-version");
++                        }
++                        if (name.equals("latest-release")) {
++                            name = "Latest Version";
++                        } else if (name.equals("latest-snapshot")) {
++                            name = "Latest Snapshot";
++                        }
++                        value.setName(name);
++                    }
++                    LOGGER.info("Loaded profile " + name);
++                    return value;
++                });
+ 
+-            this.profiles.putAll(var4.profiles);
+-            this.selectedProfile = var4.selectedProfile;
 -            this.selectedUser = var4.selectedUser;
 -            this.authDatabase = var4.authenticationDatabase;
-             this.fireRefreshEvent();
-             this.fireUserChangedEvent();
-             return true;
-@@ -199,25 +225,10 @@ public class ProfileManager {
+-            this.fireRefreshEvent();
+-            this.fireUserChangedEvent();
+-            return true;
+-        } else {
+-            this.fireRefreshEvent();
+-            this.fireUserChangedEvent();
+-            return false;
++                // olauncher end
++
++                this.profiles.putAll(var4.profiles);
++                this.selectedProfile = var4.selectedProfile;
++                this.fireRefreshEvent();
++                this.fireUserChangedEvent();
++                return true;
++            }
+         }
++        this.fireRefreshEvent();
++        this.fireUserChangedEvent();
++        return false;
+     }
+ 
+     public void fireRefreshEvent() {
+@@ -151,6 +188,7 @@ public class ProfileManager {
+                 this.selectedProfile = "(Default)";
+                 Profile defaultProfile = new Profile("Default");
+                 defaultProfile.setUniqueName(this.selectedProfile);
++                defaultProfile.setLastVersionId("latest-version");  // olauncher - no null version ID
+                 this.profiles.put(this.selectedProfile, defaultProfile); // olauncher - name default profile instead of null
+             }
+         }
+@@ -199,25 +237,10 @@ public class ProfileManager {
      private static class RawProfileList {
          public Map<String, Profile> profiles;
          public String selectedProfile;
@@ -600,7 +669,7 @@ index 1cb9c2b..d5831a3 100644
          public static class Serializer implements JsonDeserializer<ProfileManager.RawProfileList>, JsonSerializer<ProfileManager.RawProfileList> {
              private final Launcher launcher;
  
-@@ -232,32 +243,32 @@ public class ProfileManager {
+@@ -232,32 +255,32 @@ public class ProfileManager {
                      var5 = (Map)var3.deserialize(var4.get("profiles"), (new TypeToken<Map<String, Profile>>() {
                      }).getType());
                  }
@@ -654,7 +723,7 @@ index 1cb9c2b..d5831a3 100644
                  Iterator var10 = ((Map)var5).values().iterator();
  
                  while(var10.hasNext()) {
-@@ -265,10 +276,24 @@ public class ProfileManager {
+@@ -265,10 +288,24 @@ public class ProfileManager {
                      var11.setPlayerUUID((String)null);
                  }
  
@@ -680,7 +749,7 @@ index 1cb9c2b..d5831a3 100644
                  JsonObject var4 = new JsonObject();
                  var4.addProperty("name", LauncherConstants.getVersionName());
                  var4.addProperty("format", 21);
-@@ -276,10 +301,8 @@ public class ProfileManager {
+@@ -276,10 +313,8 @@ public class ProfileManager {
                  JsonObject var5 = new JsonObject();
                  var5.add("profiles", var3.serialize(var1.profiles));
                  var5.add("selectedProfile", var3.serialize(var1.selectedProfile));
