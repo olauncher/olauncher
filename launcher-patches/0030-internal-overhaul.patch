@@ -1,4 +1,4 @@
-From 96e234f92fc572a43469a2d8b6b5c7ad22980284 Mon Sep 17 00:00:00 2001
+From 9834b95cd9c38c21891fcbfab8f9566064d130da Mon Sep 17 00:00:00 2001
 From: Befell <54691311+DevBefell@users.noreply.github.com>
 Date: Tue, 9 Apr 2024 01:02:27 -0700
 Subject: [PATCH] internal overhaul
@@ -787,7 +787,7 @@ index 52528d1..b9023e9 100644
                  var5 = var6;
              }
 diff --git a/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileVersionPanel.java b/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileVersionPanel.java
-index eec04bd..2d29f39 100644
+index eec04bd..30322e9 100644
 --- a/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileVersionPanel.java
 +++ b/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileVersionPanel.java
 @@ -2,6 +2,7 @@ package net.minecraft.launcher.ui.popups.profile;
@@ -853,7 +853,7 @@ index eec04bd..2d29f39 100644
          Iterator var3 = this.customVersionTypes.iterator();
  
          while(var3.hasNext()) {
-@@ -134,46 +137,57 @@ public class ProfileVersionPanel extends JPanel implements RefreshedVersionsList
+@@ -134,46 +137,58 @@ public class ProfileVersionPanel extends JPanel implements RefreshedVersionsList
                  var2.remove(var4.getType());
              }
          }
@@ -909,11 +909,12 @@ index eec04bd..2d29f39 100644
 +                this.versionList.addItem(version);
 +            }
 +        }));
++        if (var2.startsWith("latest-")){
++            latest = versionManager.getLatestVersions().get(MinecraftReleaseType.getByName(var2.replace("latest-", "")));
++        }
 +        for (VersionSyncInfo versionSyncInfo: versions){
 +            if (versionSyncInfo.getLatestVersion().getId().equals(var2)){
 +                var3 = versionSyncInfo;
-+            }else if (var2.startsWith("latest-")){
-+                latest = versionManager.getLatestVersions().get(MinecraftReleaseType.getByName(var2.replace("latest-", "")));
 +            }
 +            if (versionFilter.getTypes().contains(versionSyncInfo.getLatestVersion().getType())){
 +                this.versionList.addItem(versionSyncInfo);
@@ -933,7 +934,7 @@ index eec04bd..2d29f39 100644
          }
  
      }
-@@ -181,8 +195,7 @@ public class ProfileVersionPanel extends JPanel implements RefreshedVersionsList
+@@ -181,8 +196,7 @@ public class ProfileVersionPanel extends JPanel implements RefreshedVersionsList
      public void onVersionsRefreshed(final VersionManager var1) {
          SwingUtilities.invokeLater(new Runnable() {
              public void run() {
@@ -943,7 +944,7 @@ index eec04bd..2d29f39 100644
                  ProfileVersionPanel.this.editor.getMinecraftLauncher().getLauncher().getVersionManager().removeRefreshedVersionsListener(ProfileVersionPanel.this);
              }
          });
-@@ -211,13 +224,17 @@ public class ProfileVersionPanel extends JPanel implements RefreshedVersionsList
+@@ -211,13 +225,17 @@ public class ProfileVersionPanel extends JPanel implements RefreshedVersionsList
          }
  
          public Component getListCellRendererComponent(JList var1, Object var2, int var3, boolean var4, boolean var5) {
@@ -964,7 +965,7 @@ index eec04bd..2d29f39 100644
          }
  
 diff --git a/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java b/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java
-index a8801e6..83f4a36 100644
+index a8801e6..77bb3a1 100644
 --- a/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java
 +++ b/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java
 @@ -33,11 +33,15 @@ import java.util.Iterator;
@@ -1026,7 +1027,7 @@ index a8801e6..83f4a36 100644
 +            Version remote = this.remoteVersionList.getLatestVersion(type);
 +            Version local = this.localVersionList.getLatestVersion(type);
 +            if (remote != null){
-+                if (!Objects.equals(remote.getId(), local.getId())){
++                if (!Objects.equals(remote, local)){
 +                    local = null;
 +                }
 +            }
@@ -1064,7 +1065,7 @@ index a8801e6..83f4a36 100644
 +
  }
 diff --git a/src/main/java/net/minecraft/launcher/updater/RemoteVersionList.java b/src/main/java/net/minecraft/launcher/updater/RemoteVersionList.java
-index 98350c7..ba90a8d 100644
+index 98350c7..9d07d80 100644
 --- a/src/main/java/net/minecraft/launcher/updater/RemoteVersionList.java
 +++ b/src/main/java/net/minecraft/launcher/updater/RemoteVersionList.java
 @@ -5,22 +5,30 @@ import com.mojang.launcher.Http;
@@ -1119,7 +1120,28 @@ index 98350c7..ba90a8d 100644
          Iterator var2 = var1.getVersions().iterator();
  
          while(var2.hasNext()) {
-@@ -62,7 +81,16 @@ public class RemoteVersionList extends VersionList {
+@@ -47,12 +66,15 @@ public class RemoteVersionList extends VersionList {
+             this.versionsByName.put(var3.getId(), var3);
+         }
+ 
+-        MinecraftReleaseType[] var6 = MinecraftReleaseType.values();
+-        int var7 = var6.length;
++        MinecraftReleaseType[] var6 = new MinecraftReleaseType[]{MinecraftReleaseType.RELEASE, MinecraftReleaseType.SNAPSHOT}; // olauncher - Target snapshots and releases
+ 
+-        for(int var4 = 0; var4 < var7; ++var4) {
+-            MinecraftReleaseType var5 = var6[var4];
+-            this.latestVersions.put(var5, this.versionsByName.get(var1.getLatestVersions().get(var5)));
++        for (MinecraftReleaseType var5 : var6) {
++            PartialVersion partialVersion = (PartialVersion) this.versionsByName.get(var1.getLatestVersions().get(var5));
++            if (partialVersion == null){
++                return;
++            }
++            partialVersion.setType(var5);
++            this.latestVersions.put(var5, partialVersion);
+         }
+ 
+     }
+@@ -62,7 +84,16 @@ public class RemoteVersionList extends VersionList {
      }
  
      public String getContent(URL var1) throws IOException {
