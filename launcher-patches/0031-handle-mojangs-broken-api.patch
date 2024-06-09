@@ -1,0 +1,81 @@
+From a38b1aae21268c6c2798ba0ee1f622f897581730 Mon Sep 17 00:00:00 2001
+From: bronwyn <monstertoast2@gmail.com>
+Date: Sun, 9 Jun 2024 14:08:55 -0400
+Subject: [PATCH] handle mojangs broken api
+
+
+diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java
+index eb6acd0..4eb1697 100644
+--- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java
++++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java
+@@ -55,7 +55,7 @@ public class MicrosoftAuthenticationService extends YggdrasilAuthenticationServi
+ 
+     public static final URL DEVICE_CODE_URL = constantURL("https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode");
+     public static final URL DEVICE_CODE_HEARTBEAT_URL = constantURL("https://login.microsoftonline.com/consumers/oauth2/v2.0/token");
+-    public static final URL ENTITLEMENTS_URL = constantURL("https://api.minecraftservices.com/entitlements");
++    public static final URL ENTITLEMENTS_URL = constantURL("https://api.minecraftservices.com/entitlements/mcstore");
+ 
+     private final Gson gson;
+ 
+diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
+index 2486d77..d5fe3c7 100644
+--- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
++++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
+@@ -32,6 +32,7 @@ import lombok.Getter;
+ import org.apache.commons.lang3.StringUtils;
+ import org.apache.logging.log4j.LogManager;
+ import org.apache.logging.log4j.Logger;
++import com.google.gson.JsonSyntaxException;
+ 
+ import javax.imageio.ImageIO;
+ import javax.swing.*;
+@@ -245,9 +246,15 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+         findXUID();
+ 
+         LOGGER.debug("Logging into Minecraft...");
+-        MinecraftXboxLoginResponse mcLoginRes = getAuthenticationService().post(MicrosoftAuthenticationService.ROUTE_MINECRAFT_XBOX_LOGIN,
++		MinecraftXboxLoginResponse mcLoginRes = null;
++		try {
++			mcLoginRes = getAuthenticationService().post(MicrosoftAuthenticationService.ROUTE_MINECRAFT_XBOX_LOGIN,
+                 new MinecraftXboxLoginRequest(xstsAuthRes.getUserHash(), xstsAuthRes.getToken(), true),
+                 MinecraftXboxLoginResponse.class);
++		} catch(JsonSyntaxException ex) {
++			throw new AuthenticationException("Minecraft API returned error page instead of JSON",ex);
++		}
++
+         this.mojToken = mcLoginRes.getAccessToken();
+         this.mojTokenExpire = Instant.now().plus(mcLoginRes.getExpiresIn(), ChronoUnit.SECONDS);
+     }
+@@ -272,8 +279,13 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+         }
+ 
+         LOGGER.debug("Getting your user profile...");
+-        profileInfo = getAuthenticationService().getAuthenticated(MicrosoftAuthenticationService.ROUTE_MINECRAFT_PROFILE,
++		try {
++			profileInfo = getAuthenticationService().getAuthenticated(MicrosoftAuthenticationService.ROUTE_MINECRAFT_PROFILE,
+                 mojToken, MCProfileInfo.class);
++		}
++		catch (JsonSyntaxException ex) {
++			throw new AuthenticationException("Minecraft API returned error page instead of JSON",ex);
++		}
+ 
+         if (false) { // this code should be unnecessary now -figboot
+         while (profileInfo.getId() == null) {
+@@ -285,8 +297,13 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+             } catch (InterruptedException | InvocationTargetException e) {
+                 throw new RuntimeException(e);
+             }
+-            profileInfo = getAuthenticationService().getAuthenticated(MicrosoftAuthenticationService.ROUTE_MINECRAFT_PROFILE,
++			try {
++				profileInfo = getAuthenticationService().getAuthenticated(MicrosoftAuthenticationService.ROUTE_MINECRAFT_PROFILE,
+                     mojToken, MCProfileInfo.class);
++			}
++			catch (JsonSyntaxException ex) {
++				throw new AuthenticationException("Minecraft API returned error page instead of JSON",ex);
++			}
+         }
+         }
+ 
+-- 
+2.43.0.windows.1
+
