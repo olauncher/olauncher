@@ -1,4 +1,4 @@
-From a7affd8f38f0fa5356a74fa6c1866a4b0614f7fd Mon Sep 17 00:00:00 2001
+From 49fa74a0d07027dbd2fd3fcbc2d36aa375172e6c Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Mon, 11 Apr 2022 02:52:40 -0500
 Subject: [PATCH] Add version information
@@ -136,7 +136,7 @@ index 0000000..6112721
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/launcher/LauncherConstants.java b/src/main/java/net/minecraft/launcher/LauncherConstants.java
-index faf0dc0..2776ab5 100644
+index d74d28d..f4d05c2 100644
 --- a/src/main/java/net/minecraft/launcher/LauncherConstants.java
 +++ b/src/main/java/net/minecraft/launcher/LauncherConstants.java
 @@ -10,6 +10,8 @@ import java.net.MalformedURLException;
@@ -158,7 +158,7 @@ index faf0dc0..2776ab5 100644
  
      private static LauncherConstants.LauncherProperties getProperties() {
 diff --git a/src/main/java/net/minecraft/launcher/Main.java b/src/main/java/net/minecraft/launcher/Main.java
-index cc91b34..fff6d93 100644
+index c852cd6..5f51895 100644
 --- a/src/main/java/net/minecraft/launcher/Main.java
 +++ b/src/main/java/net/minecraft/launcher/Main.java
 @@ -13,6 +13,8 @@ import java.net.Proxy.Type;
@@ -180,7 +180,7 @@ index cc91b34..fff6d93 100644
  
          try {
 diff --git a/src/main/java/net/minecraft/launcher/SwingUserInterface.java b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
-index 7cbae64..524c1f7 100644
+index 96d9ec1..5f9d42a 100644
 --- a/src/main/java/net/minecraft/launcher/SwingUserInterface.java
 +++ b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
 @@ -26,6 +26,8 @@ import javax.swing.JOptionPane;
@@ -211,5 +211,5 @@ index 7cbae64..524c1f7 100644
  
      public JFrame getFrame() {
 -- 
-2.40.1
+2.43.0.windows.1
 

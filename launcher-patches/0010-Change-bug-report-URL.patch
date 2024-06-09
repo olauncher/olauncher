@@ -1,11 +1,11 @@
-From c390e5f2d0521d6d10b113ea13b629804e80f2f2 Mon Sep 17 00:00:00 2001
+From fbc918fd0082b96de6f719bf1ad54108d61568c4 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 7 Apr 2022 04:10:54 -0500
 Subject: [PATCH] Change bug report URL
 
 
 diff --git a/src/main/java/com/mojang/launcher/game/runner/AbstractGameRunner.java b/src/main/java/com/mojang/launcher/game/runner/AbstractGameRunner.java
-index cd37a5b..d9c609c 100644
+index 7326857..9d4b7e1 100644
 --- a/src/main/java/com/mojang/launcher/game/runner/AbstractGameRunner.java
 +++ b/src/main/java/com/mojang/launcher/game/runner/AbstractGameRunner.java
 @@ -291,7 +291,7 @@ public abstract class AbstractGameRunner implements GameRunner, DownloadListener
@@ -18,5 +18,5 @@ index cd37a5b..d9c609c 100644
                  }
              }
 -- 
-2.40.1
+2.43.0.windows.1
 

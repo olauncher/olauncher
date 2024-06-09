@@ -1,11 +1,11 @@
-From 7aa8e325fbd2075ae3585676a400c268195c618f Mon Sep 17 00:00:00 2001
+From f8985f2ef7a3de7772e3769101b75d23a3387958 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Sat, 14 Oct 2023 18:03:22 -0500
 Subject: [PATCH] Properly migrate profiles from new launcher
 
 
 diff --git a/src/main/java/net/minecraft/launcher/profile/ProfileManager.java b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
-index a29c749..bb7d8a0 100644
+index 4dbda0b..ae5a609 100644
 --- a/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
 +++ b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
 @@ -34,6 +34,8 @@ import dev.figboot.olauncher.auth.MicrosoftAuthenticationService;
@@ -44,5 +44,5 @@ index a29c749..bb7d8a0 100644
              this.selectedProfile = var4.selectedProfile;
              this.selectedUser = var4.selectedUser;
 -- 
-2.40.1
+2.43.0.windows.1
 

@@ -1,4 +1,4 @@
-From 94dd0406636a3d0308330aedff1b7d2a4034e549 Mon Sep 17 00:00:00 2001
+From 40083db773792ff8075dcaddfa15064b54ce8fa0 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Sun, 10 Mar 2024 19:51:40 -0500
 Subject: [PATCH] fix offline auth and stuff
@@ -262,7 +262,7 @@ index 3a959db..3d1afb8 100644
      }
  }
 diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
-index 0fda0ab..6436333 100644
+index e570f6c..a658d87 100644
 --- a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
 +++ b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
 @@ -364,7 +364,7 @@ public class MinecraftGameRunner extends AbstractGameRunner implements GameProce
@@ -275,7 +275,7 @@ index 0fda0ab..6436333 100644
          }
  
 diff --git a/src/main/java/net/minecraft/launcher/updater/Argument.java b/src/main/java/net/minecraft/launcher/updater/Argument.java
-index d5560e6..fb4ae8c 100644
+index 8b59115..673e733 100644
 --- a/src/main/java/net/minecraft/launcher/updater/Argument.java
 +++ b/src/main/java/net/minecraft/launcher/updater/Argument.java
 @@ -11,6 +11,8 @@ import java.lang.reflect.Type;
@@ -322,5 +322,5 @@ index d5560e6..fb4ae8c 100644
  
                  return new Argument(var6, var11);
 -- 
-2.43.0
+2.43.0.windows.1
 

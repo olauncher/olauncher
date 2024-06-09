@@ -1,4 +1,4 @@
-From fbee2eb53af8f83b0d86d1a0b5a7307db5a6f5a6 Mon Sep 17 00:00:00 2001
+From 2ac07a58852fc662b9682be559863e530dcbeccd Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Wed, 13 Apr 2022 04:56:22 -0500
 Subject: [PATCH] Add update checking
@@ -483,7 +483,7 @@ index 0000000..54d2325
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/launcher/Launcher.java b/src/main/java/net/minecraft/launcher/Launcher.java
-index 1ed2f8f..a9aeefa 100644
+index 63604aa..8bcd864 100644
 --- a/src/main/java/net/minecraft/launcher/Launcher.java
 +++ b/src/main/java/net/minecraft/launcher/Launcher.java
 @@ -34,6 +34,7 @@ import javax.swing.JFrame;
@@ -512,5 +512,5 @@ index 1ed2f8f..a9aeefa 100644
      }
  
 -- 
-2.40.1
+2.43.0.windows.1
 

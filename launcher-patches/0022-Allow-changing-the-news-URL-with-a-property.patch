@@ -1,11 +1,11 @@
-From 0540eabb368f97d61b4d6ff6f9ba74f2354a5af3 Mon Sep 17 00:00:00 2001
+From fee1e4651af5ac1a5a1bd16e8395021d4c4afcfa Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Sat, 23 Sep 2023 18:31:23 -0500
 Subject: [PATCH] Allow changing the news URL with a property
 
 
 diff --git a/src/main/java/net/minecraft/launcher/LauncherConstants.java b/src/main/java/net/minecraft/launcher/LauncherConstants.java
-index 41fc5fc..b2267d5 100644
+index ca85997..1e3d9f6 100644
 --- a/src/main/java/net/minecraft/launcher/LauncherConstants.java
 +++ b/src/main/java/net/minecraft/launcher/LauncherConstants.java
 @@ -21,7 +21,7 @@ public class LauncherConstants {
@@ -18,5 +18,5 @@ index 41fc5fc..b2267d5 100644
      public static final String URL_STATUS_CHECKER = "http://status.mojang.com/check";
      public static final int UNVERSIONED_BOOTSTRAP_VERSION = 0;
 -- 
-2.40.1
+2.43.0.windows.1
 

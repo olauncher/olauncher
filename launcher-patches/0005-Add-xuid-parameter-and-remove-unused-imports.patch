@@ -1,11 +1,11 @@
-From a14356ed3b8f3419888e4a29f72632ae2cc1b224 Mon Sep 17 00:00:00 2001
+From ef04cf5479fe5f6f768e55710ee832bff2153d2b Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 17 Mar 2022 16:58:53 -0500
 Subject: [PATCH] Add xuid parameter and remove unused imports
 
 
 diff --git a/src/main/java/com/mojang/launcher/game/process/GameProcessBuilder.java b/src/main/java/com/mojang/launcher/game/process/GameProcessBuilder.java
-index c5df30c..dd3dd57 100644
+index 31b2fbf..752d7bb 100644
 --- a/src/main/java/com/mojang/launcher/game/process/GameProcessBuilder.java
 +++ b/src/main/java/com/mojang/launcher/game/process/GameProcessBuilder.java
 @@ -1,7 +1,6 @@
@@ -17,7 +17,7 @@ index c5df30c..dd3dd57 100644
  import com.google.common.base.Predicates;
  import com.google.common.collect.Lists;
 diff --git a/src/main/java/com/mojang/launcher/game/process/direct/DirectGameProcess.java b/src/main/java/com/mojang/launcher/game/process/direct/DirectGameProcess.java
-index 2d0aca3..1b40430 100644
+index 99a72de..a619ffe 100644
 --- a/src/main/java/com/mojang/launcher/game/process/direct/DirectGameProcess.java
 +++ b/src/main/java/com/mojang/launcher/game/process/direct/DirectGameProcess.java
 @@ -1,7 +1,6 @@
@@ -29,7 +29,7 @@ index 2d0aca3..1b40430 100644
  import com.google.common.collect.EvictingQueue;
  import com.mojang.launcher.events.GameOutputLogProcessor;
 diff --git a/src/main/java/com/mojang/util/QueueLogAppender.java b/src/main/java/com/mojang/util/QueueLogAppender.java
-index 1abc840..8928e0c 100644
+index dee229e..6c27900 100644
 --- a/src/main/java/com/mojang/util/QueueLogAppender.java
 +++ b/src/main/java/com/mojang/util/QueueLogAppender.java
 @@ -11,13 +11,11 @@ import org.apache.logging.log4j.core.Filter;
@@ -138,7 +138,7 @@ index 10dbf2a..83bd084 100644
  import org.apache.logging.log4j.Logger;
  
 diff --git a/src/main/java/net/minecraft/launcher/LauncherConstants.java b/src/main/java/net/minecraft/launcher/LauncherConstants.java
-index c739732..db78fda 100644
+index 3aa3c83..98c332a 100644
 --- a/src/main/java/net/minecraft/launcher/LauncherConstants.java
 +++ b/src/main/java/net/minecraft/launcher/LauncherConstants.java
 @@ -1,7 +1,6 @@
@@ -150,7 +150,7 @@ index c739732..db78fda 100644
  import com.google.gson.GsonBuilder;
  import com.mojang.launcher.updater.LowerCaseEnumTypeAdapterFactory;
 diff --git a/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
-index c5a8fc4..a4b4e50 100644
+index 14a2428..daa332e 100644
 --- a/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
 +++ b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
 @@ -1,7 +1,6 @@
@@ -162,7 +162,7 @@ index c5a8fc4..a4b4e50 100644
  import com.google.common.collect.HashBiMap;
  import com.mojang.authlib.UserAuthentication;
 diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
-index e82aa38..6f7050d 100644
+index 9542169..99ff6a8 100644
 --- a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
 +++ b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
 @@ -1,7 +1,6 @@
@@ -197,7 +197,7 @@ index e82aa38..6f7050d 100644
      }
  
 diff --git a/src/main/java/net/minecraft/launcher/profile/Profile.java b/src/main/java/net/minecraft/launcher/profile/Profile.java
-index a450ca3..fdd24fc 100644
+index bc71823..065875d 100644
 --- a/src/main/java/net/minecraft/launcher/profile/Profile.java
 +++ b/src/main/java/net/minecraft/launcher/profile/Profile.java
 @@ -1,7 +1,6 @@
@@ -209,7 +209,7 @@ index a450ca3..fdd24fc 100644
  import com.mojang.launcher.updater.VersionFilter;
  import com.mojang.launcher.versions.ReleaseType;
 diff --git a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
-index b9ac4df..9d786d5 100644
+index 5883c1a..29d6c37 100644
 --- a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
 +++ b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
 @@ -1,7 +1,6 @@
@@ -221,5 +221,5 @@ index b9ac4df..9d786d5 100644
  import com.google.common.collect.Maps;
  import com.google.common.collect.Sets;
 -- 
-2.40.1
+2.43.0.windows.1
 

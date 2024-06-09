@@ -1,4 +1,4 @@
-From fce8ac4972221732dfb4bea35264b3b4f1aa32b1 Mon Sep 17 00:00:00 2001
+From 953475e5ac89cc22d6e40106d4a16664a16d1add Mon Sep 17 00:00:00 2001
 From: Befell <54691311+DevBefell@users.noreply.github.com>
 Date: Wed, 27 Mar 2024 16:15:31 -0700
 Subject: [PATCH] proper fix for migrating profiles and same name profiles.
@@ -20,7 +20,7 @@ index 0000000..376965c
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/launcher/SwingUserInterface.java b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
-index 528aa6c..2f20259 100644
+index 5eb1df0..40da176 100644
 --- a/src/main/java/net/minecraft/launcher/SwingUserInterface.java
 +++ b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
 @@ -17,6 +17,7 @@ import java.net.URI;
@@ -68,7 +68,7 @@ index 528aa6c..2f20259 100644
  
                  try {
 diff --git a/src/main/java/net/minecraft/launcher/profile/Profile.java b/src/main/java/net/minecraft/launcher/profile/Profile.java
-index a88b0b3..9141d27 100644
+index d629660..cd0eea9 100644
 --- a/src/main/java/net/minecraft/launcher/profile/Profile.java
 +++ b/src/main/java/net/minecraft/launcher/profile/Profile.java
 @@ -16,6 +16,7 @@ public class Profile implements Comparable<Profile> {
@@ -106,7 +106,7 @@ index a88b0b3..9141d27 100644
  
      static {
 diff --git a/src/main/java/net/minecraft/launcher/profile/ProfileManager.java b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
-index bb7d8a0..1cb9c2b 100644
+index ae5a609..e2f660f 100644
 --- a/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
 +++ b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
 @@ -21,6 +21,8 @@ import com.mojang.launcher.updater.LowerCaseEnumTypeAdapterFactory;
@@ -204,7 +204,7 @@ index bb7d8a0..1cb9c2b 100644
          }
  
 diff --git a/src/main/java/net/minecraft/launcher/ui/bottombar/ProfileSelectionPanel.java b/src/main/java/net/minecraft/launcher/ui/bottombar/ProfileSelectionPanel.java
-index 787a41a..1121e25 100644
+index 9800e51..5dec132 100644
 --- a/src/main/java/net/minecraft/launcher/ui/bottombar/ProfileSelectionPanel.java
 +++ b/src/main/java/net/minecraft/launcher/ui/bottombar/ProfileSelectionPanel.java
 @@ -13,6 +13,7 @@ import java.io.IOException;
@@ -267,7 +267,7 @@ index 787a41a..1121e25 100644
              var2 = this.minecraftLauncher.getProfileManager().getSelectedProfile();
              ProfileEditorPopup.showEditProfileDialog(this.getMinecraftLauncher(), var2);
 diff --git a/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileEditorPopup.java b/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileEditorPopup.java
-index c04f6c5..1f46772 100644
+index 0b5d36c..0d4a62a 100644
 --- a/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileEditorPopup.java
 +++ b/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileEditorPopup.java
 @@ -26,7 +26,6 @@ import org.apache.logging.log4j.Logger;
@@ -312,7 +312,7 @@ index c04f6c5..1f46772 100644
                  var2.fireRefreshEvent();
              } catch (IOException var5) {
 diff --git a/src/main/java/net/minecraft/launcher/ui/tabs/ProfileListTab.java b/src/main/java/net/minecraft/launcher/ui/tabs/ProfileListTab.java
-index c0ba865..8b249f5 100644
+index b8bff79..70caf5a 100644
 --- a/src/main/java/net/minecraft/launcher/ui/tabs/ProfileListTab.java
 +++ b/src/main/java/net/minecraft/launcher/ui/tabs/ProfileListTab.java
 @@ -1,5 +1,6 @@
@@ -384,5 +384,5 @@ index c0ba865..8b249f5 100644
                  }
  
 -- 
-2.42.0.windows.2
+2.43.0.windows.1
 

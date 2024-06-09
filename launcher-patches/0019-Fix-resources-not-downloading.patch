@@ -1,11 +1,11 @@
-From 7adf9dc3571fbeb569022cf1f89b05b4a9f45529 Mon Sep 17 00:00:00 2001
+From cd97a8ca7180ba90e934b3bec591bae613bfa55b Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot3132@gmail.com>
 Date: Mon, 23 Jan 2023 10:11:14 -0600
 Subject: [PATCH] Fix resources not downloading
 
 
 diff --git a/src/main/java/net/minecraft/launcher/LauncherConstants.java b/src/main/java/net/minecraft/launcher/LauncherConstants.java
-index 2776ab5..41fc5fc 100644
+index f4d05c2..ca85997 100644
 --- a/src/main/java/net/minecraft/launcher/LauncherConstants.java
 +++ b/src/main/java/net/minecraft/launcher/LauncherConstants.java
 @@ -19,7 +19,7 @@ public class LauncherConstants {
@@ -18,7 +18,7 @@ index 2776ab5..41fc5fc 100644
      public static final String URL_BLOG = "https://olauncher.github.io/news";
      public static final String URL_SUPPORT = "http://help.mojang.com/?ref=launcher";
 diff --git a/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java b/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java
-index de78e0e..30d2fa0 100644
+index 7a67194..75774a3 100644
 --- a/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java
 +++ b/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java
 @@ -35,6 +35,8 @@ import java.util.Set;
@@ -40,5 +40,5 @@ index de78e0e..30d2fa0 100644
                  var4.add(var21);
              }
 -- 
-2.40.1
+2.43.0.windows.1
 

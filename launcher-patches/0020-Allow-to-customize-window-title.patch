@@ -1,11 +1,11 @@
-From 894d996ece13d6a368a2034c37ba8df31e8542c5 Mon Sep 17 00:00:00 2001
+From 41d0c636b9893510efd88669c01293630fde2cd5 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot3132@gmail.com>
 Date: Sat, 10 Jun 2023 16:05:54 -0500
 Subject: [PATCH] Allow to customize window title
 
 
 diff --git a/src/main/java/net/minecraft/launcher/Main.java b/src/main/java/net/minecraft/launcher/Main.java
-index fff6d93..6668dd0 100644
+index 5f51895..a17daea 100644
 --- a/src/main/java/net/minecraft/launcher/Main.java
 +++ b/src/main/java/net/minecraft/launcher/Main.java
 @@ -56,7 +56,7 @@ public class Main {
@@ -18,7 +18,7 @@ index fff6d93..6668dd0 100644
  
          try {
 diff --git a/src/main/java/net/minecraft/launcher/SwingUserInterface.java b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
-index 524c1f7..528aa6c 100644
+index 5f9d42a..5eb1df0 100644
 --- a/src/main/java/net/minecraft/launcher/SwingUserInterface.java
 +++ b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
 @@ -45,6 +45,8 @@ public class SwingUserInterface implements MinecraftUserInterface {
@@ -40,5 +40,5 @@ index 524c1f7..528aa6c 100644
          this.frame.setDefaultCloseOperation(2);
          this.frame.addWindowListener(new WindowAdapter() {
 -- 
-2.40.1
+2.43.0.windows.1
 

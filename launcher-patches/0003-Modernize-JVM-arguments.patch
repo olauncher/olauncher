@@ -1,11 +1,11 @@
-From ca654fece491c8f5363832da3c7680b9a7656b9a Mon Sep 17 00:00:00 2001
+From ae2f687d1dd0a0731cd14e7db632f4ebdb1bf332 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Mon, 14 Mar 2022 10:09:55 -0500
 Subject: [PATCH] Modernize JVM arguments
 
 
 diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
-index d77ad7f..e82aa38 100644
+index ef3a4ed..9542169 100644
 --- a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
 +++ b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
 @@ -169,7 +169,7 @@ public class MinecraftGameRunner extends AbstractGameRunner implements GameProce
@@ -18,7 +18,7 @@ index d77ad7f..e82aa38 100644
              }
  
 diff --git a/src/main/java/net/minecraft/launcher/profile/Profile.java b/src/main/java/net/minecraft/launcher/profile/Profile.java
-index 9de6c6f..a450ca3 100644
+index 7ad0b69..bc71823 100644
 --- a/src/main/java/net/minecraft/launcher/profile/Profile.java
 +++ b/src/main/java/net/minecraft/launcher/profile/Profile.java
 @@ -11,8 +11,9 @@ import net.minecraft.launcher.game.MinecraftReleaseType;
@@ -34,7 +34,7 @@ index 9de6c6f..a450ca3 100644
      public static final LauncherVisibilityRule DEFAULT_LAUNCHER_VISIBILITY;
      public static final Set<MinecraftReleaseType> DEFAULT_RELEASE_TYPES;
 diff --git a/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileJavaPanel.java b/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileJavaPanel.java
-index e61b076..e510a79 100644
+index 08da923..ba5b498 100644
 --- a/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileJavaPanel.java
 +++ b/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileJavaPanel.java
 @@ -1,6 +1,8 @@
@@ -56,5 +56,5 @@ index e61b076..e510a79 100644
  
          this.updateJavaArgsState();
 -- 
-2.40.1
+2.43.0.windows.1
 

@@ -1,11 +1,11 @@
-From d8730a23bd18cbf3008761312c886d30fa464b34 Mon Sep 17 00:00:00 2001
+From 51bca285bb2df8363ea35de21a17b777db6f5448 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 17 Mar 2022 04:40:30 -0500
 Subject: [PATCH] Add Microsoft authentication
 
 
 diff --git a/src/main/java/com/mojang/authlib/HttpAuthenticationService.java b/src/main/java/com/mojang/authlib/HttpAuthenticationService.java
-index 247c8df..597a17a 100644
+index 9b7a46d..a6900b2 100644
 --- a/src/main/java/com/mojang/authlib/HttpAuthenticationService.java
 +++ b/src/main/java/com/mojang/authlib/HttpAuthenticationService.java
 @@ -42,6 +42,11 @@ public abstract class HttpAuthenticationService extends BaseAuthenticationServic
@@ -48,7 +48,7 @@ index 247c8df..597a17a 100644
          InputStream var3 = null;
  
 diff --git a/src/main/java/com/mojang/authlib/UserType.java b/src/main/java/com/mojang/authlib/UserType.java
-index da99d2a..a7f91d7 100644
+index b9b8698..a328a88 100644
 --- a/src/main/java/com/mojang/authlib/UserType.java
 +++ b/src/main/java/com/mojang/authlib/UserType.java
 @@ -5,7 +5,8 @@ import java.util.Map;
@@ -1588,7 +1588,7 @@ index 0000000..b73990e
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/launcher/profile/AuthenticationDatabase.java b/src/main/java/net/minecraft/launcher/profile/AuthenticationDatabase.java
-index 50dcae8..65a1aeb 100644
+index ae349b8..f843969 100644
 --- a/src/main/java/net/minecraft/launcher/profile/AuthenticationDatabase.java
 +++ b/src/main/java/net/minecraft/launcher/profile/AuthenticationDatabase.java
 @@ -11,7 +11,7 @@ import com.google.gson.JsonSerializer;
@@ -1620,7 +1620,7 @@ index 50dcae8..65a1aeb 100644
  
              while(var7.hasNext()) {
 diff --git a/src/main/java/net/minecraft/launcher/profile/ProfileManager.java b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
-index d6a2f98..a29c749 100644
+index 1d0d748..4dbda0b 100644
 --- a/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
 +++ b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
 @@ -29,6 +29,8 @@ import java.util.Iterator;
@@ -1652,7 +1652,7 @@ index d6a2f98..a29c749 100644
                      var8 = (AuthenticationDatabase)var3.deserialize(var4.get("authenticationDatabase"), AuthenticationDatabase.class);
                  }
 diff --git a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
-index 32b2ced..31f1846 100644
+index bbddbf5..ba5acb7 100644
 --- a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
 +++ b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
 @@ -23,6 +23,10 @@ import javax.swing.JPanel;
@@ -1691,7 +1691,7 @@ index 32b2ced..31f1846 100644
 +    }
  }
 diff --git a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInPopup.java b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInPopup.java
-index 8f0c250..0c66c11 100644
+index 2983e33..b014924 100644
 --- a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInPopup.java
 +++ b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInPopup.java
 @@ -1,8 +1,8 @@
@@ -1784,5 +1784,5 @@ index b1484fa..720caf7 100644
 \ No newline at end of file
 +</Configuration>
 -- 
-2.40.1
+2.43.0.windows.1
 

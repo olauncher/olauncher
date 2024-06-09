@@ -1,11 +1,11 @@
-From 920bd2fd048417d66f6ebb18f77924885eb25379 Mon Sep 17 00:00:00 2001
+From 9d633e4e0da5a62d62aabfc775c6ab29c82ca160 Mon Sep 17 00:00:00 2001
 From: exrodev <exr0yt@gmail.com>
 Date: Sat, 9 Mar 2024 18:32:00 +1030
 Subject: [PATCH] Work around for not recieving profile
 
 
 diff --git a/src/main/java/com/mojang/authlib/HttpAuthenticationService.java b/src/main/java/com/mojang/authlib/HttpAuthenticationService.java
-index 78db037..2f430d1 100644
+index a6900b2..8bdb9c4 100644
 --- a/src/main/java/com/mojang/authlib/HttpAuthenticationService.java
 +++ b/src/main/java/com/mojang/authlib/HttpAuthenticationService.java
 @@ -147,6 +147,49 @@ public abstract class HttpAuthenticationService extends BaseAuthenticationServic
@@ -225,7 +225,7 @@ index 0000000..55f3f31
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/launcher/Main.java b/src/main/java/net/minecraft/launcher/Main.java
-index 6668dd0..a7bb077 100644
+index a17daea..903642f 100644
 --- a/src/main/java/net/minecraft/launcher/Main.java
 +++ b/src/main/java/net/minecraft/launcher/Main.java
 @@ -34,6 +34,7 @@ public class Main {
@@ -237,7 +237,7 @@ index 6668dd0..a7bb077 100644
          var1.allowsUnrecognizedOptions();
          var1.accepts("winTen");
 diff --git a/src/main/java/net/minecraft/launcher/ui/tabs/CrashReportTab.java b/src/main/java/net/minecraft/launcher/ui/tabs/CrashReportTab.java
-index 701f313..b6c4444 100644
+index ee1dbc2..88ca9fe 100644
 --- a/src/main/java/net/minecraft/launcher/ui/tabs/CrashReportTab.java
 +++ b/src/main/java/net/minecraft/launcher/ui/tabs/CrashReportTab.java
 @@ -53,45 +53,46 @@ public class CrashReportTab extends JPanel {
@@ -411,5 +411,5 @@ index 701f313..b6c4444 100644
              }
  
 -- 
-2.39.2
+2.43.0.windows.1
 

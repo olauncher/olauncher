@@ -1,11 +1,11 @@
-From 98eaeda18a76dbe8a7978df4eb0c2cafc97b50d4 Mon Sep 17 00:00:00 2001
+From fdb4f584df4b017815154761be144bf20b834d86 Mon Sep 17 00:00:00 2001
 From: exrodev <exr0yt@gmail.com>
 Date: Sun, 10 Mar 2024 15:30:41 +1030
 Subject: [PATCH] Version manifest v2
 
 
 diff --git a/src/main/java/com/mojang/launcher/versions/CompleteVersion.java b/src/main/java/com/mojang/launcher/versions/CompleteVersion.java
-index c05c7f7..73d80ad 100644
+index 7260fff..a0e0bd8 100644
 --- a/src/main/java/com/mojang/launcher/versions/CompleteVersion.java
 +++ b/src/main/java/com/mojang/launcher/versions/CompleteVersion.java
 @@ -13,6 +13,12 @@ public interface CompleteVersion extends Version {
@@ -22,7 +22,7 @@ index c05c7f7..73d80ad 100644
  
      boolean appliesToCurrentEnvironment();
 diff --git a/src/main/java/com/mojang/launcher/versions/Version.java b/src/main/java/com/mojang/launcher/versions/Version.java
-index 4900107..12c09ea 100644
+index 4580353..83ec90d 100644
 --- a/src/main/java/com/mojang/launcher/versions/Version.java
 +++ b/src/main/java/com/mojang/launcher/versions/Version.java
 @@ -10,4 +10,10 @@ public interface Version {
@@ -37,7 +37,7 @@ index 4900107..12c09ea 100644
 +    // olauncher end
  }
 diff --git a/src/main/java/net/minecraft/launcher/LauncherConstants.java b/src/main/java/net/minecraft/launcher/LauncherConstants.java
-index b2267d5..6754e1c 100644
+index 1e3d9f6..1d2aa7f 100644
 --- a/src/main/java/net/minecraft/launcher/LauncherConstants.java
 +++ b/src/main/java/net/minecraft/launcher/LauncherConstants.java
 @@ -108,7 +108,7 @@ public class LauncherConstants {
@@ -50,7 +50,7 @@ index b2267d5..6754e1c 100644
  
          public LauncherConstants.LauncherEnvironment getEnvironment() {
 diff --git a/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileInfoPanel.java b/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileInfoPanel.java
-index f7221bf..8318f47 100644
+index 5db49aa..2fd1247 100644
 --- a/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileInfoPanel.java
 +++ b/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileInfoPanel.java
 @@ -27,7 +27,7 @@ public class ProfileInfoPanel extends JPanel {
@@ -117,7 +117,7 @@ index f7221bf..8318f47 100644
  
      private void updateProfileName() {
 diff --git a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
-index d0e6fc1..7df3cd1 100644
+index 27f1045..10ea0d7 100644
 --- a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
 +++ b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
 @@ -42,6 +42,10 @@ public class CompleteMinecraftVersion implements CompleteVersion {
@@ -191,7 +191,7 @@ index d0e6fc1..7df3cd1 100644
  
      public String getMinecraftArguments() {
 diff --git a/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java b/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java
-index 30d2fa0..a8801e6 100644
+index 75774a3..8ebd448 100644
 --- a/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java
 +++ b/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java
 @@ -72,6 +72,10 @@ public class MinecraftVersionManager implements VersionManager {
@@ -206,7 +206,7 @@ index 30d2fa0..a8801e6 100644
              synchronized(this.refreshLock) {
                  this.isRefreshing = false;
 diff --git a/src/main/java/net/minecraft/launcher/updater/PartialVersion.java b/src/main/java/net/minecraft/launcher/updater/PartialVersion.java
-index 777763f..ced4623 100644
+index 25651eb..0dad172 100644
 --- a/src/main/java/net/minecraft/launcher/updater/PartialVersion.java
 +++ b/src/main/java/net/minecraft/launcher/updater/PartialVersion.java
 @@ -11,11 +11,15 @@ public class PartialVersion implements Version {
@@ -288,5 +288,5 @@ index 05095f8..10013b0 100644
 +{"environment":"production","versionManifest":"https://launchermeta.mojang.com/mc/game/version_manifest_v2.json"}
 \ No newline at end of file
 -- 
-2.39.2
+2.43.0.windows.1
 

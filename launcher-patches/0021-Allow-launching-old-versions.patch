@@ -1,4 +1,4 @@
-From 60aaa983308c6f76f9f6f300e7a2006d152ef623 Mon Sep 17 00:00:00 2001
+From 7558706675a10132d9a162fa9e52fec6f2c062f4 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Mon, 3 Jul 2023 15:51:42 -0500
 Subject: [PATCH] Allow launching old versions
@@ -6,7 +6,7 @@ Subject: [PATCH] Allow launching old versions
 Some versions use resources/ for sounds n stuff
 
 diff --git a/src/main/java/com/mojang/launcher/updater/download/assets/AssetIndex.java b/src/main/java/com/mojang/launcher/updater/download/assets/AssetIndex.java
-index 188db4f..81c48d2 100644
+index df5e313..e804265 100644
 --- a/src/main/java/com/mojang/launcher/updater/download/assets/AssetIndex.java
 +++ b/src/main/java/com/mojang/launcher/updater/download/assets/AssetIndex.java
 @@ -11,6 +11,7 @@ public class AssetIndex {
@@ -31,7 +31,7 @@ index 188db4f..81c48d2 100644
          private String hash;
          private long size;
 diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
-index 60b3d41..0fda0ab 100644
+index 2ccd912..e570f6c 100644
 --- a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
 +++ b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
 @@ -23,19 +23,16 @@ import com.mojang.launcher.updater.download.Downloadable;
@@ -114,5 +114,5 @@ index 60b3d41..0fda0ab 100644
                      }
                  }
 -- 
-2.40.1
+2.43.0.windows.1
 

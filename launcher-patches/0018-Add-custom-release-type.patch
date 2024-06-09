@@ -1,11 +1,11 @@
-From b826b57fe3af0337e6e553ec599125aa78def506 Mon Sep 17 00:00:00 2001
+From f8806de70967970302e6de116904bdeb811cbac8 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot3132@gmail.com>
 Date: Sat, 10 Dec 2022 19:58:24 -0600
 Subject: [PATCH] Add custom release type
 
 
 diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftReleaseType.java b/src/main/java/net/minecraft/launcher/game/MinecraftReleaseType.java
-index 01b10da..df55cae 100644
+index 24dac4d..fa6f078 100644
 --- a/src/main/java/net/minecraft/launcher/game/MinecraftReleaseType.java
 +++ b/src/main/java/net/minecraft/launcher/game/MinecraftReleaseType.java
 @@ -7,6 +7,7 @@ import java.util.Map;
@@ -26,7 +26,7 @@ index 01b10da..df55cae 100644
  
      static {
 diff --git a/src/main/java/net/minecraft/launcher/profile/Profile.java b/src/main/java/net/minecraft/launcher/profile/Profile.java
-index fdd24fc..a88b0b3 100644
+index 065875d..d629660 100644
 --- a/src/main/java/net/minecraft/launcher/profile/Profile.java
 +++ b/src/main/java/net/minecraft/launcher/profile/Profile.java
 @@ -148,7 +148,9 @@ public class Profile implements Comparable<Profile> {
@@ -41,5 +41,5 @@ index fdd24fc..a88b0b3 100644
  
      public static class Resolution {
 -- 
-2.40.1
+2.43.0.windows.1
 

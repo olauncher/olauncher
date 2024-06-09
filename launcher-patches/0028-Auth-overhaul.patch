@@ -1,11 +1,11 @@
-From a7f43a42f7d60e49f3d6b7a7a2cbd450b3ab343e Mon Sep 17 00:00:00 2001
+From 2277e0985e4a6d91e240ce28f1c2560cfd7ce65b Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Sun, 31 Mar 2024 17:49:36 -0500
 Subject: [PATCH] Auth overhaul
 
 
 diff --git a/src/main/java/com/mojang/authlib/HttpAuthenticationService.java b/src/main/java/com/mojang/authlib/HttpAuthenticationService.java
-index f9a2fc5..3a3605e 100644
+index 8bdb9c4..c9a7325 100644
 --- a/src/main/java/com/mojang/authlib/HttpAuthenticationService.java
 +++ b/src/main/java/com/mojang/authlib/HttpAuthenticationService.java
 @@ -12,6 +12,8 @@ import java.net.URLEncoder;
@@ -947,7 +947,7 @@ index c0a6ba0..74026c7 100644
      }
  }
 diff --git a/src/main/java/net/minecraft/launcher/ui/popups/login/AuthErrorForm.java b/src/main/java/net/minecraft/launcher/ui/popups/login/AuthErrorForm.java
-index 7731ed5..4bfa493 100644
+index 3a3c526..be729b6 100644
 --- a/src/main/java/net/minecraft/launcher/ui/popups/login/AuthErrorForm.java
 +++ b/src/main/java/net/minecraft/launcher/ui/popups/login/AuthErrorForm.java
 @@ -25,7 +25,7 @@ public class AuthErrorForm extends JPanel {
@@ -960,7 +960,7 @@ index 7731ed5..4bfa493 100644
          this.add(this.errorLabel);
      }
 diff --git a/src/main/java/net/minecraft/launcher/ui/popups/login/ExistingUserListForm.java b/src/main/java/net/minecraft/launcher/ui/popups/login/ExistingUserListForm.java
-index 7a9da9f..c1f6d05 100644
+index 3d2c5dc..af92065 100644
 --- a/src/main/java/net/minecraft/launcher/ui/popups/login/ExistingUserListForm.java
 +++ b/src/main/java/net/minecraft/launcher/ui/popups/login/ExistingUserListForm.java
 @@ -90,7 +90,9 @@ public class ExistingUserListForm extends JPanel implements ActionListener {
@@ -975,7 +975,7 @@ index 7a9da9f..c1f6d05 100644
  
      public void actionPerformed(ActionEvent var1) {
 diff --git a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
-index 31f1846..e5af44f 100644
+index ba5acb7..55dd947 100644
 --- a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
 +++ b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
 @@ -16,16 +16,11 @@ import java.awt.event.ActionEvent;
@@ -1037,7 +1037,7 @@ index 31f1846..e5af44f 100644
          if (response == null) {
              this.popup.getErrorForm().displayError(new AuthenticationException("The authentication code is null"), "The authentication request was cancelled.");
 diff --git a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInPopup.java b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInPopup.java
-index 0c66c11..69b9729 100644
+index b014924..c052996 100644
 --- a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInPopup.java
 +++ b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInPopup.java
 @@ -30,7 +30,8 @@ public class LogInPopup extends JPanel implements ActionListener {
@@ -1121,5 +1121,5 @@ index 0c66c11..69b9729 100644
          } else {
              SwingUtilities.invokeLater(new Runnable() {
 -- 
-2.43.0
+2.43.0.windows.1
 

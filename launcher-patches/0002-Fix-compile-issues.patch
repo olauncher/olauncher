@@ -1,11 +1,11 @@
-From b717e93350338813a1c9e3a92123a6e519a61888 Mon Sep 17 00:00:00 2001
+From 62c585a5baffc1d224cb1c493a7f59af38d3fefa Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 10 Mar 2022 02:35:36 -0600
 Subject: [PATCH] Fix compile issues
 
 
 diff --git a/src/main/java/com/mojang/authlib/properties/PropertyMap.java b/src/main/java/com/mojang/authlib/properties/PropertyMap.java
-index 548a122..6a1e76a 100644
+index 8a54734..3e4652a 100644
 --- a/src/main/java/com/mojang/authlib/properties/PropertyMap.java
 +++ b/src/main/java/com/mojang/authlib/properties/PropertyMap.java
 @@ -33,19 +33,19 @@ public class PropertyMap extends ForwardingMultimap<String, Property> {
@@ -42,7 +42,7 @@ index 548a122..6a1e76a 100644
                  while(var10.hasNext()) {
                      JsonElement var11 = (JsonElement)var10.next();
 diff --git a/src/main/java/com/mojang/authlib/yggdrasil/YggdrasilAuthenticationService.java b/src/main/java/com/mojang/authlib/yggdrasil/YggdrasilAuthenticationService.java
-index 53a0ec9..adf434b 100644
+index a4bd0a2..9b77e2e 100644
 --- a/src/main/java/com/mojang/authlib/yggdrasil/YggdrasilAuthenticationService.java
 +++ b/src/main/java/com/mojang/authlib/yggdrasil/YggdrasilAuthenticationService.java
 @@ -60,7 +60,7 @@ public class YggdrasilAuthenticationService extends HttpAuthenticationService {
@@ -55,7 +55,7 @@ index 53a0ec9..adf434b 100644
                  return null;
              } else if (StringUtils.isNotBlank(var5.getError())) {
 diff --git a/src/main/java/com/mojang/launcher/game/process/GameProcessBuilder.java b/src/main/java/com/mojang/launcher/game/process/GameProcessBuilder.java
-index 6681b03..c5df30c 100644
+index 65aa15b..31b2fbf 100644
 --- a/src/main/java/com/mojang/launcher/game/process/GameProcessBuilder.java
 +++ b/src/main/java/com/mojang/launcher/game/process/GameProcessBuilder.java
 @@ -1,5 +1,6 @@
@@ -74,7 +74,7 @@ index 6681b03..c5df30c 100644
      }
  }
 diff --git a/src/main/java/com/mojang/launcher/game/process/direct/DirectGameProcess.java b/src/main/java/com/mojang/launcher/game/process/direct/DirectGameProcess.java
-index 66a7107..2d0aca3 100644
+index ebe87fb..99a72de 100644
 --- a/src/main/java/com/mojang/launcher/game/process/direct/DirectGameProcess.java
 +++ b/src/main/java/com/mojang/launcher/game/process/direct/DirectGameProcess.java
 @@ -1,5 +1,6 @@
@@ -94,7 +94,7 @@ index 66a7107..2d0aca3 100644
  
      public void stop() {
 diff --git a/src/main/java/com/mojang/launcher/updater/LowerCaseEnumTypeAdapterFactory.java b/src/main/java/com/mojang/launcher/updater/LowerCaseEnumTypeAdapterFactory.java
-index d53c3af..d15c531 100644
+index 5480161..c179931 100644
 --- a/src/main/java/com/mojang/launcher/updater/LowerCaseEnumTypeAdapterFactory.java
 +++ b/src/main/java/com/mojang/launcher/updater/LowerCaseEnumTypeAdapterFactory.java
 @@ -16,16 +16,17 @@ public class LowerCaseEnumTypeAdapterFactory implements TypeAdapterFactory {
@@ -120,7 +120,7 @@ index d53c3af..d15c531 100644
              }
  
 diff --git a/src/main/java/com/mojang/util/QueueLogAppender.java b/src/main/java/com/mojang/util/QueueLogAppender.java
-index cfa709b..1abc840 100644
+index 4441135..dee229e 100644
 --- a/src/main/java/com/mojang/util/QueueLogAppender.java
 +++ b/src/main/java/com/mojang/util/QueueLogAppender.java
 @@ -56,18 +56,19 @@ public class QueueLogAppender extends AbstractAppender {
@@ -148,7 +148,7 @@ index cfa709b..1abc840 100644
      }
  
 diff --git a/src/main/java/net/minecraft/hopper/HopperService.java b/src/main/java/net/minecraft/hopper/HopperService.java
-index 90d2aca..96e7665 100644
+index 207965f..39d71b8 100644
 --- a/src/main/java/net/minecraft/hopper/HopperService.java
 +++ b/src/main/java/net/minecraft/hopper/HopperService.java
 @@ -49,7 +49,7 @@ public final class HopperService {
@@ -161,7 +161,7 @@ index 90d2aca..96e7665 100644
              return null;
          } else if (var5.getError() != null) {
 diff --git a/src/main/java/net/minecraft/launcher/Launcher.java b/src/main/java/net/minecraft/launcher/Launcher.java
-index a4849b1..a9a6ee3 100644
+index 6d4a7e4..85ba8a7 100644
 --- a/src/main/java/net/minecraft/launcher/Launcher.java
 +++ b/src/main/java/net/minecraft/launcher/Launcher.java
 @@ -15,6 +15,7 @@ import com.mojang.launcher.versions.CompleteVersion;
@@ -216,7 +216,7 @@ index a4849b1..a9a6ee3 100644
                          File[] var9 = var8;
                          int var10 = var8.length;
 diff --git a/src/main/java/net/minecraft/launcher/LauncherConstants.java b/src/main/java/net/minecraft/launcher/LauncherConstants.java
-index fe2d1c0..c739732 100644
+index 065b73a..3aa3c83 100644
 --- a/src/main/java/net/minecraft/launcher/LauncherConstants.java
 +++ b/src/main/java/net/minecraft/launcher/LauncherConstants.java
 @@ -1,5 +1,6 @@
@@ -236,7 +236,7 @@ index fe2d1c0..c739732 100644
  
      private static LauncherConstants.LauncherProperties getProperties() {
 diff --git a/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
-index dde1ec3..c5a8fc4 100644
+index a456091..14a2428 100644
 --- a/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
 +++ b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
 @@ -1,5 +1,6 @@
@@ -273,7 +273,7 @@ index dde1ec3..c5a8fc4 100644
                          boolean var6 = true;
                          return var6;
 diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
-index 2ddba9a..d77ad7f 100644
+index 40d9011..ef3a4ed 100644
 --- a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
 +++ b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
 @@ -1,5 +1,6 @@
@@ -293,7 +293,7 @@ index 2ddba9a..d77ad7f 100644
                  public boolean apply(String var1) {
                      return var1.contains("#@!@#");
 diff --git a/src/main/java/net/minecraft/launcher/profile/Profile.java b/src/main/java/net/minecraft/launcher/profile/Profile.java
-index 6bf1d94..9de6c6f 100644
+index 66fc38b..7ad0b69 100644
 --- a/src/main/java/net/minecraft/launcher/profile/Profile.java
 +++ b/src/main/java/net/minecraft/launcher/profile/Profile.java
 @@ -1,5 +1,6 @@
@@ -313,7 +313,7 @@ index 6bf1d94..9de6c6f 100644
  
      public void setName(String var1) {
 diff --git a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
-index 337403e..32b2ced 100644
+index fc1c472..bbddbf5 100644
 --- a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
 +++ b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
 @@ -116,7 +116,7 @@ public class LogInForm extends JPanel implements ActionListener {
@@ -339,7 +339,7 @@ index 337403e..32b2ced 100644
                          LogInForm.this.popup.setLoggedIn(UUIDTypeAdapter.fromUUID(LogInForm.this.authentication.getSelectedProfile().getId()));
                      } catch (InvalidCredentialsException var2) {
 diff --git a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
-index ad40fd8..b9ac4df 100644
+index 1506eb4..5883c1a 100644
 --- a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
 +++ b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
 @@ -1,5 +1,6 @@
@@ -460,7 +460,7 @@ index ad40fd8..b9ac4df 100644
  
          return this.assetIndex;
 diff --git a/src/main/java/net/minecraft/launcher/updater/Library.java b/src/main/java/net/minecraft/launcher/updater/Library.java
-index a9da116..32814c0 100644
+index 0038272..fc1f409 100644
 --- a/src/main/java/net/minecraft/launcher/updater/Library.java
 +++ b/src/main/java/net/minecraft/launcher/updater/Library.java
 @@ -51,23 +51,25 @@ public class Library {
@@ -499,7 +499,7 @@ index a9da116..32814c0 100644
              }
          }
 diff --git a/src/main/java/net/minecraft/launcher/updater/LibraryDownloadInfo.java b/src/main/java/net/minecraft/launcher/updater/LibraryDownloadInfo.java
-index 21dbec3..4e7612f 100644
+index 06eb191..5b9ef30 100644
 --- a/src/main/java/net/minecraft/launcher/updater/LibraryDownloadInfo.java
 +++ b/src/main/java/net/minecraft/launcher/updater/LibraryDownloadInfo.java
 @@ -15,18 +15,19 @@ public class LibraryDownloadInfo {
@@ -528,5 +528,5 @@ index 21dbec3..4e7612f 100644
      }
  }
 -- 
-2.43.0
+2.43.0.windows.1
 

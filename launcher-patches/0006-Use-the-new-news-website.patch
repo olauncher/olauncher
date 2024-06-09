@@ -1,11 +1,11 @@
-From 6f33bbdc26009c9fef022495345c98a99a55cbec Mon Sep 17 00:00:00 2001
+From 941c1b6a87382d8814602b17c6c3ef9b35e248b9 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 24 Mar 2022 00:25:56 -0500
 Subject: [PATCH] Use the new news website
 
 
 diff --git a/src/main/java/net/minecraft/launcher/LauncherConstants.java b/src/main/java/net/minecraft/launcher/LauncherConstants.java
-index db78fda..faf0dc0 100644
+index 98c332a..d74d28d 100644
 --- a/src/main/java/net/minecraft/launcher/LauncherConstants.java
 +++ b/src/main/java/net/minecraft/launcher/LauncherConstants.java
 @@ -19,7 +19,7 @@ public class LauncherConstants {
@@ -18,7 +18,7 @@ index db78fda..faf0dc0 100644
      public static final String URL_STATUS_CHECKER = "http://status.mojang.com/check";
      public static final int UNVERSIONED_BOOTSTRAP_VERSION = 0;
 diff --git a/src/main/java/net/minecraft/launcher/ui/LauncherPanel.java b/src/main/java/net/minecraft/launcher/ui/LauncherPanel.java
-index 3553a21..711b417 100644
+index f6d0b64..77284f7 100644
 --- a/src/main/java/net/minecraft/launcher/ui/LauncherPanel.java
 +++ b/src/main/java/net/minecraft/launcher/ui/LauncherPanel.java
 @@ -47,7 +47,7 @@ public class LauncherPanel extends JPanel {
@@ -31,5 +31,5 @@ index 3553a21..711b417 100644
          boolean var3 = OperatingSystem.getCurrentPlatform() == OperatingSystem.WINDOWS;
          if (OperatingSystem.getCurrentPlatform() == OperatingSystem.OSX) {
 -- 
-2.40.1
+2.43.0.windows.1
 

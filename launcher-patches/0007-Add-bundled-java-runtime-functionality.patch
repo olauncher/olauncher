@@ -1,11 +1,11 @@
-From d1207c2ae1f3f965dcc639fcd1324c1279ebf1db Mon Sep 17 00:00:00 2001
+From b470c9ac9b91d7d7b9df7d5a3ffda0e11da5e5a1 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Sat, 26 Mar 2022 15:24:44 -0500
 Subject: [PATCH] Add bundled java runtime functionality
 
 
 diff --git a/src/main/java/com/mojang/launcher/Launcher.java b/src/main/java/com/mojang/launcher/Launcher.java
-index f79a4b6..100ab0f 100644
+index cb544be..4004324 100644
 --- a/src/main/java/com/mojang/launcher/Launcher.java
 +++ b/src/main/java/com/mojang/launcher/Launcher.java
 @@ -9,6 +9,10 @@ import java.net.PasswordAuthentication;
@@ -38,7 +38,7 @@ index f79a4b6..100ab0f 100644
  
      public ReleaseTypeFactory getReleaseTypeFactory() {
 diff --git a/src/main/java/com/mojang/launcher/game/runner/AbstractGameRunner.java b/src/main/java/com/mojang/launcher/game/runner/AbstractGameRunner.java
-index f3546fc..cd37a5b 100644
+index 91ac66d..7326857 100644
 --- a/src/main/java/com/mojang/launcher/game/runner/AbstractGameRunner.java
 +++ b/src/main/java/com/mojang/launcher/game/runner/AbstractGameRunner.java
 @@ -10,9 +10,16 @@ import com.mojang.launcher.updater.download.DownloadListener;
@@ -166,7 +166,7 @@ index f3546fc..cd37a5b 100644
          try {
              DownloadJob var2 = new DownloadJob("Version & Libraries", false, this);
 diff --git a/src/main/java/com/mojang/launcher/game/runner/GameRunner.java b/src/main/java/com/mojang/launcher/game/runner/GameRunner.java
-index 7bd69c9..5d5fa85 100644
+index c5257e2..72074bb 100644
 --- a/src/main/java/com/mojang/launcher/game/runner/GameRunner.java
 +++ b/src/main/java/com/mojang/launcher/game/runner/GameRunner.java
 @@ -7,7 +7,7 @@ import com.mojang.launcher.updater.download.DownloadJob;
@@ -179,7 +179,7 @@ index 7bd69c9..5d5fa85 100644
      boolean hasRemainingJobs();
  
 diff --git a/src/main/java/com/mojang/launcher/versions/CompleteVersion.java b/src/main/java/com/mojang/launcher/versions/CompleteVersion.java
-index afa4dd4..c05c7f7 100644
+index b0474b3..7260fff 100644
 --- a/src/main/java/com/mojang/launcher/versions/CompleteVersion.java
 +++ b/src/main/java/com/mojang/launcher/versions/CompleteVersion.java
 @@ -1,5 +1,7 @@
@@ -1098,7 +1098,7 @@ index 0000000..3499f3d
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/launcher/Launcher.java b/src/main/java/net/minecraft/launcher/Launcher.java
-index a9a6ee3..1ed2f8f 100644
+index 85ba8a7..63604aa 100644
 --- a/src/main/java/net/minecraft/launcher/Launcher.java
 +++ b/src/main/java/net/minecraft/launcher/Launcher.java
 @@ -31,11 +31,15 @@ import java.util.List;
@@ -1145,7 +1145,7 @@ index a9a6ee3..1ed2f8f 100644
          this.getLauncher().getVersionManager().getExecutorService().submit(new Runnable() {
              public void run() {
 diff --git a/src/main/java/net/minecraft/launcher/SwingUserInterface.java b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
-index 06e506a..12b5f87 100644
+index f776546..dbc095b 100644
 --- a/src/main/java/net/minecraft/launcher/SwingUserInterface.java
 +++ b/src/main/java/net/minecraft/launcher/SwingUserInterface.java
 @@ -103,10 +103,12 @@ public class SwingUserInterface implements MinecraftUserInterface {
@@ -1162,7 +1162,7 @@ index 06e506a..12b5f87 100644
                      SwingUserInterface.LOGGER.info("Termination took too long.");
                  }
 diff --git a/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
-index a4b4e50..4349e7d 100644
+index daa332e..d4e9cc2 100644
 --- a/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
 +++ b/src/main/java/net/minecraft/launcher/game/GameLaunchDispatcher.java
 @@ -119,7 +119,7 @@ public class GameLaunchDispatcher implements GameRunnerListener {
@@ -1175,7 +1175,7 @@ index a4b4e50..4349e7d 100644
          });
      }
 diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
-index 6f7050d..bc607d1 100644
+index 99ff6a8..2bccae2 100644
 --- a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
 +++ b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
 @@ -34,6 +34,8 @@ import java.io.InputStreamReader;
@@ -1213,7 +1213,7 @@ index 6f7050d..bc607d1 100644
                  public boolean apply(String var1) {
                      return var1.contains("#@!@#");
 diff --git a/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileJavaPanel.java b/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileJavaPanel.java
-index e510a79..c752284 100644
+index ba5b498..68ac60b 100644
 --- a/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileJavaPanel.java
 +++ b/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileJavaPanel.java
 @@ -22,6 +22,8 @@ public class ProfileJavaPanel extends JPanel {
@@ -1264,7 +1264,7 @@ index e510a79..c752284 100644
          }
  
 diff --git a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
-index 9d786d5..53ee706 100644
+index 29d6c37..9a7c807 100644
 --- a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
 +++ b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
 @@ -25,6 +25,9 @@ import java.util.List;
@@ -1317,5 +1317,5 @@ index 9d786d5..53ee706 100644
 +    // olauncher end
  }
 -- 
-2.43.0
+2.43.0.windows.1
 

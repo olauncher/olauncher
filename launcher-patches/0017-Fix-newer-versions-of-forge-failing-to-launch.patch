@@ -1,11 +1,11 @@
-From e91beeac8b4dcbdaca56744eae556dc5b4d66401 Mon Sep 17 00:00:00 2001
+From 14fd4cf200e20306ccfad388e1f9b9d9e6d8cf91 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot3132@gmail.com>
 Date: Wed, 9 Nov 2022 02:59:04 -0600
 Subject: [PATCH] Fix newer versions of forge failing to launch
 
 
 diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
-index bc607d1..60b3d41 100644
+index 2bccae2..2ccd912 100644
 --- a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
 +++ b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
 @@ -337,6 +337,9 @@ public class MinecraftGameRunner extends AbstractGameRunner implements GameProce
@@ -19,7 +19,7 @@ index bc607d1..60b3d41 100644
      }
  
 diff --git a/src/main/java/net/minecraft/launcher/updater/Argument.java b/src/main/java/net/minecraft/launcher/updater/Argument.java
-index 528caf8..d5560e6 100644
+index 78e463d..8b59115 100644
 --- a/src/main/java/net/minecraft/launcher/updater/Argument.java
 +++ b/src/main/java/net/minecraft/launcher/updater/Argument.java
 @@ -33,7 +33,7 @@ public class Argument {
@@ -32,7 +32,7 @@ index 528caf8..d5560e6 100644
          } else {
              CompatibilityRule.Action var2 = CompatibilityRule.Action.DISALLOW;
 diff --git a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
-index acb4ee0..352a9d7 100644
+index 9a7c807..27f1045 100644
 --- a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
 +++ b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
 @@ -74,6 +74,7 @@ public class CompleteMinecraftVersion implements CompleteVersion {
@@ -57,5 +57,5 @@ index acb4ee0..352a9d7 100644
                  ArrayList var6 = Lists.newArrayList();
                  Iterator var7 = this.libraries.iterator();
 -- 
-2.40.1
+2.43.0.windows.1
 

@@ -1,11 +1,11 @@
-From 9834b95cd9c38c21891fcbfab8f9566064d130da Mon Sep 17 00:00:00 2001
+From 36acf967e259ab64c588fc16eb1ba97466242a1f Mon Sep 17 00:00:00 2001
 From: Befell <54691311+DevBefell@users.noreply.github.com>
 Date: Tue, 9 Apr 2024 01:02:27 -0700
 Subject: [PATCH] internal overhaul
 
 
 diff --git a/src/main/java/com/mojang/launcher/game/process/direct/DirectProcessInputMonitor.java b/src/main/java/com/mojang/launcher/game/process/direct/DirectProcessInputMonitor.java
-index d484001..3991737 100644
+index 91cb1f5..c25863a 100644
 --- a/src/main/java/com/mojang/launcher/game/process/direct/DirectProcessInputMonitor.java
 +++ b/src/main/java/com/mojang/launcher/game/process/direct/DirectProcessInputMonitor.java
 @@ -20,23 +20,22 @@ public class DirectProcessInputMonitor extends Thread {
@@ -47,7 +47,7 @@ index d484001..3991737 100644
  
          GameProcessRunnable var4 = this.process.getExitRunnable();
 diff --git a/src/main/java/com/mojang/launcher/updater/VersionManager.java b/src/main/java/com/mojang/launcher/updater/VersionManager.java
-index d594f22..9c60d0c 100644
+index fe3fcd4..48958c0 100644
 --- a/src/main/java/com/mojang/launcher/updater/VersionManager.java
 +++ b/src/main/java/com/mojang/launcher/updater/VersionManager.java
 @@ -5,6 +5,8 @@ import com.mojang.launcher.updater.download.DownloadJob;
@@ -134,7 +134,7 @@ index 0000000..16f3310
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/launcher/Launcher.java b/src/main/java/net/minecraft/launcher/Launcher.java
-index a9aeefa..f951bb2 100644
+index 8bcd864..b66c2ae 100644
 --- a/src/main/java/net/minecraft/launcher/Launcher.java
 +++ b/src/main/java/net/minecraft/launcher/Launcher.java
 @@ -9,6 +9,7 @@ import com.mojang.authlib.exceptions.AuthenticationException;
@@ -346,7 +346,7 @@ index a9aeefa..f951bb2 100644
                              LOGGER.warn("Couldn't uninstall version " + var13.getId(), var9);
                          }
 diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
-index 6436333..099cba2 100644
+index a658d87..1d28706 100644
 --- a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
 +++ b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
 @@ -44,9 +44,11 @@ import java.util.UUID;
@@ -400,7 +400,7 @@ index 6436333..099cba2 100644
                  boolean var6 = "32".equals(System.getProperty("sun.arch.data.model"));
                  String var7 = var6 ? Profile.DEFAULT_JRE_ARGUMENTS_32BIT : Profile.DEFAULT_JRE_ARGUMENTS_64BIT; // olauncher - use default JVM argument variables
 diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftReleaseType.java b/src/main/java/net/minecraft/launcher/game/MinecraftReleaseType.java
-index df55cae..9c4c3f0 100644
+index fa6f078..6b20715 100644
 --- a/src/main/java/net/minecraft/launcher/game/MinecraftReleaseType.java
 +++ b/src/main/java/net/minecraft/launcher/game/MinecraftReleaseType.java
 @@ -11,6 +11,7 @@ public enum MinecraftReleaseType implements ReleaseType {
@@ -430,7 +430,7 @@ index df55cae..9c4c3f0 100644
      }
  
 diff --git a/src/main/java/net/minecraft/launcher/profile/Profile.java b/src/main/java/net/minecraft/launcher/profile/Profile.java
-index 9141d27..78a18aa 100644
+index cd0eea9..c954d55 100644
 --- a/src/main/java/net/minecraft/launcher/profile/Profile.java
 +++ b/src/main/java/net/minecraft/launcher/profile/Profile.java
 @@ -15,6 +15,7 @@ public class Profile implements Comparable<Profile> {
@@ -464,7 +464,7 @@ index 9141d27..78a18aa 100644
          this.allowedReleaseTypes = var1;
      }
 diff --git a/src/main/java/net/minecraft/launcher/profile/ProfileManager.java b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
-index 1cb9c2b..371c3d6 100644
+index e2f660f..91d37d1 100644
 --- a/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
 +++ b/src/main/java/net/minecraft/launcher/profile/ProfileManager.java
 @@ -16,6 +16,7 @@ import com.google.gson.JsonSerializer;
@@ -555,18 +555,6 @@ index 1cb9c2b..371c3d6 100644
 -            }
  
 -            ProfileManager.RawProfileList var4 = (ProfileManager.RawProfileList)this.gson.fromJson(var1, ProfileManager.RawProfileList.class);
--
--            // olauncher start - migrate profiles correctly
--            var4.profiles.replaceAll((key, value) ->{
--                value.setUniqueName(key);
--                String name = value.getName();
--                if (name.isEmpty()) {
--                    // Fallback use last version ID
--                    name = value.getLastVersionId();
--                    if (name.equals("latest-release")) {
--                        name = "Latest Version";
--                    }
--                    value.setName(name);
 +                // olauncher start - creates backups for profiles
 +                Files.copy(this.profileFile.toPath(), new File(this.profileFile.getParentFile(), "launcher_profiles.old.json").toPath(), StandardCopyOption.REPLACE_EXISTING);
 +                // olauncher end
@@ -578,14 +566,19 @@ index 1cb9c2b..371c3d6 100644
 +                }
 +                if (var1.has("clientToken")) {
 +                    this.launcher.setClientToken((UUID) this.gson.fromJson(var1.get("clientToken"), UUID.class));
-                 }
--                LOGGER.info("Loaded profile " + name);
--                return value;
--            });
- 
--            // olauncher end
-+                ProfileManager.RawProfileList var4 = (ProfileManager.RawProfileList) this.gson.fromJson(var1, ProfileManager.RawProfileList.class);
++                }
 +
++                ProfileManager.RawProfileList var4 = (ProfileManager.RawProfileList) this.gson.fromJson(var1, ProfileManager.RawProfileList.class);
+ 
+-            // olauncher start - migrate profiles correctly
+-            var4.profiles.replaceAll((key, value) ->{
+-                value.setUniqueName(key);
+-                String name = value.getName();
+-                if (name.isEmpty()) {
+-                    // Fallback use last version ID
+-                    name = value.getLastVersionId();
+-                    if (name.equals("latest-release")) {
+-                        name = "Latest Version";
 +                // olauncher start - migrate profiles correctly
 +                var4.profiles.replaceAll((key, value) -> {
 +                    value.setUniqueName(key);
@@ -603,10 +596,18 @@ index 1cb9c2b..371c3d6 100644
 +                            name = "Latest Snapshot";
 +                        }
 +                        value.setName(name);
-+                    }
+                     }
+-                    value.setName(name);
+-                }
+-                LOGGER.info("Loaded profile " + name);
+-                return value;
+-            });
 +                    LOGGER.info("Loaded profile " + name);
 +                    return value;
 +                });
+ 
+-            // olauncher end
++                // olauncher end
  
 -            this.profiles.putAll(var4.profiles);
 -            this.selectedProfile = var4.selectedProfile;
@@ -619,8 +620,6 @@ index 1cb9c2b..371c3d6 100644
 -            this.fireRefreshEvent();
 -            this.fireUserChangedEvent();
 -            return false;
-+                // olauncher end
-+
 +                this.profiles.putAll(var4.profiles);
 +                this.selectedProfile = var4.selectedProfile;
 +                this.fireRefreshEvent();
@@ -659,12 +658,12 @@ index 1cb9c2b..371c3d6 100644
 -            this.selectedUser = var3;
 -            this.clientToken = var4;
 -            this.authenticationDatabase = var5;
--        }
+         }
 -
 -        // $FF: synthetic method
 -        RawProfileList(Map var1, String var2, String var3, UUID var4, AuthenticationDatabase var5, Object var6) {
 -            this(var1, var2, var3, var4, var5);
-         }
+-        }
 -
          public static class Serializer implements JsonDeserializer<ProfileManager.RawProfileList>, JsonSerializer<ProfileManager.RawProfileList> {
              private final Launcher launcher;
@@ -762,7 +761,7 @@ index 1cb9c2b..371c3d6 100644
              }
          }
 diff --git a/src/main/java/net/minecraft/launcher/ui/bottombar/PlayerInfoPanel.java b/src/main/java/net/minecraft/launcher/ui/bottombar/PlayerInfoPanel.java
-index 52528d1..b9023e9 100644
+index 8e66dc5..3480cd9 100644
 --- a/src/main/java/net/minecraft/launcher/ui/bottombar/PlayerInfoPanel.java
 +++ b/src/main/java/net/minecraft/launcher/ui/bottombar/PlayerInfoPanel.java
 @@ -73,6 +73,7 @@ public class PlayerInfoPanel extends JPanel implements RefreshedVersionsListener
@@ -787,7 +786,7 @@ index 52528d1..b9023e9 100644
                  var5 = var6;
              }
 diff --git a/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileVersionPanel.java b/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileVersionPanel.java
-index eec04bd..30322e9 100644
+index e6a2299..ea8f6b0 100644
 --- a/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileVersionPanel.java
 +++ b/src/main/java/net/minecraft/launcher/ui/popups/profile/ProfileVersionPanel.java
 @@ -2,6 +2,7 @@ package net.minecraft.launcher.ui.popups.profile;
@@ -965,7 +964,7 @@ index eec04bd..30322e9 100644
          }
  
 diff --git a/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java b/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java
-index a8801e6..77bb3a1 100644
+index 8ebd448..f33447c 100644
 --- a/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java
 +++ b/src/main/java/net/minecraft/launcher/updater/MinecraftVersionManager.java
 @@ -33,11 +33,15 @@ import java.util.Iterator;
@@ -1065,7 +1064,7 @@ index a8801e6..77bb3a1 100644
 +
  }
 diff --git a/src/main/java/net/minecraft/launcher/updater/RemoteVersionList.java b/src/main/java/net/minecraft/launcher/updater/RemoteVersionList.java
-index 98350c7..9d07d80 100644
+index 2528bed..6fc74bf 100644
 --- a/src/main/java/net/minecraft/launcher/updater/RemoteVersionList.java
 +++ b/src/main/java/net/minecraft/launcher/updater/RemoteVersionList.java
 @@ -5,22 +5,30 @@ import com.mojang.launcher.Http;
@@ -1160,5 +1159,5 @@ index 98350c7..9d07d80 100644
  
      public Proxy getProxy() {
 -- 
-2.44.0.windows.1
+2.43.0.windows.1
 

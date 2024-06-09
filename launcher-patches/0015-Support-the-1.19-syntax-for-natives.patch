@@ -1,11 +1,11 @@
-From a606910be1101d0cbcb040846efa3d1a5c4da871 Mon Sep 17 00:00:00 2001
+From e99726ba514e60c748686a1a2fbf560d275026fe Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Tue, 14 Jun 2022 04:54:47 -0500
 Subject: [PATCH] Support the 1.19 syntax for natives
 
 
 diff --git a/src/main/java/net/minecraft/launcher/updater/Library.java b/src/main/java/net/minecraft/launcher/updater/Library.java
-index 32814c0..f8435d1 100644
+index fc1f409..3565d0b 100644
 --- a/src/main/java/net/minecraft/launcher/updater/Library.java
 +++ b/src/main/java/net/minecraft/launcher/updater/Library.java
 @@ -141,7 +141,7 @@ public class Library {
@@ -32,5 +32,5 @@ index 32814c0..f8435d1 100644
          }
      }
 -- 
-2.43.0
+2.43.0.windows.1
 
