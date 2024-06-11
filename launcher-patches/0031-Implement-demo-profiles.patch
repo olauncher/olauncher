@@ -1,0 +1,135 @@
+From 3ea294473d1c44978dae67747dccadea281f3892 Mon Sep 17 00:00:00 2001
+From: vops <admin@vops.cc>
+Date: Tue, 11 Jun 2024 17:50:27 -0400
+Subject: [PATCH] Implement-demo-profiles
+
+
+diff --git a/src/main/java/dev/figboot/olauncher/auth/MCProfileInfo.java b/src/main/java/dev/figboot/olauncher/auth/MCProfileInfo.java
+index b9a8ab6..84b0625 100644
+--- a/src/main/java/dev/figboot/olauncher/auth/MCProfileInfo.java
++++ b/src/main/java/dev/figboot/olauncher/auth/MCProfileInfo.java
+@@ -18,8 +18,10 @@
+ 
+ package dev.figboot.olauncher.auth;
+ 
++import lombok.AllArgsConstructor;
+ import lombok.Getter;
+ 
++import java.util.ArrayList;
+ import java.util.List;
+ import java.util.UUID;
+ 
+@@ -27,11 +29,16 @@ import java.util.UUID;
+ public class MCProfileInfo {
+     private UUID id;
+     private String name;
+-
+     private List<Skin> skins;
+-
+     private List<Cape> capes;
+ 
++    public MCProfileInfo(UUID id, String name) {
++        this.id = id;
++        this.name = name;
++        this.skins = new ArrayList<>();
++        this.capes = new ArrayList<>();
++    }
++
+     @Getter
+     public static class Skin {
+         private UUID id;
+diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
+index 2486d77..411f435 100644
+--- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
++++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
+@@ -267,38 +267,50 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+     private void profileLogIn() throws AuthenticationException {
+         if (this.xuid == null) findXUID();
+ 
+-        if (!ownsGame()) {
+-            throw new AuthenticationException("No Minecraft entitlement! Do you own the game?");
+-        }
+-
+         LOGGER.debug("Getting your user profile...");
+-        profileInfo = getAuthenticationService().getAuthenticated(MicrosoftAuthenticationService.ROUTE_MINECRAFT_PROFILE,
+-                mojToken, MCProfileInfo.class);
++
++        boolean isDemo = !ownsGame();
++
++        if (isDemo) {
++            LOGGER.debug("No Minecraft entitlement! Utilizing demo profile...");
++            profileInfo = new MCProfileInfo(xuid, "Player");
++        } else {
++            profileInfo = getAuthenticationService().getAuthenticated(MicrosoftAuthenticationService.ROUTE_MINECRAFT_PROFILE, mojToken, MCProfileInfo.class);
++        }
+ 
+         if (false) { // this code should be unnecessary now -figboot
+-        while (profileInfo.getId() == null) {
+-            // User profile just returns 404 (who knows why)
+-            // I believe that it may be an issue with the Mojang API
+-            // - exro
+-            try {
+-                SwingUtilities.invokeAndWait(GameProfileFixDialog::new);
+-            } catch (InterruptedException | InvocationTargetException e) {
+-                throw new RuntimeException(e);
++            while (profileInfo.getId() == null) {
++                // User profile just returns 404 (who knows why)
++                // I believe that it may be an issue with the Mojang API
++                // - exro
++                try {
++                    SwingUtilities.invokeAndWait(GameProfileFixDialog::new);
++                } catch (InterruptedException | InvocationTargetException e) {
++                    throw new RuntimeException(e);
++                }
++                profileInfo = getAuthenticationService().getAuthenticated(MicrosoftAuthenticationService.ROUTE_MINECRAFT_PROFILE,
++                        mojToken, MCProfileInfo.class);
+             }
+-            profileInfo = getAuthenticationService().getAuthenticated(MicrosoftAuthenticationService.ROUTE_MINECRAFT_PROFILE,
+-                    mojToken, MCProfileInfo.class);
+-        }
+         }
+ 
+-        GameProfile profile = new GameProfile(profileInfo.getId(), profileInfo.getName());
+-        profile = sessionService.fillProfileProperties(profile, false);
++        String userId = profileInfo.getId().toString().replace("-", "");
++
++        if (isDemo) {
++            setSelectedProfile(null);
++            profiles = new GameProfile[0];
++            // demo profiles use XUID, which are usually padded with lots of zeros
++            userId = userId.replaceFirst("^0+(?!$)", "");
++        } else {
++            GameProfile profile = new GameProfile(profileInfo.getId(), profileInfo.getName());
++            profile = sessionService.fillProfileProperties(profile, false);
++            setSelectedProfile(profile);
++            getModifiableUserProperties().clear();
++            getModifiableUserProperties().putAll(profile.getProperties());
++            profiles = new GameProfile[]{profile};
++        }
+ 
+         online = true;
+-        setUserid(profileInfo.getId().toString().replace("-", ""));
+-        profiles = new GameProfile[]{profile};
+-        setSelectedProfile(profile);
+-        getModifiableUserProperties().clear();
+-        getModifiableUserProperties().putAll(profile.getProperties());
++        setUserid(userId);
+         setUserType(UserType.MICROSOFT);
+ 
+         /*try {
+diff --git a/src/main/resources/log4j2.xml b/src/main/resources/log4j2.xml
+index 720caf7..0e7c4dd 100644
+--- a/src/main/resources/log4j2.xml
++++ b/src/main/resources/log4j2.xml
+@@ -13,7 +13,7 @@
+         </Async>
+     </Appenders>
+     <Loggers>
+-        <Root level="info">
++        <Root level="debug">
+             <AppenderRef ref="Async"/>
+         </Root>
+     </Loggers>
+-- 
+2.39.1.windows.1
+
