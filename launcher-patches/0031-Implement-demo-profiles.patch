@@ -1,6 +1,6 @@
-From 3ea294473d1c44978dae67747dccadea281f3892 Mon Sep 17 00:00:00 2001
+From 74acea2f61c462a748d2c54452570dc2ffa75651 Mon Sep 17 00:00:00 2001
 From: vops <admin@vops.cc>
-Date: Tue, 11 Jun 2024 17:50:27 -0400
+Date: Tue, 11 Jun 2024 18:25:41 -0400
 Subject: [PATCH] Implement-demo-profiles
 
 
@@ -39,10 +39,10 @@ index b9a8ab6..84b0625 100644
      public static class Skin {
          private UUID id;
 diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
-index 2486d77..411f435 100644
+index 2486d77..e0b2d72 100644
 --- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 +++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
-@@ -267,38 +267,50 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -267,13 +267,16 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
      private void profileLogIn() throws AuthenticationException {
          if (this.xuid == null) findXUID();
  
@@ -64,29 +64,9 @@ index 2486d77..411f435 100644
 +        }
  
          if (false) { // this code should be unnecessary now -figboot
--        while (profileInfo.getId() == null) {
--            // User profile just returns 404 (who knows why)
--            // I believe that it may be an issue with the Mojang API
--            // - exro
--            try {
--                SwingUtilities.invokeAndWait(GameProfileFixDialog::new);
--            } catch (InterruptedException | InvocationTargetException e) {
--                throw new RuntimeException(e);
-+            while (profileInfo.getId() == null) {
-+                // User profile just returns 404 (who knows why)
-+                // I believe that it may be an issue with the Mojang API
-+                // - exro
-+                try {
-+                    SwingUtilities.invokeAndWait(GameProfileFixDialog::new);
-+                } catch (InterruptedException | InvocationTargetException e) {
-+                    throw new RuntimeException(e);
-+                }
-+                profileInfo = getAuthenticationService().getAuthenticated(MicrosoftAuthenticationService.ROUTE_MINECRAFT_PROFILE,
-+                        mojToken, MCProfileInfo.class);
-             }
--            profileInfo = getAuthenticationService().getAuthenticated(MicrosoftAuthenticationService.ROUTE_MINECRAFT_PROFILE,
--                    mojToken, MCProfileInfo.class);
--        }
+         while (profileInfo.getId() == null) {
+@@ -290,15 +293,24 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+         }
          }
  
 -        GameProfile profile = new GameProfile(profileInfo.getId(), profileInfo.getName());
@@ -117,19 +97,6 @@ index 2486d77..411f435 100644
          setUserType(UserType.MICROSOFT);
  
          /*try {
-diff --git a/src/main/resources/log4j2.xml b/src/main/resources/log4j2.xml
-index 720caf7..0e7c4dd 100644
---- a/src/main/resources/log4j2.xml
-+++ b/src/main/resources/log4j2.xml
-@@ -13,7 +13,7 @@
-         </Async>
-     </Appenders>
-     <Loggers>
--        <Root level="info">
-+        <Root level="debug">
-             <AppenderRef ref="Async"/>
-         </Root>
-     </Loggers>
 -- 
 2.39.1.windows.1
 
