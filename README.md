@@ -17,9 +17,6 @@ The old launcher we all know and love with the quality-of-life features of the n
 ## Planned Features
 - Add skin/cape management
 
-### Minor TODOs
-- Support demo users (if they have a Microsoft account but no Minecraft profile)
-
 ## How to build from source
 The commands must be run in the following order to build from source:
 - `decompile.sh`
