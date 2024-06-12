@@ -1,0 +1,62 @@
+From 7262540552016083495430eaa92edf128d4bce7d Mon Sep 17 00:00:00 2001
+From: bigfoot547 <bigfoot3132@gmail.com>
+Date: Wed, 12 Jun 2024 00:32:55 -0500
+Subject: [PATCH] Show infinite loading screen less hopefully
+
+
+diff --git a/src/main/java/net/minecraft/launcher/ui/popups/login/AuthErrorForm.java b/src/main/java/net/minecraft/launcher/ui/popups/login/AuthErrorForm.java
+index 4bfa493..77d4259 100644
+--- a/src/main/java/net/minecraft/launcher/ui/popups/login/AuthErrorForm.java
++++ b/src/main/java/net/minecraft/launcher/ui/popups/login/AuthErrorForm.java
+@@ -41,20 +41,29 @@ public class AuthErrorForm extends JPanel {
+ 
+     public void displayError(final Throwable var1, final String... var2) {
+         if (SwingUtilities.isEventDispatchThread()) {
+-            String var3 = "";
+             String[] var4 = var2;
+             int var5 = var2.length;
++            StringBuilder sb = new StringBuilder();
+ 
+             for(int var6 = 0; var6 < var5; ++var6) {
+                 String var7 = var4[var6];
+-                var3 = var3 + "<p>" + var7 + "</p>";
++                sb.append("<p>").append(var7).append("</p>");
+             }
+ 
+             if (var1 != null) {
+-                var3 = var3 + "<p style='font-size: 0.9em; font-style: italic;'>(" + ExceptionUtils.getRootCauseMessage(var1) + ")</p>";
++                boolean first = true;
++                for (Throwable t : ExceptionUtils.getThrowableList(var1)) {
++                    sb.append("<p style='font-size: 0.9em; font-style: italic;'>(");
++                    if (!first) {
++                        sb.append("caused by ");
++                    }
++                    sb.append(ExceptionUtils.getMessage(t)).append(")</p>");
++
++                    first = false;
++                }
+             }
+ 
+-            this.errorLabel.setText("<html><div style='text-align: center;'>" + var3 + " </div></html>");
++            this.errorLabel.setText("<html><div style='text-align: center;'>" + sb + " </div></html>");
+             if (!this.isVisible()) {
+                 this.refreshStatuses();
+             }
+diff --git a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
+index e5af44f..b8c028a 100644
+--- a/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
++++ b/src/main/java/net/minecraft/launcher/ui/popups/login/LogInForm.java
+@@ -205,6 +205,10 @@ public class LogInForm extends JPanel implements ActionListener {
+                         LogInForm.LOGGER.error("Couldn't log in", var8);
+                         LogInForm.this.popup.getErrorForm().displayError(var8, "Sorry, but we couldn't connect to our servers.", "Please make sure that you are online and that Minecraft is not blocked.");
+                         LogInForm.this.popup.setCanLogIn(true);
++                    } catch (Throwable t) {
++                        LogInForm.LOGGER.error("Couldn't log in", t);
++                        LogInForm.this.popup.getErrorForm().displayError(t, "Sorry, but an unknown error occurred while logging in.", "Please report this issue to the developers.");
++                        LogInForm.this.popup.setCanLogIn(true);
+                     }
+ 
+                 }
+-- 
+2.45.1
+
