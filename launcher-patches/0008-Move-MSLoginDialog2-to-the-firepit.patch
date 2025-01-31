@@ -1,17 +1,17 @@
-From 13984a812b71312105348f5750be607a637c741b Mon Sep 17 00:00:00 2001
+From 19a67caa210ae05a157c309880fa658167f8733d Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Tue, 29 Mar 2022 02:04:21 -0500
 Subject: [PATCH] Move MSLoginDialog2 to the firepit
 
 
 diff --git a/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog2.java b/fire-pit/MSLoginDialog2.java
-similarity index 91%
+similarity index 90%
 rename from src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog2.java
 rename to fire-pit/MSLoginDialog2.java
-index 97e9988..cb564f0 100644
+index d4aeacc..0a09c52 100644
 --- a/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog2.java
 +++ b/fire-pit/MSLoginDialog2.java
-@@ -38,6 +38,13 @@ import java.net.*;
+@@ -20,6 +20,13 @@ import java.net.*;
  import java.nio.charset.StandardCharsets;;
  import java.util.UUID;
  
@@ -26,5 +26,5 @@ index 97e9988..cb564f0 100644
      private final UserAuthentication auth;
  
 -- 
-2.40.1
+2.47.2
 

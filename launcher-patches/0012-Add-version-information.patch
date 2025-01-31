@@ -1,4 +1,4 @@
-From a7affd8f38f0fa5356a74fa6c1866a4b0614f7fd Mon Sep 17 00:00:00 2001
+From 912607f302fee50f569553c73958de8b5073fc54 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Mon, 11 Apr 2022 02:52:40 -0500
 Subject: [PATCH] Add version information
@@ -6,28 +6,10 @@ Subject: [PATCH] Add version information
 
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/LauncherVersion.java b/src/main/java/dev/figboot/olauncher/launcher/LauncherVersion.java
 new file mode 100644
-index 0000000..6112721
+index 0000000..5e73013
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/LauncherVersion.java
-@@ -0,0 +1,125 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,107 @@
 +package dev.figboot.olauncher.launcher;
 +
 +import lombok.Getter;
@@ -211,5 +193,5 @@ index 7cbae64..524c1f7 100644
  
      public JFrame getFrame() {
 -- 
-2.40.1
+2.47.2
 

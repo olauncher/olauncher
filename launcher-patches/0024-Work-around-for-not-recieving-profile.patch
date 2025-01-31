@@ -1,11 +1,11 @@
-From 920bd2fd048417d66f6ebb18f77924885eb25379 Mon Sep 17 00:00:00 2001
+From 7835afa0e808dae11b0d04d4513d90615323873f Mon Sep 17 00:00:00 2001
 From: exrodev <exr0yt@gmail.com>
 Date: Sat, 9 Mar 2024 18:32:00 +1030
 Subject: [PATCH] Work around for not recieving profile
 
 
 diff --git a/src/main/java/com/mojang/authlib/HttpAuthenticationService.java b/src/main/java/com/mojang/authlib/HttpAuthenticationService.java
-index 78db037..2f430d1 100644
+index 597a17a..f9a2fc5 100644
 --- a/src/main/java/com/mojang/authlib/HttpAuthenticationService.java
 +++ b/src/main/java/com/mojang/authlib/HttpAuthenticationService.java
 @@ -147,6 +147,49 @@ public abstract class HttpAuthenticationService extends BaseAuthenticationServic
@@ -59,10 +59,10 @@ index 78db037..2f430d1 100644
          try {
              return new URL(var0);
 diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java
-index de4725c..cb3b5a0 100644
+index 81a7d8b..46bf253 100644
 --- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java
 +++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java
-@@ -42,6 +42,7 @@ public class MicrosoftAuthenticationService extends YggdrasilAuthenticationServi
+@@ -24,6 +24,7 @@ public class MicrosoftAuthenticationService extends YggdrasilAuthenticationServi
      public static final URL ROUTE_XBOXLIVE_XSTS = constantURL("https://xsts.auth.xboxlive.com/xsts/authorize");
      public static final URL ROUTE_MINECRAFT_XBOX_LOGIN = constantURL("https://api.minecraftservices.com/authentication/login_with_xbox");
      public static final URL ROUTE_MINECRAFT_PROFILE = constantURL("https://api.minecraftservices.com/minecraft/profile");
@@ -70,7 +70,7 @@ index de4725c..cb3b5a0 100644
  
      private final Gson gson;
  
-@@ -94,6 +95,15 @@ public class MicrosoftAuthenticationService extends YggdrasilAuthenticationServi
+@@ -76,6 +77,15 @@ public class MicrosoftAuthenticationService extends YggdrasilAuthenticationServi
          }
      }
  
@@ -87,10 +87,10 @@ index de4725c..cb3b5a0 100644
          private final StringBuilder data;
          private boolean firstParam = true;
 diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
-index f8e17b4..a1fc568 100644
+index c2b702f..cac8a10 100644
 --- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 +++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
-@@ -32,16 +32,20 @@ import dev.figboot.olauncher.auth.responses.MSTokenAuthResponse;
+@@ -14,16 +14,20 @@ import dev.figboot.olauncher.auth.responses.MSTokenAuthResponse;
  import dev.figboot.olauncher.auth.responses.MinecraftXboxLoginResponse;
  import dev.figboot.olauncher.auth.responses.XSTSAuthResponse;
  import dev.figboot.olauncher.auth.responses.XboxLiveAuthResponse;
@@ -111,7 +111,7 @@ index f8e17b4..a1fc568 100644
  import java.math.BigInteger;
  import java.net.HttpURLConnection;
  import java.net.MalformedURLException;
-@@ -212,6 +216,19 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -194,6 +198,19 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
          profileInfo = getAuthenticationService().getAuthenticated(MicrosoftAuthenticationService.ROUTE_MINECRAFT_PROFILE,
                  mojToken, MCProfileInfo.class);
  
@@ -411,5 +411,5 @@ index 701f313..b6c4444 100644
              }
  
 -- 
-2.39.2
+2.47.2
 

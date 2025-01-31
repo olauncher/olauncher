@@ -1,4 +1,4 @@
-From a7f43a42f7d60e49f3d6b7a7a2cbd450b3ab343e Mon Sep 17 00:00:00 2001
+From 88e1ba8eaa369aa1b3c3c2eda238d408ee518582 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Sun, 31 Mar 2024 17:49:36 -0500
 Subject: [PATCH] Auth overhaul
@@ -18,10 +18,10 @@ index f9a2fc5..3a3605e 100644
  import org.apache.commons.io.IOUtils;
  import org.apache.commons.lang3.Validate;
 diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java
-index cb3b5a0..eb6acd0 100644
+index 46bf253..4576fea 100644
 --- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java
 +++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java
-@@ -24,19 +24,28 @@ import com.mojang.authlib.Agent;
+@@ -6,19 +6,28 @@ import com.mojang.authlib.Agent;
  import com.mojang.authlib.UserAuthentication;
  import com.mojang.authlib.exceptions.AuthenticationException;
  import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
@@ -52,7 +52,7 @@ index cb3b5a0..eb6acd0 100644
      public static final URL ROUTE_LOGIN_LIVE_TOKEN = constantURL("https://login.live.com/oauth20_token.srf");
      public static final URL ROUTE_XBOXLIVE_AUTH = constantURL("https://user.auth.xboxlive.com/user/authenticate");
      public static final URL ROUTE_XBOXLIVE_XSTS = constantURL("https://xsts.auth.xboxlive.com/xsts/authorize");
-@@ -44,6 +53,10 @@ public class MicrosoftAuthenticationService extends YggdrasilAuthenticationServi
+@@ -26,6 +35,10 @@ public class MicrosoftAuthenticationService extends YggdrasilAuthenticationServi
      public static final URL ROUTE_MINECRAFT_PROFILE = constantURL("https://api.minecraftservices.com/minecraft/profile");
      public static final URL ROUTE_MINECRAFT_PROFILE_SKINS_ACTIVE = constantURL("https://api.minecraftservices.com/minecraft/profile/skins/active");
  
@@ -63,7 +63,7 @@ index cb3b5a0..eb6acd0 100644
      private final Gson gson;
  
      public MicrosoftAuthenticationService(Proxy proxy, String token) {
-@@ -59,49 +72,99 @@ public class MicrosoftAuthenticationService extends YggdrasilAuthenticationServi
+@@ -41,49 +54,99 @@ public class MicrosoftAuthenticationService extends YggdrasilAuthenticationServi
          return new MicrosoftUserAuthentication(this, var1);
      }
  
@@ -192,7 +192,7 @@ index cb3b5a0..eb6acd0 100644
      }
  
      protected static class FormURLEncodedBuilder {
-@@ -134,4 +197,30 @@ public class MicrosoftAuthenticationService extends YggdrasilAuthenticationServi
+@@ -116,4 +179,30 @@ public class MicrosoftAuthenticationService extends YggdrasilAuthenticationServi
              return data.toString();
          }
      }
@@ -224,11 +224,10 @@ index cb3b5a0..eb6acd0 100644
 +    }
  }
 diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
-index b6c71f6..2486d77 100644
+index 041c93e..86f7f18 100644
 --- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 +++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
-@@ -18,20 +18,15 @@
- 
+@@ -1,19 +1,14 @@
  package dev.figboot.olauncher.auth;
  
 -import com.google.gson.JsonElement;
@@ -250,7 +249,7 @@ index b6c71f6..2486d77 100644
  import dev.figboot.olauncher.auth.ui.GameProfileFixDialog;
  import lombok.Getter;
  import org.apache.commons.lang3.StringUtils;
-@@ -50,12 +45,10 @@ import java.net.HttpURLConnection;
+@@ -32,12 +27,10 @@ import java.net.HttpURLConnection;
  import java.net.MalformedURLException;
  import java.net.URL;
  import java.net.URLEncoder;
@@ -263,7 +262,7 @@ index b6c71f6..2486d77 100644
  import java.util.Map;
  import java.util.UUID;
  
-@@ -76,6 +69,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -58,6 +51,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
      private boolean online;
  
      private MSLoginServer.Response msLoginRes;
@@ -271,7 +270,7 @@ index b6c71f6..2486d77 100644
  
      private final MinecraftSessionService sessionService;
  
-@@ -91,6 +85,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -73,6 +67,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
          online = false;
  
          msLoginRes = null;
@@ -279,7 +278,7 @@ index b6c71f6..2486d77 100644
  
          sessionService = service.createMinecraftSessionService();
      }
-@@ -106,8 +101,6 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -88,8 +83,6 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
  
      @Override
      public void logIn() throws AuthenticationException {
@@ -288,7 +287,7 @@ index b6c71f6..2486d77 100644
          if (msLoginRes != null) {
              if (msLoginRes.isInternalError())
                  throw new AuthenticationException("An internal error occurred while authorizing your account");
-@@ -115,6 +108,16 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -97,6 +90,16 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
                  throw new AuthenticationException(msLoginRes.getErrorDesc() + " (" + msLoginRes.getError() + ")");
          }
  
@@ -305,7 +304,7 @@ index b6c71f6..2486d77 100644
          String msAuthCode = msLoginRes == null ? null : this.msLoginRes.getCode();
          this.msLoginRes = null;
  
-@@ -131,25 +134,48 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -113,25 +116,48 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
              String hash = msAndXblWarmLogIn();
              xstsAndMinecraftLogIn(hash);
              profileLogIn();
@@ -365,7 +364,7 @@ index b6c71f6..2486d77 100644
          }
  
          this.msRefreshToken = tokAuthRes.getRefreshToken();
-@@ -159,16 +185,19 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -141,16 +167,19 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
  
      private String msAndXblWarmLogIn() throws AuthenticationException {
          LOGGER.debug("Logging into live with a refresh token...");
@@ -395,7 +394,7 @@ index b6c71f6..2486d77 100644
          }
  
          this.msRefreshToken = tokAuthRes.getRefreshToken();
-@@ -189,9 +218,25 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -171,9 +200,25 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
  
      private void xstsAndMinecraftLogIn(String userHash) throws AuthenticationException {
          LOGGER.debug("Acquiring Minecraft XSTS token...");
@@ -424,7 +423,7 @@ index b6c71f6..2486d77 100644
  
          if (userHash != null && !userHash.equals(xstsAuthRes.getUserHash())) {
              throw new AuthenticationException("The user hash has changed?");
-@@ -222,10 +267,15 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -204,10 +249,15 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
      private void profileLogIn() throws AuthenticationException {
          if (this.xuid == null) findXUID();
  
@@ -440,7 +439,7 @@ index b6c71f6..2486d77 100644
          while (profileInfo.getId() == null) {
              // User profile just returns 404 (who knows why)
              // I believe that it may be an issue with the Mojang API
-@@ -238,6 +288,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -220,6 +270,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
              profileInfo = getAuthenticationService().getAuthenticated(MicrosoftAuthenticationService.ROUTE_MINECRAFT_PROFILE,
                      mojToken, MCProfileInfo.class);
          }
@@ -448,7 +447,7 @@ index b6c71f6..2486d77 100644
  
          GameProfile profile = new GameProfile(profileInfo.getId(), profileInfo.getName());
          profile = sessionService.fillProfileProperties(profile, false);
-@@ -334,6 +385,10 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -316,6 +367,10 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
          msLoginRes = code;
      }
  
@@ -459,7 +458,7 @@ index b6c71f6..2486d77 100644
      @Override
      public boolean isLoggedIn() {
          return StringUtils.isNotBlank(mojToken);
-@@ -355,7 +410,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -337,7 +392,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
      }
  
      private static UUID xuidFromString(String xuidStr) {
@@ -468,7 +467,7 @@ index b6c71f6..2486d77 100644
      }
  
      @Override
-@@ -372,7 +427,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -354,7 +409,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
          }
  
          if (var1.containsKey("xuid")) {
@@ -477,7 +476,7 @@ index b6c71f6..2486d77 100644
          } else if (var1.containsKey("xuid2")) {
              try {
                  xuid = UUID.fromString((String)var1.get("xuid2"));
-@@ -393,13 +448,34 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -375,13 +430,34 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
          }
      }
  
@@ -624,10 +623,10 @@ index 0000000..fa13e4d
 +    }
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/auth/responses/MSResponse.java b/src/main/java/dev/figboot/olauncher/auth/responses/MSResponse.java
-index 0159f0b..1001984 100644
+index 106a1a1..e426f2f 100644
 --- a/src/main/java/dev/figboot/olauncher/auth/responses/MSResponse.java
 +++ b/src/main/java/dev/figboot/olauncher/auth/responses/MSResponse.java
-@@ -24,7 +24,18 @@ public class MSResponse {
+@@ -6,7 +6,18 @@ public class MSResponse {
      @Getter private String error;
      private String error_description;
  
@@ -885,10 +884,10 @@ index 0000000..c032be4
 +    }
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog.java b/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog.java
-index 83bd084..79799e0 100644
+index f8b2ac1..f37edf7 100644
 --- a/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog.java
 +++ b/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog.java
-@@ -25,6 +25,7 @@ import org.apache.logging.log4j.LogManager;
+@@ -7,6 +7,7 @@ import org.apache.logging.log4j.LogManager;
  import org.apache.logging.log4j.Logger;
  
  import javax.swing.*;
@@ -896,7 +895,7 @@ index 83bd084..79799e0 100644
  import java.awt.*;
  import java.awt.datatransfer.StringSelection;
  import java.awt.event.ActionEvent;
-@@ -56,12 +57,13 @@ public class MSLoginDialog extends JDialog {
+@@ -38,12 +39,13 @@ public class MSLoginDialog extends JDialog {
  
          setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
  
@@ -911,7 +910,7 @@ index 83bd084..79799e0 100644
                  if (loginServer != null) {
                      loginServer.stop();
                      btnCancel.setEnabled(false);
-@@ -77,9 +79,10 @@ public class MSLoginDialog extends JDialog {
+@@ -59,9 +61,10 @@ public class MSLoginDialog extends JDialog {
          });
  
          try {
@@ -924,7 +923,7 @@ index 83bd084..79799e0 100644
                      URLEncoder.encode(OLauncherConstants.APP_CLIENT_ID.toString(), "UTF-8"),
                      URLEncoder.encode(OLauncherConstants.REDIR_URI, "UTF-8"),
                      URLEncoder.encode(OLauncherConstants.APP_SCOPES, "UTF-8")
-@@ -97,6 +100,8 @@ public class MSLoginDialog extends JDialog {
+@@ -79,6 +82,8 @@ public class MSLoginDialog extends JDialog {
      }
  
      private void initInterface() {
@@ -1121,5 +1120,5 @@ index 0c66c11..69b9729 100644
          } else {
              SwingUtilities.invokeLater(new Runnable() {
 -- 
-2.43.0
+2.47.2
 

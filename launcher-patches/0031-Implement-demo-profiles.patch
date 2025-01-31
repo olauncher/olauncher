@@ -1,15 +1,14 @@
-From 74acea2f61c462a748d2c54452570dc2ffa75651 Mon Sep 17 00:00:00 2001
+From d85366718b1d7e351770b69bf02e084102aa93a3 Mon Sep 17 00:00:00 2001
 From: vops <admin@vops.cc>
 Date: Tue, 11 Jun 2024 18:25:41 -0400
 Subject: [PATCH] Implement-demo-profiles
 
 
 diff --git a/src/main/java/dev/figboot/olauncher/auth/MCProfileInfo.java b/src/main/java/dev/figboot/olauncher/auth/MCProfileInfo.java
-index b9a8ab6..84b0625 100644
+index c4f4b3f..9446b71 100644
 --- a/src/main/java/dev/figboot/olauncher/auth/MCProfileInfo.java
 +++ b/src/main/java/dev/figboot/olauncher/auth/MCProfileInfo.java
-@@ -18,8 +18,10 @@
- 
+@@ -1,7 +1,9 @@
  package dev.figboot.olauncher.auth;
  
 +import lombok.AllArgsConstructor;
@@ -19,7 +18,7 @@ index b9a8ab6..84b0625 100644
  import java.util.List;
  import java.util.UUID;
  
-@@ -27,11 +29,16 @@ import java.util.UUID;
+@@ -9,11 +11,16 @@ import java.util.UUID;
  public class MCProfileInfo {
      private UUID id;
      private String name;
@@ -39,10 +38,10 @@ index b9a8ab6..84b0625 100644
      public static class Skin {
          private UUID id;
 diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
-index 2486d77..e0b2d72 100644
+index 86f7f18..354a2c2 100644
 --- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 +++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
-@@ -267,13 +267,16 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -249,13 +249,16 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
      private void profileLogIn() throws AuthenticationException {
          if (this.xuid == null) findXUID();
  
@@ -65,7 +64,7 @@ index 2486d77..e0b2d72 100644
  
          if (false) { // this code should be unnecessary now -figboot
          while (profileInfo.getId() == null) {
-@@ -290,15 +293,24 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -272,15 +275,24 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
          }
          }
  
@@ -98,5 +97,5 @@ index 2486d77..e0b2d72 100644
  
          /*try {
 -- 
-2.39.1.windows.1
+2.47.2
 

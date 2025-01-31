@@ -1,4 +1,4 @@
-From d8730a23bd18cbf3008761312c886d30fa464b34 Mon Sep 17 00:00:00 2001
+From 5e650c62c5e96594ab1e55c33a3747a765b1cb23 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 17 Mar 2022 04:40:30 -0500
 Subject: [PATCH] Add Microsoft authentication
@@ -63,28 +63,10 @@ index da99d2a..a7f91d7 100644
      private final String name;
 diff --git a/src/main/java/dev/figboot/olauncher/OLauncherConstants.java b/src/main/java/dev/figboot/olauncher/OLauncherConstants.java
 new file mode 100644
-index 0000000..67728f6
+index 0000000..f1e3ac7
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/OLauncherConstants.java
-@@ -0,0 +1,31 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,13 @@
 +package dev.figboot.olauncher;
 +
 +import java.util.UUID;
@@ -100,28 +82,10 @@ index 0000000..67728f6
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/auth/MCProfileInfo.java b/src/main/java/dev/figboot/olauncher/auth/MCProfileInfo.java
 new file mode 100644
-index 0000000..b9a8ab6
+index 0000000..c4f4b3f
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/auth/MCProfileInfo.java
-@@ -0,0 +1,82 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,64 @@
 +package dev.figboot.olauncher.auth;
 +
 +import lombok.Getter;
@@ -188,28 +152,10 @@ index 0000000..b9a8ab6
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/auth/MSLoginServer.java b/src/main/java/dev/figboot/olauncher/auth/MSLoginServer.java
 new file mode 100644
-index 0000000..6b4130e
+index 0000000..fa4c3cc
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/auth/MSLoginServer.java
-@@ -0,0 +1,231 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,213 @@
 +package dev.figboot.olauncher.auth;
 +
 +import lombok.AccessLevel;
@@ -425,28 +371,10 @@ index 0000000..6b4130e
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java
 new file mode 100644
-index 0000000..de4725c
+index 0000000..81a7d8b
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftAuthenticationService.java
-@@ -0,0 +1,127 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,109 @@
 +package dev.figboot.olauncher.auth;
 +
 +import com.google.gson.Gson;
@@ -558,28 +486,10 @@ index 0000000..de4725c
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 new file mode 100644
-index 0000000..632af6a
+index 0000000..00a0675
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
-@@ -0,0 +1,277 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,259 @@
 +package dev.figboot.olauncher.auth;
 +
 +import com.mojang.authlib.*;
@@ -841,28 +751,10 @@ index 0000000..632af6a
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/auth/requests/MinecraftXboxLoginRequest.java b/src/main/java/dev/figboot/olauncher/auth/requests/MinecraftXboxLoginRequest.java
 new file mode 100644
-index 0000000..a4dcf22
+index 0000000..0034a51
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/auth/requests/MinecraftXboxLoginRequest.java
-@@ -0,0 +1,29 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,11 @@
 +package dev.figboot.olauncher.auth.requests;
 +
 +public class MinecraftXboxLoginRequest {
@@ -876,28 +768,10 @@ index 0000000..a4dcf22
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/auth/requests/XSTSAuthRequest.java b/src/main/java/dev/figboot/olauncher/auth/requests/XSTSAuthRequest.java
 new file mode 100644
-index 0000000..73cd161
+index 0000000..3845b41
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/auth/requests/XSTSAuthRequest.java
-@@ -0,0 +1,44 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,26 @@
 +package dev.figboot.olauncher.auth.requests;
 +
 +import java.util.Collections;
@@ -926,28 +800,10 @@ index 0000000..73cd161
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/auth/requests/XboxLiveAuthRequest.java b/src/main/java/dev/figboot/olauncher/auth/requests/XboxLiveAuthRequest.java
 new file mode 100644
-index 0000000..c02fc58
+index 0000000..a68edc0
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/auth/requests/XboxLiveAuthRequest.java
-@@ -0,0 +1,47 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,29 @@
 +package dev.figboot.olauncher.auth.requests;
 +
 +public class XboxLiveAuthRequest {
@@ -979,28 +835,10 @@ index 0000000..c02fc58
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/auth/responses/MSResponse.java b/src/main/java/dev/figboot/olauncher/auth/responses/MSResponse.java
 new file mode 100644
-index 0000000..0159f0b
+index 0000000..106a1a1
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/auth/responses/MSResponse.java
-@@ -0,0 +1,30 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,12 @@
 +package dev.figboot.olauncher.auth.responses;
 +
 +import lombok.Getter;
@@ -1015,28 +853,10 @@ index 0000000..0159f0b
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/auth/responses/MSTokenAuthResponse.java b/src/main/java/dev/figboot/olauncher/auth/responses/MSTokenAuthResponse.java
 new file mode 100644
-index 0000000..fe01aa4
+index 0000000..5fe1425
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/auth/responses/MSTokenAuthResponse.java
-@@ -0,0 +1,32 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,14 @@
 +package dev.figboot.olauncher.auth.responses;
 +
 +public class MSTokenAuthResponse extends MSResponse {
@@ -1053,28 +873,10 @@ index 0000000..fe01aa4
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/auth/responses/MinecraftXboxLoginResponse.java b/src/main/java/dev/figboot/olauncher/auth/responses/MinecraftXboxLoginResponse.java
 new file mode 100644
-index 0000000..7970e25
+index 0000000..fe1ecd5
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/auth/responses/MinecraftXboxLoginResponse.java
-@@ -0,0 +1,32 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,14 @@
 +package dev.figboot.olauncher.auth.responses;
 +
 +public class MinecraftXboxLoginResponse extends MSResponse {
@@ -1091,28 +893,10 @@ index 0000000..7970e25
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/auth/responses/XSTSAuthResponse.java b/src/main/java/dev/figboot/olauncher/auth/responses/XSTSAuthResponse.java
 new file mode 100644
-index 0000000..3a959db
+index 0000000..7e5f374
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/auth/responses/XSTSAuthResponse.java
-@@ -0,0 +1,42 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,24 @@
 +package dev.figboot.olauncher.auth.responses;
 +
 +import java.util.List;
@@ -1139,28 +923,10 @@ index 0000000..3a959db
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/auth/responses/XboxLiveAuthResponse.java b/src/main/java/dev/figboot/olauncher/auth/responses/XboxLiveAuthResponse.java
 new file mode 100644
-index 0000000..3fd4d79
+index 0000000..54964bb
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/auth/responses/XboxLiveAuthResponse.java
-@@ -0,0 +1,48 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,30 @@
 +package dev.figboot.olauncher.auth.responses;
 +
 +import java.time.Instant;
@@ -1193,28 +959,10 @@ index 0000000..3fd4d79
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog.java b/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog.java
 new file mode 100644
-index 0000000..10dbf2a
+index 0000000..96f8b4a
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog.java
-@@ -0,0 +1,141 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,123 @@
 +package dev.figboot.olauncher.auth.ui;
 +
 +import com.mojang.launcher.OperatingSystem;
@@ -1340,28 +1088,10 @@ index 0000000..10dbf2a
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog2.java b/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog2.java
 new file mode 100644
-index 0000000..97e9988
+index 0000000..d4aeacc
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/auth/ui/MSLoginDialog2.java
-@@ -0,0 +1,152 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,134 @@
 +package dev.figboot.olauncher.auth.ui;
 +
 +import com.mojang.authlib.UserAuthentication;
@@ -1498,28 +1228,10 @@ index 0000000..97e9988
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/util/BetterUUIDTypeAdapter.java b/src/main/java/dev/figboot/olauncher/util/BetterUUIDTypeAdapter.java
 new file mode 100644
-index 0000000..dc064de
+index 0000000..b5874ca
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/util/BetterUUIDTypeAdapter.java
-@@ -0,0 +1,41 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,23 @@
 +package dev.figboot.olauncher.util;
 +
 +import com.google.gson.TypeAdapter;
@@ -1545,28 +1257,10 @@ index 0000000..dc064de
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/util/InstantTypeAdapter.java b/src/main/java/dev/figboot/olauncher/util/InstantTypeAdapter.java
 new file mode 100644
-index 0000000..b73990e
+index 0000000..70d69d1
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/util/InstantTypeAdapter.java
-@@ -0,0 +1,38 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,20 @@
 +package dev.figboot.olauncher.util;
 +
 +import com.google.gson.TypeAdapter;
@@ -1784,5 +1478,5 @@ index b1484fa..720caf7 100644
 \ No newline at end of file
 +</Configuration>
 -- 
-2.40.1
+2.47.2
 

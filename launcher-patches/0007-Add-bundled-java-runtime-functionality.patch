@@ -1,4 +1,4 @@
-From d1207c2ae1f3f965dcc639fcd1324c1279ebf1db Mon Sep 17 00:00:00 2001
+From 8733903e6960fcd4bca1be8cc5d583c865dc49f8 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Sat, 26 Mar 2022 15:24:44 -0500
 Subject: [PATCH] Add bundled java runtime functionality
@@ -199,11 +199,10 @@ index afa4dd4..c05c7f7 100644
 +    JavaVersionInfo getJavaVersion();
  }
 diff --git a/src/main/java/dev/figboot/olauncher/OLauncherConstants.java b/src/main/java/dev/figboot/olauncher/OLauncherConstants.java
-index 67728f6..e88d992 100644
+index f1e3ac7..7a1909a 100644
 --- a/src/main/java/dev/figboot/olauncher/OLauncherConstants.java
 +++ b/src/main/java/dev/figboot/olauncher/OLauncherConstants.java
-@@ -18,8 +18,11 @@
- 
+@@ -1,7 +1,10 @@
  package dev.figboot.olauncher;
  
 +import java.net.URL;
@@ -214,7 +213,7 @@ index 67728f6..e88d992 100644
  public final class OLauncherConstants {
      private OLauncherConstants() { }
  
-@@ -28,4 +31,6 @@ public final class OLauncherConstants {
+@@ -10,4 +13,6 @@ public final class OLauncherConstants {
      public static final String APP_SCOPES = "XboxLive.signin offline_access";
      public static final int REDIR_URI_PORT = 6183;
      public static final String REDIR_URI = "http://localhost:" + REDIR_URI_PORT;
@@ -223,28 +222,10 @@ index 67728f6..e88d992 100644
  }
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/JavaVersionInfo.java b/src/main/java/dev/figboot/olauncher/launcher/JavaVersionInfo.java
 new file mode 100644
-index 0000000..14ddc9a
+index 0000000..81da113
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/JavaVersionInfo.java
-@@ -0,0 +1,41 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,23 @@
 +package dev.figboot.olauncher.launcher;
 +
 +import lombok.Getter;
@@ -270,28 +251,10 @@ index 0000000..14ddc9a
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/JavaRuntimeManager.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/JavaRuntimeManager.java
 new file mode 100644
-index 0000000..cfb06a0
+index 0000000..551c252
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/JavaRuntimeManager.java
-@@ -0,0 +1,246 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,228 @@
 +package dev.figboot.olauncher.launcher.runtime;
 +
 +import com.google.common.reflect.TypeToken;
@@ -522,28 +485,10 @@ index 0000000..cfb06a0
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/RuntimesManifest.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/RuntimesManifest.java
 new file mode 100644
-index 0000000..a0bc907
+index 0000000..70a802a
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/RuntimesManifest.java
-@@ -0,0 +1,38 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,20 @@
 +package dev.figboot.olauncher.launcher.runtime;
 +
 +import lombok.Getter;
@@ -566,28 +511,10 @@ index 0000000..a0bc907
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/download/RuntimeFileDownloadable.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/download/RuntimeFileDownloadable.java
 new file mode 100644
-index 0000000..b14a8e7
+index 0000000..bd60459
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/download/RuntimeFileDownloadable.java
-@@ -0,0 +1,218 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,200 @@
 +package dev.figboot.olauncher.launcher.runtime.download;
 +
 +import com.mojang.launcher.updater.download.Downloadable;
@@ -790,28 +717,10 @@ index 0000000..b14a8e7
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFile.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFile.java
 new file mode 100644
-index 0000000..1d4fdae
+index 0000000..6722616
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFile.java
-@@ -0,0 +1,26 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,8 @@
 +package dev.figboot.olauncher.launcher.runtime.file;
 +
 +import java.io.IOException;
@@ -822,28 +731,10 @@ index 0000000..1d4fdae
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileDirectory.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileDirectory.java
 new file mode 100644
-index 0000000..756a5c7
+index 0000000..1cc3710
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileDirectory.java
-@@ -0,0 +1,30 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,12 @@
 +package dev.figboot.olauncher.launcher.runtime.file;
 +
 +import java.io.IOException;
@@ -858,28 +749,10 @@ index 0000000..756a5c7
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileFile.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileFile.java
 new file mode 100644
-index 0000000..2145f49
+index 0000000..b2547d6
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileFile.java
-@@ -0,0 +1,44 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,26 @@
 +package dev.figboot.olauncher.launcher.runtime.file;
 +
 +import lombok.Getter;
@@ -908,28 +781,10 @@ index 0000000..2145f49
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileLink.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileLink.java
 new file mode 100644
-index 0000000..880ad87
+index 0000000..4d0d9a9
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileLink.java
-@@ -0,0 +1,35 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,17 @@
 +package dev.figboot.olauncher.launcher.runtime.file;
 +
 +import lombok.Getter;
@@ -949,28 +804,10 @@ index 0000000..880ad87
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileList.java b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileList.java
 new file mode 100644
-index 0000000..3d8f688
+index 0000000..1fbaa33
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/launcher/runtime/file/RuntimeFileList.java
-@@ -0,0 +1,27 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,9 @@
 +package dev.figboot.olauncher.launcher.runtime.file;
 +
 +import lombok.Getter;
@@ -982,28 +819,10 @@ index 0000000..3d8f688
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/util/DeletingFileVisitor.java b/src/main/java/dev/figboot/olauncher/util/DeletingFileVisitor.java
 new file mode 100644
-index 0000000..c35c40d
+index 0000000..48d6a04
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/util/DeletingFileVisitor.java
-@@ -0,0 +1,59 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,41 @@
 +package dev.figboot.olauncher.util;
 +
 +import java.io.IOException;
@@ -1047,28 +866,10 @@ index 0000000..c35c40d
 +}
 diff --git a/src/main/java/dev/figboot/olauncher/util/runtime/RuntimeFileDeserializer.java b/src/main/java/dev/figboot/olauncher/util/runtime/RuntimeFileDeserializer.java
 new file mode 100644
-index 0000000..3499f3d
+index 0000000..18c77f3
 --- /dev/null
 +++ b/src/main/java/dev/figboot/olauncher/util/runtime/RuntimeFileDeserializer.java
-@@ -0,0 +1,46 @@
-+/*
-+ * OLauncher
-+ * Copyright (C) 2022  bigfoot547 <olauncher@figboot.dev>
-+ *
-+ * This program is free software: you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation, either version 3 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see https://github.com/olauncher/olauncher .
-+ */
-+
+@@ -0,0 +1,28 @@
 +package dev.figboot.olauncher.util.runtime;
 +
 +import com.google.gson.*;
@@ -1317,5 +1118,5 @@ index 9d786d5..53ee706 100644
 +    // olauncher end
  }
 -- 
-2.43.0
+2.47.2
 

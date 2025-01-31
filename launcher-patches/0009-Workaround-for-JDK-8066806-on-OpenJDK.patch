@@ -1,14 +1,14 @@
-From c9f7909b54fd354b848c2f63bee2be2bac917cd1 Mon Sep 17 00:00:00 2001
+From c35c8c03e44f2395342e2dc84b571beeb4c4de2f Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Tue, 29 Mar 2022 02:13:39 -0500
 Subject: [PATCH] Workaround for JDK-8066806 on OpenJDK
 
 
 diff --git a/src/main/java/dev/figboot/olauncher/util/InstantTypeAdapter.java b/src/main/java/dev/figboot/olauncher/util/InstantTypeAdapter.java
-index b73990e..6077386 100644
+index 70d69d1..7291d64 100644
 --- a/src/main/java/dev/figboot/olauncher/util/InstantTypeAdapter.java
 +++ b/src/main/java/dev/figboot/olauncher/util/InstantTypeAdapter.java
-@@ -33,6 +33,7 @@ public class InstantTypeAdapter extends TypeAdapter<Instant> {
+@@ -15,6 +15,7 @@ public class InstantTypeAdapter extends TypeAdapter<Instant> {
  
      @Override
      public Instant read(JsonReader jsonReader) throws IOException {
@@ -18,5 +18,5 @@ index b73990e..6077386 100644
      }
  }
 -- 
-2.40.1
+2.47.2
 

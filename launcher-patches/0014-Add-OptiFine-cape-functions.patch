@@ -1,14 +1,14 @@
-From f32d8df60f13648d2bbbdc3b3ebc8da2e4b3d8ee Mon Sep 17 00:00:00 2001
+From fd149251a5c506e4af3905987e409bc1ec5c7972 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Tue, 26 Apr 2022 00:50:05 -0500
 Subject: [PATCH] Add OptiFine cape functions
 
 
 diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
-index 923af20..f8e17b4 100644
+index 3b2bd72..c2b702f 100644
 --- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 +++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
-@@ -37,7 +37,18 @@ import org.apache.commons.lang3.StringUtils;
+@@ -19,7 +19,18 @@ import org.apache.commons.lang3.StringUtils;
  import org.apache.logging.log4j.LogManager;
  import org.apache.logging.log4j.Logger;
  
@@ -27,7 +27,7 @@ index 923af20..f8e17b4 100644
  import java.time.Instant;
  import java.time.temporal.ChronoUnit;
  import java.util.Base64;
-@@ -63,6 +74,8 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -45,6 +56,8 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
  
      private final MinecraftSessionService sessionService;
  
@@ -36,7 +36,7 @@ index 923af20..f8e17b4 100644
      public MicrosoftUserAuthentication(MicrosoftAuthenticationService service, Agent agent) {
          super(service);
          this.agent = agent;
-@@ -209,6 +222,58 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -191,6 +204,58 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
          getModifiableUserProperties().clear();
          getModifiableUserProperties().putAll(profile.getProperties());
          setUserType(UserType.MICROSOFT);
@@ -96,5 +96,5 @@ index 923af20..f8e17b4 100644
  
      public MCProfileInfo getProfileInfo() {
 -- 
-2.40.1
+2.47.2
 

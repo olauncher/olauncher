@@ -1,14 +1,14 @@
-From 94dd0406636a3d0308330aedff1b7d2a4034e549 Mon Sep 17 00:00:00 2001
+From 58b3e3d1543df50bed9b97088b82afda587a3330 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Sun, 10 Mar 2024 19:51:40 -0500
 Subject: [PATCH] fix offline auth and stuff
 
 
 diff --git a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
-index a1fc568..b6c71f6 100644
+index cac8a10..041c93e 100644
 --- a/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
 +++ b/src/main/java/dev/figboot/olauncher/auth/MicrosoftUserAuthentication.java
-@@ -33,7 +33,6 @@ import dev.figboot.olauncher.auth.responses.MinecraftXboxLoginResponse;
+@@ -15,7 +15,6 @@ import dev.figboot.olauncher.auth.responses.MinecraftXboxLoginResponse;
  import dev.figboot.olauncher.auth.responses.XSTSAuthResponse;
  import dev.figboot.olauncher.auth.responses.XboxLiveAuthResponse;
  import dev.figboot.olauncher.auth.ui.GameProfileFixDialog;
@@ -16,7 +16,7 @@ index a1fc568..b6c71f6 100644
  import lombok.Getter;
  import org.apache.commons.lang3.StringUtils;
  import org.apache.logging.log4j.LogManager;
-@@ -54,9 +53,11 @@ import java.net.URLEncoder;
+@@ -36,9 +35,11 @@ import java.net.URLEncoder;
  import java.nio.charset.StandardCharsets;
  import java.security.SecureRandom;
  import java.time.Instant;
@@ -28,7 +28,7 @@ index a1fc568..b6c71f6 100644
  
  public class MicrosoftUserAuthentication extends HttpUserAuthentication {
      private static final Logger LOGGER = LogManager.getLogger();
-@@ -70,9 +71,9 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -52,9 +53,9 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
      private String xblToken;
      private Instant xblTokenExpire;
      private String mojToken;
@@ -40,7 +40,7 @@ index a1fc568..b6c71f6 100644
  
      private MSLoginServer.Response msLoginRes;
  
-@@ -85,9 +86,9 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -67,9 +68,9 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
          this.agent = agent;
          profiles = null;
  
@@ -53,7 +53,7 @@ index a1fc568..b6c71f6 100644
  
          msLoginRes = null;
  
-@@ -96,12 +97,11 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -78,12 +79,11 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
  
      @Override
      public boolean canLogIn() {
@@ -70,7 +70,7 @@ index a1fc568..b6c71f6 100644
      }
  
      @Override
-@@ -188,30 +188,40 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -170,30 +170,40 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
      }
  
      private void xstsAndMinecraftLogIn(String userHash) throws AuthenticationException {
@@ -117,7 +117,7 @@ index a1fc568..b6c71f6 100644
          LOGGER.debug("Getting your user profile...");
          profileInfo = getAuthenticationService().getAuthenticated(MicrosoftAuthenticationService.ROUTE_MINECRAFT_PROFILE,
                  mojToken, MCProfileInfo.class);
-@@ -232,7 +242,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -214,7 +224,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
          GameProfile profile = new GameProfile(profileInfo.getId(), profileInfo.getName());
          profile = sessionService.fillProfileProperties(profile, false);
  
@@ -126,7 +126,7 @@ index a1fc568..b6c71f6 100644
          setUserid(profileInfo.getId().toString().replace("-", ""));
          profiles = new GameProfile[]{profile};
          setSelectedProfile(profile);
-@@ -303,9 +313,9 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -285,9 +295,9 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
  
          msRefreshToken = null;
          mojToken = null;
@@ -137,7 +137,7 @@ index a1fc568..b6c71f6 100644
      }
  
      private boolean mojTokenValid(Instant now) {
-@@ -324,9 +334,14 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -306,9 +316,14 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
          msLoginRes = code;
      }
  
@@ -153,7 +153,7 @@ index a1fc568..b6c71f6 100644
      }
  
      @Override
-@@ -339,15 +354,43 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -321,15 +336,43 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
          throw new AuthenticationException("Switching game profiles is not supported");
      }
  
@@ -200,7 +200,7 @@ index a1fc568..b6c71f6 100644
      }
  
      @Override
-@@ -356,7 +399,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
+@@ -338,7 +381,7 @@ public class MicrosoftUserAuthentication extends HttpUserAuthentication {
          map.put("refreshToken", msRefreshToken);
          map.put("xboxLiveToken", xblToken);
          map.put("xboxLiveTokenExpire", xblTokenExpire.toString());
@@ -210,10 +210,10 @@ index a1fc568..b6c71f6 100644
          map.put("mojTokenExpire", mojTokenExpire.toString());
          return map;
 diff --git a/src/main/java/dev/figboot/olauncher/auth/requests/XSTSAuthRequest.java b/src/main/java/dev/figboot/olauncher/auth/requests/XSTSAuthRequest.java
-index 73cd161..f3a429b 100644
+index 3845b41..842af55 100644
 --- a/src/main/java/dev/figboot/olauncher/auth/requests/XSTSAuthRequest.java
 +++ b/src/main/java/dev/figboot/olauncher/auth/requests/XSTSAuthRequest.java
-@@ -26,9 +26,12 @@ public class XSTSAuthRequest {
+@@ -8,9 +8,12 @@ public class XSTSAuthRequest {
      private final String RelyingParty;
      private final String TokenType;
  
@@ -229,10 +229,10 @@ index 73cd161..f3a429b 100644
      }
  
 diff --git a/src/main/java/dev/figboot/olauncher/auth/responses/XSTSAuthResponse.java b/src/main/java/dev/figboot/olauncher/auth/responses/XSTSAuthResponse.java
-index 3a959db..3d1afb8 100644
+index 7e5f374..aa887d6 100644
 --- a/src/main/java/dev/figboot/olauncher/auth/responses/XSTSAuthResponse.java
 +++ b/src/main/java/dev/figboot/olauncher/auth/responses/XSTSAuthResponse.java
-@@ -29,14 +29,25 @@ public class XSTSAuthResponse extends MSResponse {
+@@ -11,14 +11,25 @@ public class XSTSAuthResponse extends MSResponse {
      }
  
      public String getUserHash() {
@@ -322,5 +322,5 @@ index d5560e6..fb4ae8c 100644
  
                  return new Argument(var6, var11);
 -- 
-2.43.0
+2.47.2
 
