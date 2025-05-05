@@ -1,4 +1,4 @@
-From b5a3165b4e8dd100f7ac2b4d08f99b6ac122dd78 Mon Sep 17 00:00:00 2001
+From 9ccd184d56f10e87a62caed17cc05552f7cd37e5 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 10 Mar 2022 01:37:59 -0600
 Subject: [PATCH] Add maven project
@@ -314,10 +314,10 @@ index aef7cf0..0000000
 -
 diff --git a/pom.xml b/pom.xml
 new file mode 100644
-index 0000000..6ba32c4
+index 0000000..134bff1
 --- /dev/null
 +++ b/pom.xml
-@@ -0,0 +1,223 @@
+@@ -0,0 +1,226 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +
 +<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -431,6 +431,9 @@ index 0000000..6ba32c4
 +                        <configuration>
 +                            <generateGitPropertiesFilename>${project.build.outputDirectory}/ver/git-outer.properties</generateGitPropertiesFilename>
 +                            <dotGitDirectory>../.git</dotGitDirectory>
++                            <gitDescribe>
++                                <tags>true</tags> <!-- include unannotated tags (occurs during shallow clones) -->
++                            </gitDescribe>
 +                            <includeOnlyProperties>
 +                                <property>^git.closest.tag.name$</property>
 +                                <property>^git.closest.tag.commit.count$</property>
@@ -536,7 +539,7 @@ index 0000000..6ba32c4
 +        <dependency>
 +            <groupId>org.projectlombok</groupId>
 +            <artifactId>lombok</artifactId>
-+            <version>1.18.22</version>
++            <version>1.18.38</version>
 +            <scope>provided</scope>
 +        </dependency>
 +    </dependencies>
@@ -1206,5 +1209,5 @@ similarity index 100%
 rename from yggdrasil_session_pubkey.der
 rename to src/main/resources/yggdrasil_session_pubkey.der
 -- 
-2.43.0
+2.49.0
 
