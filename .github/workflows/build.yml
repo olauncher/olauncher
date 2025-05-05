@@ -11,14 +11,15 @@ name: Java CI with Maven
 on:
   push:
     branches: [ "master" ]
+    tags: [ "v*", "ci-test/**" ]
   pull_request:
     branches: [ "master" ]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
+    outputs:
+      artifact-id: ${{ steps.upload-artifact.outputs.artifact-id }}
     steps:
     - uses: actions/checkout@v4
       with:
@@ -40,6 +41,25 @@ jobs:
       run: bash genredist.sh
     - name: Upload redistributable
       uses: actions/upload-artifact@v4
+      id: upload-artifact
       with:
-        name: Redistributable
+        name: OLauncher Redistributable JAR
         path: olauncher-*-redist.jar
+
+  draft-release:
+    if: ${{ github.ref_type == 'tag' }}
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download redistributable jar
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+      - name: Create release draft with redistributable
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release create "$RELEASE_TAG" --draft --verify-tag --title "$RELEASE_TAG" *.jar
