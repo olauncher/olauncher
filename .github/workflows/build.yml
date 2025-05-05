@@ -25,6 +25,8 @@ jobs:
       with:
         submodules: recursive
         fetch-tags: true
+        fetch-depth: 1
+        ref: ${{ github.ref }}
     - name: Git setup
       run: git config --global commit.gpgsign false && git config --global user.email olauncher@example.com && git config --global user.name olauncher
     - name: Set up JDK 11
@@ -55,11 +57,15 @@ jobs:
     steps:
       - name: Download redistributable jar
         uses: actions/download-artifact@v4
+        id: download-artifact
         with:
           artifact-ids: ${{ needs.build.outputs.artifact-id }}
+          merge-multiple: true
+          path: redist
       - name: Create release draft with redistributable
         env:
           RELEASE_TAG: ${{ github.ref_name }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-        run: gh release create "$RELEASE_TAG" --draft --verify-tag --title "$RELEASE_TAG" *.jar
+          ARTIFACT_PATH: ${{ steps.download-artifact.outputs.download-path }}
+        run: gh release create "$RELEASE_TAG" --draft --verify-tag --title "$RELEASE_TAG" "$ARTIFACT_PATH"/*.jar
