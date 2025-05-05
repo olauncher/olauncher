@@ -1,11 +1,11 @@
-From 491742a2683da80c4f92e8c4187496d7f5dd1a07 Mon Sep 17 00:00:00 2001
+From 8b277ad1dbd0db1274c4faf9451f5e6a74725977 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Sun, 4 May 2025 23:05:38 -0500
 Subject: [PATCH] Deduplicate libraries
 
 
 diff --git a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
-index 7df3cd1..1c09acf 100644
+index 7df3cd1..a19da62 100644
 --- a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
 +++ b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
 @@ -4,6 +4,14 @@ import com.google.common.base.MoreObjects;
@@ -107,7 +107,7 @@ index 7df3cd1..1c09acf 100644
 -                while(var7.hasNext()) {
 -                    var8 = (Library)var7.next();
 -                    var6.add(new Library(var8));
-+                for (Map.Entry<String, Library> entry : this.libraries.entrySet()) {
++                for (Map.Entry<String, Library> entry : var5.libraries.entrySet()) {
 +                    var6.put(entry.getKey(), new Library(entry.getValue()));
                  }
  
@@ -116,7 +116,7 @@ index 7df3cd1..1c09acf 100644
 -                while(var7.hasNext()) {
 -                    var8 = (Library)var7.next();
 -                    var6.add(var8);
-+                for (Map.Entry<String, Library> entry : var5.libraries.entrySet()) {
++                for (Map.Entry<String, Library> entry : this.libraries.entrySet()) {
 +                    var6.put(entry.getKey(), new Library(entry.getValue()));
                  }
  
