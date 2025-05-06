@@ -1,37 +1,14 @@
-From 8b277ad1dbd0db1274c4faf9451f5e6a74725977 Mon Sep 17 00:00:00 2001
+From a26c2f08e35570bbd7379300eb17be11e19b0c13 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
-Date: Sun, 4 May 2025 23:05:38 -0500
+Date: Tue, 6 May 2025 14:37:18 -0500
 Subject: [PATCH] Deduplicate libraries
 
 
 diff --git a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
-index 7df3cd1..a19da62 100644
+index 7df3cd1..b5880c0 100644
 --- a/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
 +++ b/src/main/java/net/minecraft/launcher/updater/CompleteMinecraftVersion.java
-@@ -4,6 +4,14 @@ import com.google.common.base.MoreObjects;
- import com.google.common.collect.Lists;
- import com.google.common.collect.Maps;
- import com.google.common.collect.Sets;
-+import com.google.gson.JsonArray;
-+import com.google.gson.JsonDeserializationContext;
-+import com.google.gson.JsonDeserializer;
-+import com.google.gson.JsonElement;
-+import com.google.gson.JsonParseException;
-+import com.google.gson.JsonSerializationContext;
-+import com.google.gson.JsonSerializer;
-+import com.google.gson.annotations.JsonAdapter;
- import com.mojang.authlib.UserAuthentication;
- import com.mojang.launcher.OperatingSystem;
- import com.mojang.launcher.game.process.GameProcessBuilder;
-@@ -13,6 +21,7 @@ import com.mojang.launcher.versions.CompleteVersion;
- import com.mojang.launcher.versions.ReleaseType;
- import java.io.File;
- import java.io.IOException;
-+import java.lang.reflect.Type;
- import java.net.MalformedURLException;
- import java.net.Proxy;
- import java.util.ArrayList;
-@@ -21,6 +30,7 @@ import java.util.Date;
+@@ -21,6 +21,7 @@ import java.util.Date;
  import java.util.EnumMap;
  import java.util.HashSet;
  import java.util.Iterator;
@@ -39,127 +16,32 @@ index 7df3cd1..a19da62 100644
  import java.util.List;
  import java.util.Map;
  import java.util.Set;
-@@ -48,7 +58,7 @@ public class CompleteMinecraftVersion implements CompleteVersion {
-     // olauncher end
-     private ReleaseType type;
-     private String minecraftArguments;
--    private List<Library> libraries;
-+    @JsonAdapter(value = LibraryTypeAdapter.class) private Map<String, Library> libraries; // olauncher - deduplicate libraries
-     private String mainClass;
-     private int minimumLauncherVersion;
-     private String incompatibilityReason;
-@@ -88,12 +98,12 @@ public class CompleteMinecraftVersion implements CompleteVersion {
-         //Iterator var2;
-         Iterator<Library> libraryIter;
-         if (var1.libraries != null) {
--            this.libraries = Lists.newArrayList();
--            libraryIter = var1.getLibraries().iterator();
-+            this.libraries = new LinkedHashMap<>(); // olauncher - deduplicate libraries
-+            libraryIter = var1.getLibrariesCollection().iterator(); // olauncher - deduplicate libraries
- 
-             while(libraryIter.hasNext()) {
--                Library var3 = libraryIter.next();
--                this.libraries.add(new Library(var3));
-+                Library var3 = new Library(libraryIter.next());
-+                this.libraries.put(var3.getCanonicalName(), var3); // olauncher - deduplicate libraries
-             }
-         }
- 
-@@ -147,10 +157,17 @@ public class CompleteMinecraftVersion implements CompleteVersion {
-         return this.complianceLevel;
+@@ -168,17 +169,17 @@ public class CompleteMinecraftVersion implements CompleteVersion {
      }
- 
-+    // olauncher start - deduplicate libraries
-+    @Deprecated
-     public List<Library> getLibraries() {
--        return this.libraries;
-+        return new ArrayList<>(this.libraries.values());
-     }
- 
-+    public Collection<Library> getLibrariesCollection() {
-+        return this.libraries.values();
-+    }
-+    // olauncher end
-+
-     public String getMainClass() {
-         return this.mainClass;
-     }
-@@ -169,7 +186,7 @@ public class CompleteMinecraftVersion implements CompleteVersion {
  
      public Collection<Library> getRelevantLibraries(CompatibilityRule.FeatureMatcher var1) {
-         ArrayList var2 = new ArrayList();
+-        ArrayList var2 = new ArrayList();
 -        Iterator var3 = this.libraries.iterator();
-+        Iterator var3 = this.libraries.values().iterator(); // olauncher - deduplicate libraries
++        // olauncher start - deduplicate libraries
++        Map<String, Library> var2 = new LinkedHashMap<>();
  
-         while(var3.hasNext()) {
-             Library var4 = (Library)var3.next();
-@@ -366,25 +383,21 @@ public class CompleteMinecraftVersion implements CompleteVersion {
-             }
-             // olauncher end
+-        while(var3.hasNext()) {
+-            Library var4 = (Library)var3.next();
+-            if (var4.appliesToCurrentEnvironment(var1)) {
+-                var2.add(var4);
+-            }
++        for (Library lib : this.libraries) {
++            String name = lib.getCanonicalName();
++            if (!lib.appliesToCurrentEnvironment(var1) || var2.containsKey(name)) continue;
++            var2.put(name, lib);
+         }
  
-+            // olauncher start - deduplicate libraries
-             if (this.libraries != null) {
--                ArrayList var6 = Lists.newArrayList();
--                Iterator var7 = this.libraries.iterator();
-+                Map<String, Library> var6 = new LinkedHashMap<>(this.libraries.size());
- 
--                Library var8;
--                while(var7.hasNext()) {
--                    var8 = (Library)var7.next();
--                    var6.add(new Library(var8));
-+                for (Map.Entry<String, Library> entry : var5.libraries.entrySet()) {
-+                    var6.put(entry.getKey(), new Library(entry.getValue()));
-                 }
- 
--                var7 = var5.libraries.iterator();
--
--                while(var7.hasNext()) {
--                    var8 = (Library)var7.next();
--                    var6.add(var8);
-+                for (Map.Entry<String, Library> entry : this.libraries.entrySet()) {
-+                    var6.put(entry.getKey(), new Library(entry.getValue()));
-                 }
- 
-                 var5.libraries = var6;
-             }
-+            // olauncher end
- 
-             // olauncher - more iterator surgery
-             Iterator<Entry<ArgumentType, List<Argument>>> var9;
-@@ -497,4 +510,33 @@ public class CompleteMinecraftVersion implements CompleteVersion {
-         return javaVersion == null ? JavaVersionInfo.DEFAULT : javaVersion;
+-        return var2;
++        return var2.values();
++        // olauncher end
      }
-     // olauncher end
-+
-+    // olauncher start - deduplicate libraries
-+    public static class LibraryTypeAdapter implements JsonDeserializer<Map<String, Library>>, JsonSerializer<Map<String, Library>> {
-+        @Override
-+        public Map<String, Library> deserialize(JsonElement element, Type type, JsonDeserializationContext ctx) throws JsonParseException {
-+            if (!element.isJsonArray()) {
-+                throw new JsonParseException("Library list must be a JSON array");
-+            }
-+
-+            JsonArray arr = element.getAsJsonArray();
-+
-+            Map<String, Library> map = new LinkedHashMap<>(arr.size());
-+            for (JsonElement libElem : arr) {
-+                Library lib = ctx.deserialize(libElem, Library.class);
-+                map.put(lib.getCanonicalName(), lib);
-+            }
-+            return map;
-+        }
-+
-+        @Override
-+        public JsonElement serialize(Map<String, Library> libraries, Type type, JsonSerializationContext ctx) {
-+            JsonArray arr = new JsonArray(libraries.size());
-+            for (Library lib : libraries.values()) {
-+                arr.add(ctx.serialize(lib));
-+            }
-+            return arr;
-+        }
-+    }
-+    // olauncher end
- }
+ 
+     public Collection<File> getClassPath(OperatingSystem var1, File var2, CompatibilityRule.FeatureMatcher var3) {
 diff --git a/src/main/java/net/minecraft/launcher/updater/Library.java b/src/main/java/net/minecraft/launcher/updater/Library.java
 index f8435d1..743f4f0 100644
 --- a/src/main/java/net/minecraft/launcher/updater/Library.java
