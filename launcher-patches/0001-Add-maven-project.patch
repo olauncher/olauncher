@@ -1,4 +1,4 @@
-From f999670e4d4c41568faab33545413383d8e59067 Mon Sep 17 00:00:00 2001
+From dd9b23143b11b972de2cb6af0288e88eab641454 Mon Sep 17 00:00:00 2001
 From: bigfoot547 <bigfoot@figboot.dev>
 Date: Thu, 10 Mar 2022 01:37:59 -0600
 Subject: [PATCH] Add maven project
@@ -314,7 +314,7 @@ index aef7cf0..0000000
 -
 diff --git a/pom.xml b/pom.xml
 new file mode 100644
-index 0000000..8a7bf9b
+index 0000000..fc08f7a
 --- /dev/null
 +++ b/pom.xml
 @@ -0,0 +1,226 @@
@@ -332,7 +332,7 @@ index 0000000..8a7bf9b
 +    </parent>
 +
 +    <artifactId>olauncher</artifactId>
-+    <version>1.7.3_03</version>
++    <version>1.7.3_04</version>
 +
 +    <properties>
 +        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -1209,5 +1209,5 @@ similarity index 100%
 rename from yggdrasil_session_pubkey.der
 rename to src/main/resources/yggdrasil_session_pubkey.der
 -- 
-2.49.0
+2.52.0
 
