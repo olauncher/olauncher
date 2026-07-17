@@ -1,0 +1,70 @@
+From 0fb3252bf6e09a88171502e0a653cbf22b51a168 Mon Sep 17 00:00:00 2001
+From: Startix <44405665+Startix@users.noreply.github.com>
+Date: Sat, 18 Jul 2026 00:52:36 +0200
+Subject: [PATCH] Add new 26.1 metadata argument DEFAULT_USER_JVM
+
+---
+ .../updater/LowerCaseEnumTypeAdapterFactory.java | 16 ++++++++++++++++
+ .../minecraft/launcher/updater/ArgumentType.java |  6 +++++-
+ 2 files changed, 21 insertions(+), 1 deletion(-)
+
+diff --git a/src/main/java/com/mojang/launcher/updater/LowerCaseEnumTypeAdapterFactory.java b/src/main/java/com/mojang/launcher/updater/LowerCaseEnumTypeAdapterFactory.java
+index d15c531..552b4cc 100644
+--- a/src/main/java/com/mojang/launcher/updater/LowerCaseEnumTypeAdapterFactory.java
++++ b/src/main/java/com/mojang/launcher/updater/LowerCaseEnumTypeAdapterFactory.java
+@@ -3,11 +3,13 @@ package com.mojang.launcher.updater;
+ import com.google.gson.Gson;
+ import com.google.gson.TypeAdapter;
+ import com.google.gson.TypeAdapterFactory;
++import com.google.gson.annotations.SerializedName;
+ import com.google.gson.reflect.TypeToken;
+ import com.google.gson.stream.JsonReader;
+ import com.google.gson.stream.JsonToken;
+ import com.google.gson.stream.JsonWriter;
+ import java.io.IOException;
++import java.lang.reflect.Field;
+ import java.util.HashMap;
+ import java.util.Locale;
+ 
+@@ -53,6 +55,20 @@ public class LowerCaseEnumTypeAdapterFactory implements TypeAdapterFactory {
+     }
+ 
+     private String toLowercase(Object var1) {
++        // Check for @SerializedName first
++        if (var1 instanceof Enum) {
++            Enum<?> enumValue = (Enum<?>) var1;
++            try {
++                Field field = enumValue.getDeclaringClass().getField(enumValue.name());
++                SerializedName annotation = field.getAnnotation(SerializedName.class);
++                if (annotation != null) {
++                    return annotation.value();
++                }
++            } catch (NoSuchFieldException ignored) {
++                // Fall back to lowercase name
++            }
++        }
++        // Default: lowercase the enum name
+         return var1.toString().toLowerCase(Locale.US);
+     }
+ }
+diff --git a/src/main/java/net/minecraft/launcher/updater/ArgumentType.java b/src/main/java/net/minecraft/launcher/updater/ArgumentType.java
+index 11aadc7..50159ce 100644
+--- a/src/main/java/net/minecraft/launcher/updater/ArgumentType.java
++++ b/src/main/java/net/minecraft/launcher/updater/ArgumentType.java
+@@ -1,8 +1,12 @@
+ package net.minecraft.launcher.updater;
+ 
++import com.google.gson.annotations.SerializedName;
++
+ public enum ArgumentType {
+     JVM,
+-    GAME;
++    GAME,
++    @SerializedName("default-user-jvm")
++    DEFAULT_USER_JVM;
+ 
+     private ArgumentType() {
+     }
+-- 
+2.34.1
+
