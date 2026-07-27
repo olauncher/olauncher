@@ -1,0 +1,22 @@
+From 92e985a057ac2847e373c5144561a3209bfd4936 Mon Sep 17 00:00:00 2001
+From: ExplodingBottle <72459125+ExplodingBottle@users.noreply.github.com>
+Date: Sat, 30 May 2026 17:30:39 +0200
+Subject: [PATCH] Fix resources folder location
+
+
+diff --git a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
+index 099cba2..2d5a6f6 100644
+--- a/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
++++ b/src/main/java/net/minecraft/launcher/game/MinecraftGameRunner.java
+@@ -247,7 +247,7 @@ public class MinecraftGameRunner extends AbstractGameRunner implements GameProce
+             AssetIndex var7 = (AssetIndex)this.gson.fromJson(FileUtils.readFileToString(var5, Charsets.UTF_8), AssetIndex.class);
+             // olauncher start - handle mapping to resources/
+             if (var7.mapToResources()) {
+-                var6 = new File(selectedProfile.getGameDir(), "resources");
++                var6 = new File((File)MoreObjects.firstNonNull(selectedProfile.getGameDir(), this.getLauncher().getWorkingDirectory()), "resources");
+             }
+ 
+             if (var7.isVirtual() || var7.mapToResources()) {
+-- 
+2.43.0
+
