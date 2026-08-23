@@ -1,0 +1,572 @@
+From 76802e69435ed61d1f2e3eb296e8714a23e31ea8 Mon Sep 17 00:00:00 2001
+From: Somehowfreename <Somehowfreename@users.noreply.github.com>
+Date: Sun, 23 Aug 2026 15:43:21 -0700
+Subject: [PATCH] Resume interrupted downloads and validate completed files
+
+---
+ .../download/ChecksummedDownloadable.java     | 100 +++++------
+ .../updater/download/Downloadable.java        | 166 ++++++++++++++++++
+ .../download/assets/AssetDownloadable.java    | 125 ++++++-------
+ .../updater/PreHashedDownloadable.java        |  41 +----
+ 4 files changed, 266 insertions(+), 166 deletions(-)
+
+diff --git a/src/main/java/com/mojang/launcher/updater/download/ChecksummedDownloadable.java b/src/main/java/com/mojang/launcher/updater/download/ChecksummedDownloadable.java
+index 1340aca..04845cd 100644
+--- a/src/main/java/com/mojang/launcher/updater/download/ChecksummedDownloadable.java
++++ b/src/main/java/com/mojang/launcher/updater/download/ChecksummedDownloadable.java
+@@ -1,7 +1,6 @@
+ package com.mojang.launcher.updater.download;
+ 
+ import java.io.File;
+-import java.io.FileOutputStream;
+ import java.io.IOException;
+ import java.io.InputStream;
+ import java.net.HttpURLConnection;
+@@ -11,7 +10,6 @@ import org.apache.commons.io.Charsets;
+ import org.apache.commons.io.IOUtils;
+ 
+ public class ChecksummedDownloadable extends Downloadable {
+-    private String localHash;
+     private String expectedHash;
+ 
+     public ChecksummedDownloadable(Proxy var1, URL var2, File var3, boolean var4) {
+@@ -21,66 +19,54 @@ public class ChecksummedDownloadable extends Downloadable {
+     public String download() throws IOException {
+         ++this.numAttempts;
+         this.ensureFileWritable(this.getTarget());
+-        File var1 = this.getTarget();
+-        if (this.localHash == null && var1.isFile()) {
+-            this.localHash = getDigest(var1, "SHA-1", 40);
+-        }
++        this.loadExpectedHash();
+ 
+-        HttpURLConnection var2;
+-        int var3;
+-        if (this.expectedHash == null) {
+-            try {
+-                var2 = this.makeConnection(new URL(this.getUrl().toString() + ".sha1"));
+-                var3 = var2.getResponseCode();
+-                if (var3 / 100 == 2) {
+-                    InputStream var4 = var2.getInputStream();
++        if (this.expectedHash.length() > 0 && this.getTarget().isFile()) {
++            String localHash = getDigest(this.getTarget(), "SHA-1", 40);
++            if (this.expectedHash.equalsIgnoreCase(localHash)) {
++                return "Remote checksum matches local file";
++            }
++        }
+ 
+-                    try {
+-                        this.expectedHash = IOUtils.toString(var4, Charsets.UTF_8).trim();
+-                    } catch (IOException var11) {
+-                        this.expectedHash = "";
+-                    } finally {
+-                        IOUtils.closeQuietly(var4);
+-                    }
+-                } else {
+-                    this.expectedHash = "";
+-                }
+-            } catch (IOException var13) {
+-                this.expectedHash = "";
++        if (this.expectedHash.length() == 0 && this.getTarget().isFile()) {
++            if (!this.getTarget().delete() && this.getTarget().exists()) {
++                throw new IOException("Could not remove unverifiable local file " + this.getTarget());
+             }
+         }
+ 
+-        if (this.expectedHash.length() == 0 && var1.isFile()) {
+-            return "Couldn't find a checksum so assuming our copy is good";
+-        } else if (this.expectedHash.equalsIgnoreCase(this.localHash)) {
+-            return "Remote checksum matches local file";
+-        } else {
+-            try {
+-                var2 = this.makeConnection(this.getUrl());
+-                var3 = var2.getResponseCode();
+-                if (var3 / 100 == 2) {
+-                    this.updateExpectedSize(var2);
+-                    MonitoringInputStream var15 = new MonitoringInputStream(var2.getInputStream(), this.getMonitor());
+-                    FileOutputStream var5 = new FileOutputStream(this.getTarget());
+-                    String var6 = copyAndDigest(var15, var5, "SHA", 40);
+-                    if (this.expectedHash.length() == 0) {
+-                        return "Didn't have checksum so assuming the downloaded file is good";
+-                    } else if (this.expectedHash.equalsIgnoreCase(var6)) {
+-                        return "Downloaded successfully and checksum matched";
+-                    } else {
+-                        throw new RuntimeException(String.format("Checksum did not match downloaded file (Checksum was %s, downloaded %s)", this.expectedHash, var6));
+-                    }
+-                } else if (this.getTarget().isFile()) {
+-                    return "Couldn't connect to server (responded with " + var3 + ") but have local file, assuming it's good";
+-                } else {
+-                    throw new RuntimeException("Server responded with " + var3);
+-                }
+-            } catch (IOException var14) {
+-                if (!this.getTarget().isFile() || this.expectedHash != null && this.expectedHash.length() != 0) {
+-                    throw var14;
+-                } else {
+-                    return "Couldn't connect to server (" + var14.getClass().getSimpleName() + ": '" + var14.getMessage() + "') but have local file, assuming it's good";
+-                }
++        this.downloadWithResume(
++            this.getUrl(),
++            this.getTarget(),
++            "SHA-1",
++            40,
++            this.expectedHash.length() == 0 ? null : this.expectedHash
++        );
++        return this.expectedHash.length() == 0
++            ? "Downloaded successfully and matched the server-reported size (no checksum was available)"
++            : "Downloaded successfully and checksum matched";
++    }
++
++    private void loadExpectedHash() {
++        if (this.expectedHash != null) {
++            return;
++        }
++
++        HttpURLConnection connection = null;
++        InputStream input = null;
++        try {
++            connection = this.makeConnection(new URL(this.getUrl().toString() + ".sha1"));
++            if (connection.getResponseCode() / 100 == 2) {
++                input = connection.getInputStream();
++                this.expectedHash = IOUtils.toString(input, Charsets.UTF_8).trim();
++            } else {
++                this.expectedHash = "";
++            }
++        } catch (IOException ignored) {
++            this.expectedHash = "";
++        } finally {
++            IOUtils.closeQuietly(input);
++            if (connection != null) {
++                connection.disconnect();
+             }
+         }
+     }
+diff --git a/src/main/java/com/mojang/launcher/updater/download/Downloadable.java b/src/main/java/com/mojang/launcher/updater/download/Downloadable.java
+index 018dd50..af5d335 100644
+--- a/src/main/java/com/mojang/launcher/updater/download/Downloadable.java
++++ b/src/main/java/com/mojang/launcher/updater/download/Downloadable.java
+@@ -3,6 +3,7 @@ package com.mojang.launcher.updater.download;
+ import java.io.Closeable;
+ import java.io.File;
+ import java.io.FileInputStream;
++import java.io.FileOutputStream;
+ import java.io.IOException;
+ import java.io.InputStream;
+ import java.io.OutputStream;
+@@ -18,6 +19,8 @@ import org.apache.logging.log4j.Logger;
+ 
+ public abstract class Downloadable {
+     private static final Logger LOGGER = LogManager.getLogger();
++    private static final int MAX_RESUME_ATTEMPTS = 10;
++    private static final long RETRY_DELAY_MILLIS = 250L;
+     private final URL url;
+     private final File target;
+     private final boolean forceDownload;
+@@ -95,6 +98,169 @@ public abstract class Downloadable {
+         return var2;
+     }
+ 
++    protected String downloadWithResume(URL source, File target, String digestAlgorithm, int digestLength, String expectedDigest) throws IOException {
++        this.ensureFileWritable(target);
++        long knownTotal = this.expectedSize;
++
++        if (target.isFile() && expectedDigest != null && expectedDigest.length() > 0) {
++            String localDigest = getDigest(target, digestAlgorithm, digestLength);
++            if (expectedDigest.equalsIgnoreCase(localDigest)) {
++                if (knownTotal == 0L) {
++                    knownTotal = target.length();
++                    this.setExpectedSize(knownTotal);
++                }
++                this.monitor.setTotal(knownTotal);
++                this.monitor.setCurrent(target.length());
++                return localDigest;
++            }
++        }
++
++        IOException lastFailure = null;
++        for (int attempt = 1; attempt <= MAX_RESUME_ATTEMPTS; ++attempt) {
++            long offset = target.isFile() ? target.length() : 0L;
++            if (knownTotal > 0L && offset > knownTotal) {
++                if (!target.delete() && target.exists()) {
++                    throw new IOException("Could not delete oversized partial download " + target);
++                }
++                offset = 0L;
++            }
++
++            HttpURLConnection connection = this.makeConnection(source);
++            if (offset > 0L) {
++                connection.setRequestProperty("Range", "bytes=" + offset + "-");
++            }
++
++            InputStream input = null;
++            OutputStream output = null;
++            try {
++                int responseCode = connection.getResponseCode();
++                boolean append;
++                long responseTotal;
++                if (offset > 0L && responseCode == HttpURLConnection.HTTP_PARTIAL) {
++                    responseTotal = parseContentRangeTotal(connection.getHeaderField("Content-Range"), offset);
++                    append = true;
++                    LOGGER.info("Resuming {} at byte {} (connection attempt {}/{})", new Object[]{target, offset, attempt, MAX_RESUME_ATTEMPTS});
++                } else if (responseCode / 100 == 2) {
++                    if (offset > 0L) {
++                        LOGGER.warn("Server ignored byte range for {}; restarting this file from byte zero", target);
++                    }
++                    offset = 0L;
++                    append = false;
++                    responseTotal = (long)connection.getContentLength();
++                } else {
++                    throw new IOException("Server responded with HTTP " + responseCode + " for " + source);
++                }
++
++                if (responseTotal > 0L) {
++                    if (knownTotal > 0L && knownTotal != responseTotal) {
++                        throw new IOException("Server reported size " + responseTotal + " but expected " + knownTotal + " for " + source);
++                    }
++                    knownTotal = responseTotal;
++                    this.setExpectedSize(responseTotal);
++                    this.monitor.setTotal(responseTotal);
++                }
++                this.monitor.setCurrent(offset);
++
++                input = new MonitoringInputStream(connection.getInputStream(), this.monitor);
++                output = new FileOutputStream(target, append);
++                byte[] buffer = new byte[65536];
++
++                for (int read = input.read(buffer); read >= 0; read = input.read(buffer)) {
++                    if (read > 0) {
++                        output.write(buffer, 0, read);
++                    }
++                }
++                output.flush();
++            } catch (IOException failure) {
++                lastFailure = failure;
++                LOGGER.warn(
++                    "Connection attempt {}/{} for {} ended after {} of {} bytes; retaining the partial file for a ranged retry",
++                    new Object[]{attempt, MAX_RESUME_ATTEMPTS, target, target.isFile() ? target.length() : 0L, knownTotal, failure}
++                );
++            } finally {
++                closeSilently(input);
++                closeSilently(output);
++                connection.disconnect();
++            }
++
++            long downloadedSize = target.isFile() ? target.length() : 0L;
++            if (knownTotal > 0L && downloadedSize > knownTotal) {
++                if (!target.delete() && target.exists()) {
++                    throw new IOException("Downloaded file exceeded expected size and could not be deleted: " + target);
++                }
++                throw new IOException("Downloaded file exceeded expected size " + knownTotal + ": " + target);
++            }
++
++            if (knownTotal == 0L || downloadedSize == knownTotal) {
++                if (expectedDigest == null || expectedDigest.length() == 0) {
++                    if (knownTotal > 0L) {
++                        this.monitor.setCurrent(knownTotal);
++                        return "";
++                    }
++                } else {
++                    String actualDigest = getDigest(target, digestAlgorithm, digestLength);
++                    if (expectedDigest.equalsIgnoreCase(actualDigest)) {
++                        if (knownTotal == 0L) {
++                            knownTotal = downloadedSize;
++                            this.setExpectedSize(knownTotal);
++                            this.monitor.setTotal(knownTotal);
++                        }
++                        this.monitor.setCurrent(knownTotal);
++                        return actualDigest;
++                    }
++
++                    if (knownTotal > 0L && downloadedSize == knownTotal) {
++                        if (!target.delete() && target.exists()) {
++                            throw new IOException("Downloaded file had an invalid digest and could not be deleted: " + target);
++                        }
++                        throw new IOException("Downloaded file digest did not match (expected " + expectedDigest + ", downloaded " + actualDigest + ")");
++                    }
++                }
++            }
++
++            if (attempt < MAX_RESUME_ATTEMPTS) {
++                sleepBeforeRetry(attempt);
++            }
++        }
++
++        long finalSize = target.isFile() ? target.length() : 0L;
++        IOException exhausted = new IOException(
++            "Could not finish " + source + " after " + MAX_RESUME_ATTEMPTS + " connections (downloaded " + finalSize + " of " + knownTotal + " bytes)"
++        );
++        if (lastFailure != null) {
++            exhausted.initCause(lastFailure);
++        }
++        throw exhausted;
++    }
++
++    private static long parseContentRangeTotal(String contentRange, long expectedOffset) throws IOException {
++        String expectedPrefix = "bytes " + expectedOffset + "-";
++        if (contentRange == null || !contentRange.toLowerCase().startsWith(expectedPrefix)) {
++            throw new IOException("Invalid Content-Range for resumed download: " + contentRange + " (expected " + expectedPrefix + "...)");
++        }
++
++        int slash = contentRange.lastIndexOf(47);
++        if (slash < 0 || slash == contentRange.length() - 1 || "*".equals(contentRange.substring(slash + 1))) {
++            throw new IOException("Content-Range did not include a usable total size: " + contentRange);
++        }
++
++        try {
++            return Long.parseLong(contentRange.substring(slash + 1));
++        } catch (NumberFormatException invalidTotal) {
++            throw new IOException("Invalid total size in Content-Range: " + contentRange, invalidTotal);
++        }
++    }
++
++    private static void sleepBeforeRetry(int attempt) throws IOException {
++        long delay = Math.min(RETRY_DELAY_MILLIS * (long)attempt, 2000L);
++        try {
++            Thread.sleep(delay);
++        } catch (InterruptedException interrupted) {
++            Thread.currentThread().interrupt();
++            throw new IOException("Interrupted while waiting to retry download", interrupted);
++        }
++    }
++
+     public URL getUrl() {
+         return this.url;
+     }
+diff --git a/src/main/java/com/mojang/launcher/updater/download/assets/AssetDownloadable.java b/src/main/java/com/mojang/launcher/updater/download/assets/AssetDownloadable.java
+index 634ead1..9146493 100644
+--- a/src/main/java/com/mojang/launcher/updater/download/assets/AssetDownloadable.java
++++ b/src/main/java/com/mojang/launcher/updater/download/assets/AssetDownloadable.java
+@@ -1,11 +1,9 @@
+ package com.mojang.launcher.updater.download.assets;
+ 
+ import com.mojang.launcher.updater.download.Downloadable;
+-import com.mojang.launcher.updater.download.MonitoringInputStream;
+ import java.io.File;
+ import java.io.FileOutputStream;
+ import java.io.IOException;
+-import java.net.HttpURLConnection;
+ import java.net.MalformedURLException;
+ import java.net.Proxy;
+ import java.net.URL;
+@@ -39,101 +37,82 @@ public class AssetDownloadable extends Downloadable {
+     public String download() throws IOException {
+         this.status = AssetDownloadable.Status.DOWNLOADING;
+         ++this.numAttempts;
+-        File var1 = this.getTarget();
+-        File var2 = this.asset.hasCompressedAlternative() ? new File(this.destination, createPathFromHash(this.asset.getCompressedHash())) : null;
+-        URL var3 = this.getUrl();
+-        URL var4 = this.asset.hasCompressedAlternative() ? new URL(this.urlBase + createPathFromHash(this.asset.getCompressedHash())) : null;
+-        this.ensureFileWritable(var1);
+-        if (var2 != null) {
+-            this.ensureFileWritable(var2);
++        File target = this.getTarget();
++        File compressedTarget = this.asset.hasCompressedAlternative()
++            ? new File(this.destination, createPathFromHash(this.asset.getCompressedHash()))
++            : null;
++        URL compressedUrl = this.asset.hasCompressedAlternative()
++            ? new URL(this.urlBase + createPathFromHash(this.asset.getCompressedHash()))
++            : null;
++
++        this.ensureFileWritable(target);
++        if (compressedTarget != null) {
++            this.ensureFileWritable(compressedTarget);
+         }
+ 
+-        if (var1.isFile()) {
+-            if (FileUtils.sizeOf(var1) == this.asset.getSize()) {
+-                return "Have local file and it's the same size; assuming it's okay!";
+-            }
++        if (this.isCompleteAndValid(target, this.asset.getSize(), this.asset.getHash())) {
++            return "Have local file with matching size and hash";
++        }
+ 
+-            LOGGER.warn("Had local file but it was the wrong size... had {} but expected {}", new Object[]{FileUtils.sizeOf(var1), this.asset.getSize()});
+-            FileUtils.deleteQuietly(var1);
+-            this.status = AssetDownloadable.Status.DOWNLOADING;
++        if (compressedUrl != null && compressedTarget != null) {
++            this.setExpectedSize(this.asset.getCompressedSize());
++            this.downloadWithResume(compressedUrl, compressedTarget, "SHA", 40, this.asset.getCompressedHash());
++            return this.decompressAsset(target, compressedTarget);
+         }
+ 
+-        if (var2 != null && var2.isFile()) {
+-            String var5 = getDigest(var2, "SHA", 40);
+-            if (var5.equalsIgnoreCase(this.asset.getCompressedHash())) {
+-                return this.decompressAsset(var1, var2);
+-            }
++        this.setExpectedSize(this.asset.getSize());
++        this.downloadWithResume(this.getUrl(), target, "SHA", 40, this.asset.getHash());
++        return "Downloaded asset and hash matched successfully";
++    }
+ 
+-            LOGGER.warn("Had local compressed but it was the wrong hash... expected {} but had {}", new Object[]{this.asset.getCompressedHash(), var5});
+-            FileUtils.deleteQuietly(var2);
++    private boolean isCompleteAndValid(File file, long expectedSize, String expectedHash) {
++        if (!file.isFile()) {
++            return false;
+         }
+ 
+-        int var6;
+-        MonitoringInputStream var7;
+-        FileOutputStream var8;
+-        String var9;
+-        HttpURLConnection var10;
+-        if (var4 != null && var2 != null) {
+-            var10 = this.makeConnection(var4);
+-            var6 = var10.getResponseCode();
+-            if (var6 / 100 == 2) {
+-                this.updateExpectedSize(var10);
+-                var7 = new MonitoringInputStream(var10.getInputStream(), this.getMonitor());
+-                var8 = new FileOutputStream(var2);
+-                var9 = copyAndDigest(var7, var8, "SHA", 40);
+-                if (var9.equalsIgnoreCase(this.asset.getCompressedHash())) {
+-                    return this.decompressAsset(var1, var2);
+-                } else {
+-                    FileUtils.deleteQuietly(var2);
+-                    throw new RuntimeException(String.format("Hash did not match downloaded compressed asset (Expected %s, downloaded %s)", this.asset.getCompressedHash(), var9));
+-                }
+-            } else {
+-                throw new RuntimeException("Server responded with " + var6);
+-            }
+-        } else {
+-            var10 = this.makeConnection(var3);
+-            var6 = var10.getResponseCode();
+-            if (var6 / 100 == 2) {
+-                this.updateExpectedSize(var10);
+-                var7 = new MonitoringInputStream(var10.getInputStream(), this.getMonitor());
+-                var8 = new FileOutputStream(var1);
+-                var9 = copyAndDigest(var7, var8, "SHA", 40);
+-                if (var9.equalsIgnoreCase(this.asset.getHash())) {
+-                    return "Downloaded asset and hash matched successfully";
+-                } else {
+-                    FileUtils.deleteQuietly(var1);
+-                    throw new RuntimeException(String.format("Hash did not match downloaded asset (Expected %s, downloaded %s)", this.asset.getHash(), var9));
+-                }
+-            } else {
+-                throw new RuntimeException("Server responded with " + var6);
++        long actualSize = FileUtils.sizeOf(file);
++        if (actualSize != expectedSize) {
++            if (actualSize > expectedSize) {
++                LOGGER.warn("Deleting oversized partial file {} (had {} bytes, expected {})", new Object[]{file, actualSize, expectedSize});
++                FileUtils.deleteQuietly(file);
+             }
++            return false;
+         }
++
++        String actualHash = getDigest(file, "SHA", 40);
++        if (expectedHash.equalsIgnoreCase(actualHash)) {
++            return true;
++        }
++
++        LOGGER.warn("Deleting file {} with invalid hash (expected {}, had {})", new Object[]{file, expectedHash, actualHash});
++        FileUtils.deleteQuietly(file);
++        return false;
+     }
+ 
+     public String getStatus() {
+         return this.status.name + " " + this.name;
+     }
+ 
+-    protected String decompressAsset(File var1, File var2) throws IOException {
++    protected String decompressAsset(File target, File compressedTarget) throws IOException {
+         this.status = AssetDownloadable.Status.EXTRACTING;
+-        FileOutputStream var3 = FileUtils.openOutputStream(var1);
+-        GZIPInputStream var4 = new GZIPInputStream(FileUtils.openInputStream(var2));
++        FileOutputStream output = FileUtils.openOutputStream(target);
++        GZIPInputStream input = new GZIPInputStream(FileUtils.openInputStream(compressedTarget));
+ 
+-        String var5;
++        String hash;
+         try {
+-            var5 = copyAndDigest(var4, var3, "SHA", 40);
++            hash = copyAndDigest(input, output, "SHA", 40);
+         } finally {
+-            IOUtils.closeQuietly(var3);
+-            IOUtils.closeQuietly(var4);
++            IOUtils.closeQuietly(output);
++            IOUtils.closeQuietly(input);
+         }
+ 
+         this.status = AssetDownloadable.Status.DOWNLOADING;
+-        if (var5.equalsIgnoreCase(this.asset.getHash())) {
+-            return "Had local compressed asset, unpacked successfully and hash matched";
+-        } else {
+-            FileUtils.deleteQuietly(var1);
+-            throw new RuntimeException("Had local compressed asset but unpacked hash did not match (expected " + this.asset.getHash() + " but had " + var5 + ")");
++        if (hash.equalsIgnoreCase(this.asset.getHash()) && FileUtils.sizeOf(target) == this.asset.getSize()) {
++            return "Downloaded compressed asset, unpacked successfully and hash matched";
+         }
++
++        FileUtils.deleteQuietly(target);
++        throw new IOException("Unpacked asset did not match expected size/hash (expected " + this.asset.getHash() + " but had " + hash + ")");
+     }
+ 
+     private static enum Status {
+diff --git a/src/main/java/net/minecraft/launcher/updater/PreHashedDownloadable.java b/src/main/java/net/minecraft/launcher/updater/PreHashedDownloadable.java
+index 98a6788..daccd67 100644
+--- a/src/main/java/net/minecraft/launcher/updater/PreHashedDownloadable.java
++++ b/src/main/java/net/minecraft/launcher/updater/PreHashedDownloadable.java
+@@ -1,14 +1,10 @@
+ package net.minecraft.launcher.updater;
+ 
+ import com.mojang.launcher.updater.download.Downloadable;
+-import com.mojang.launcher.updater.download.MonitoringInputStream;
+ import java.io.File;
+-import java.io.FileOutputStream;
+ import java.io.IOException;
+-import java.net.HttpURLConnection;
+ import java.net.Proxy;
+ import java.net.URL;
+-import org.apache.commons.io.FileUtils;
+ 
+ public class PreHashedDownloadable extends Downloadable {
+     private final String expectedHash;
+@@ -21,41 +17,14 @@ public class PreHashedDownloadable extends Downloadable {
+     public String download() throws IOException {
+         ++this.numAttempts;
+         this.ensureFileWritable(this.getTarget());
+-        File var1 = this.getTarget();
+-        String var2 = null;
+-        if (var1.isFile()) {
+-            var2 = getDigest(var1, "SHA-1", 40);
+-            if (this.expectedHash.equalsIgnoreCase(var2)) {
++        if (this.getTarget().isFile()) {
++            String localHash = getDigest(this.getTarget(), "SHA-1", 40);
++            if (this.expectedHash.equalsIgnoreCase(localHash)) {
+                 return "Local file matches hash, using that";
+             }
+-
+-            FileUtils.deleteQuietly(var1);
+         }
+ 
+-        try {
+-            HttpURLConnection var3 = this.makeConnection(this.getUrl());
+-            int var4 = var3.getResponseCode();
+-            if (var4 / 100 == 2) {
+-                this.updateExpectedSize(var3);
+-                MonitoringInputStream var5 = new MonitoringInputStream(var3.getInputStream(), this.getMonitor());
+-                FileOutputStream var6 = new FileOutputStream(this.getTarget());
+-                String var7 = copyAndDigest(var5, var6, "SHA", 40);
+-                if (this.expectedHash.equalsIgnoreCase(var7)) {
+-                    return "Downloaded successfully and hash matched";
+-                } else {
+-                    throw new RuntimeException(String.format("Hash did not match downloaded file (Expected %s, downloaded %s)", this.expectedHash, var7));
+-                }
+-            } else if (this.getTarget().isFile()) {
+-                return "Couldn't connect to server (responded with " + var4 + ") but have local file, assuming it's good";
+-            } else {
+-                throw new RuntimeException("Server responded with " + var4);
+-            }
+-        } catch (IOException var8) {
+-            if (this.getTarget().isFile()) {
+-                return "Couldn't connect to server (" + var8.getClass().getSimpleName() + ": '" + var8.getMessage() + "') but have local file, assuming it's good";
+-            } else {
+-                throw var8;
+-            }
+-        }
++        this.downloadWithResume(this.getUrl(), this.getTarget(), "SHA-1", 40, this.expectedHash);
++        return "Downloaded successfully and hash matched";
+     }
+ }
+-- 
+2.53.0.windows.3
+
